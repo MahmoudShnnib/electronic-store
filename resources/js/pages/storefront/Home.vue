@@ -326,14 +326,16 @@ function scrollRail(direction: 1 | -1) {
                 <ChevronRight class="h-4 w-4 rtl:rotate-180" />
             </Link>
         </div>
-        <div ref="rail" class="flex snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div ref="rail" class="flex snap-x gap-3 overflow-x-auto pb-2 lg:gap-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <Link
                 v-for="category in categories"
                 :key="category.id"
                 :href="route('catalog.category', category.slug)"
-                class="group w-28 shrink-0 snap-start text-center"
+                class="group w-28 shrink-0 snap-start text-center sm:w-36 lg:w-44"
             >
-                <div class="relative h-28 w-28 overflow-hidden rounded-2xl bg-neutral-900 ring-1 ring-black/5 transition group-hover:-translate-y-1 group-hover:shadow-lg dark:ring-white/10">
+                <div
+                    class="relative h-28 w-28 overflow-hidden rounded-2xl bg-neutral-900 ring-1 ring-black/5 transition group-hover:-translate-y-1 group-hover:shadow-lg dark:ring-white/10 sm:h-36 sm:w-36 lg:h-44 lg:w-44"
+                >
                     <img
                         v-if="category.image"
                         :src="category.image"
@@ -343,12 +345,12 @@ function scrollRail(direction: 1 | -1) {
                     />
                     <div class="absolute inset-0 bg-black/25"></div>
                     <div class="absolute inset-0 flex items-center justify-center">
-                        <span class="rounded-full bg-white/15 p-2.5 backdrop-blur-sm">
-                            <component :is="categoryIcon(category)" class="h-5 w-5 text-white" />
+                        <span class="rounded-full bg-white/15 p-2.5 backdrop-blur-sm lg:p-3.5">
+                            <component :is="categoryIcon(category)" class="h-5 w-5 text-white lg:h-7 lg:w-7" />
                         </span>
                     </div>
                 </div>
-                <span class="mt-2 line-clamp-2 block text-xs font-medium leading-snug">{{ categoryName(category) }}</span>
+                <span class="mt-2 line-clamp-2 block text-xs font-medium leading-snug sm:text-sm">{{ categoryName(category) }}</span>
             </Link>
         </div>
     </section>
