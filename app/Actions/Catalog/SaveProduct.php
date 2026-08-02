@@ -1,0 +1,173 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions\Catalog;
+
+use App\Enums\PriceType;
+use App\Models\PriceHistory;
+use App\Models\Product;
+use App\Models\ProductVariant;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+/**
+ * Creates or updates a product plus its variants and specification values in
+ * one transaction, recording price history for every price change.
+ */
+final class SaveProduct
+{
+    /**
+     * @param  array<string, mixed>  $attributes  validated product fields (prices in cents)
+     * @param  list<array<string, mixed>>|null  $variants  null = leave variants untouched
+     * @param  array<int, array{value: string, value_ar?: ?string}>|null  $specifications  attribute_id => value, null = untouched
+     */
+    public function handle(
+        ?Product $product,
+        array $attributes,
+        ?array $variants = null,
+        ?array $specifications = null,
+        ?int $userId = null,
+    ): Product {
+        return DB::transaction(function () use ($product, $attributes, $variants, $specifications, $userId): Product {
+            $attributes['slug'] ??= $this->uniqueSlug($attributes['name'] ?? $product?->name ?? '', $product?->id);
+
+            if ($product === null) {
+                $product = Product::create([...$attributes, 'created_by' => $userId, 'updated_by' => $userId]);
+
+                $this->recordPriceHistory($product, null, null, (int) $product->price_cents, PriceType::Regular, $userId);
+            } else {
+                $this->trackPriceChanges($product, $attributes, $userId);
+
+                $product->update([...$attributes, 'updated_by' => $userId]);
+            }
+
+            if ($variants !== null) {
+                $this->syncVariants($product, $variants, $userId);
+            }
+
+            if ($specifications !== null) {
+                $this->syncSpecifications($product, $specifications);
+            }
+
+            return $product->refresh();
+        });
+    }
+
+    private function trackPriceChanges(Product $product, array $attributes, ?int $userId): void
+    {
+        $map = [
+            'price_cents' => PriceType::Regular,
+            'sale_price_cents' => PriceType::Sale,
+            'cost_price_cents' => PriceType::Cost,
+        ];
+
+        foreach ($map as $field => $type) {
+            if (! array_key_exists($field, $attributes)) {
+                continue;
+            }
+
+            $old = $product->{$field};
+            $new = $attributes[$field];
+
+            if ($old !== $new && $new !== null) {
+                $this->recordPriceHistory($product, null, $old === null ? null : (int) $old, (int) $new, $type, $userId);
+            }
+        }
+    }
+
+    private function recordPriceHistory(
+        Product $product,
+        ?ProductVariant $variant,
+        ?int $old,
+        int $new,
+        PriceType $type,
+        ?int $userId,
+        ?string $reason = null,
+    ): void {
+        PriceHistory::create([
+            'product_id' => $product->id,
+            'product_variant_id' => $variant?->id,
+            'price_type' => $type,
+            'old_price_cents' => $old,
+            'new_price_cents' => $new,
+            'reason' => $reason,
+            'user_id' => $userId,
+        ]);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $variants  each may carry an `id` for updates
+     */
+    private function syncVariants(Product $product, array $variants, ?int $userId): void
+    {
+        $keptIds = [];
+
+        foreach ($variants as $position => $data) {
+            $data['position'] = $position;
+
+            if (isset($data['id'])) {
+                $variant = $product->variants()->whereKey($data['id'])->first();
+
+                if ($variant !== null) {
+                    if (array_key_exists('price_cents', $data) && (int) $variant->price_cents !== (int) $data['price_cents']) {
+                        $this->recordPriceHistory($product, $variant, (int) $variant->price_cents, (int) $data['price_cents'], PriceType::Regular, $userId);
+                    }
+
+                    $variant->update(collect($data)->except('id')->all());
+                    $keptIds[] = $variant->id;
+
+                    continue;
+                }
+            }
+
+            unset($data['id']);
+            $variant = $product->variants()->create($data);
+            $this->recordPriceHistory($product, $variant, null, (int) $variant->price_cents, PriceType::Regular, $userId);
+            $keptIds[] = $variant->id;
+        }
+
+        // Variants removed from the payload are soft-deleted (order items keep
+        // their snapshots, so history is safe).
+        $product->variants()->whereNotIn('id', $keptIds)->delete();
+
+        $product->update(['has_variants' => $keptIds !== []]);
+    }
+
+    /**
+     * @param  array<int, array{value: string, value_ar?: ?string}>  $specifications
+     */
+    private function syncSpecifications(Product $product, array $specifications): void
+    {
+        $product->specificationValues()->delete();
+
+        foreach ($specifications as $attributeId => $value) {
+            if (trim($value['value'] ?? '') === '') {
+                continue;
+            }
+
+            $product->specificationValues()->create([
+                'specification_attribute_id' => $attributeId,
+                'value' => $value['value'],
+                'value_ar' => $value['value_ar'] ?? null,
+            ]);
+        }
+    }
+
+    private function uniqueSlug(string $name, ?int $ignoreId): string
+    {
+        $base = Str::slug($name) ?: 'product';
+        $slug = $base;
+        $suffix = 2;
+
+        while (Product::withTrashed()
+            ->where('slug', $slug)
+            ->when($ignoreId !== null, fn ($q) => $q->whereKeyNot($ignoreId))
+            ->exists()) {
+            $slug = "{$base}-{$suffix}";
+            $suffix++;
+        }
+
+        return $slug;
+    }
+}

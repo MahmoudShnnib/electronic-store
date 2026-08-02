@@ -1,0 +1,139 @@
+{
+  "name": "laravel-inertia-vue",
+  "displayName": "Laravel + Inertia.js + Vue",
+  "version": "1.0.0",
+  "phpVersion": "8.3+",
+  "laravelVersion": "12.x",
+  "description": "Comprehensive patterns for building modern monolithic applications with Laravel, Inertia.js, and Vue 3. Covers page components, forms, navigation, shared data, and persistent layouts.",
+  "author": "Jasim K",
+  "license": "MIT",
+  "keywords": [
+    "laravel",
+    "inertia",
+    "inertiajs",
+    "vue",
+    "vue3",
+    "typescript",
+    "fullstack",
+    "spa",
+    "forms",
+    "validation",
+    "routing",
+    "ziggy"
+  ],
+  "categories": [
+    "page-components",
+    "forms",
+    "navigation",
+    "shared-data",
+    "layouts",
+    "advanced-patterns"
+  ],
+  "priority": {
+    "critical": ["page-components", "forms", "navigation", "shared-data", "layouts"],
+    "high": ["navigation", "shared-data"],
+    "medium": ["layouts", "advanced-patterns"]
+  },
+  "references": [
+    {
+      "name": "Inertia.js Documentation",
+      "url": "https://inertiajs.com/",
+      "description": "Official Inertia.js documentation covering Vue adapter, routing, forms, and more"
+    },
+    {
+      "name": "Laravel Documentation",
+      "url": "https://laravel.com/docs",
+      "description": "Laravel framework documentation for backend API and routing"
+    },
+    {
+      "name": "Vue 3 Documentation",
+      "url": "https://vuejs.org/",
+      "description": "Official Vue 3 documentation for Composition API, components, and TypeScript"
+    },
+    {
+      "name": "Ziggy Documentation",
+      "url": "https://github.com/tighten/ziggy",
+      "description": "Use Laravel named routes in JavaScript with type safety"
+    }
+  ],
+  "dependencies": {
+    "php": ">=8.3",
+    "laravel": ">=12.0",
+    "inertiajs/inertia-laravel": ">=2.0",
+    "@inertiajs/vue3": ">=2.0",
+    "vue": ">=3.3",
+    "typescript": ">=5.0"
+  },
+  "sections": {
+    "page-components": {
+      "title": "Page Components",
+      "description": "Standard structure for Inertia page components with TypeScript typing and layout assignment using Vue 3 Composition API",
+      "priority": "critical",
+      "rules": [
+        "page-component-structure",
+        "page-props-typing",
+        "page-head-management",
+        "page-default-layout",
+        "page-scroll-preservation",
+        "page-partial-reloads"
+      ]
+    },
+    "forms": {
+      "title": "Forms & Validation",
+      "description": "Complete form handling with useForm composable, validation, file uploads, and state management",
+      "priority": "critical",
+      "rules": [
+        "form-useform-basic",
+        "form-useform-hook",
+        "form-validation-errors",
+        "form-file-uploads",
+        "form-progress-indicator",
+        "form-transform-data",
+        "form-reset-handling",
+        "form-dirty-tracking"
+      ]
+    },
+    "navigation": {
+      "title": "Navigation",
+      "description": "SPA-like navigation with Link component and router for programmatic navigation",
+      "priority": "critical",
+      "rules": [
+        "nav-link-component",
+        "nav-programmatic",
+        "nav-external-links",
+        "nav-preserve-state",
+        "nav-replace-history"
+      ]
+    },
+    "shared-data": {
+      "title": "Shared Data",
+      "description": "Global props shared across all pages including auth, flash messages, and config",
+      "priority": "critical",
+      "rules": [
+        "shared-auth-user",
+        "shared-flash-messages",
+        "shared-ziggy-routes",
+        "shared-app-config"
+      ]
+    },
+    "layouts": {
+      "title": "Layouts",
+      "description": "Persistent layouts that maintain state across navigation for better performance",
+      "priority": "critical",
+      "rules": [
+        "layout-persistent"
+      ]
+    }
+  },
+  "tags": [
+    "fullstack",
+    "monolith",
+    "spa",
+    "typescript",
+    "forms",
+    "validation",
+    "routing",
+    "authentication"
+  ],
+  "updatedAt": "2026-03-17"
+}

@@ -1,0 +1,305 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Reports;
+
+use App\Support\Money;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+/**
+ * All admin reporting queries. Revenue counts orders that were confirmed or
+ * further along (not pending/cancelled/refunded); everything is aggregated in
+ * SQL so reports stay fast on large datasets.
+ */
+final class ReportService
+{
+    private const REVENUE_STATUSES = [
+        'confirmed', 'processing', 'ready_for_shipping', 'shipped', 'delivered', 'completed',
+    ];
+
+    private function revenueOrders(CarbonImmutable $from, CarbonImmutable $to): Builder
+    {
+        return DB::table('orders')
+            ->whereIn('status', self::REVENUE_STATUSES)
+            ->whereNull('deleted_at')
+            ->whereBetween('created_at', [$from, $to]);
+    }
+
+    private function revenueItems(CarbonImmutable $from, CarbonImmutable $to): Builder
+    {
+        return DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->whereIn('orders.status', self::REVENUE_STATUSES)
+            ->whereNull('orders.deleted_at')
+            ->whereBetween('orders.created_at', [$from, $to]);
+    }
+
+    public function salesSummary(CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $row = $this->revenueOrders($from, $to)
+            ->selectRaw('COUNT(*) as orders, COALESCE(SUM(total_cents),0) as revenue, COALESCE(SUM(discount_cents),0) as discounts, COALESCE(AVG(total_cents),0) as avg_order')
+            ->first();
+
+        $cost = (int) $this->revenueItems($from, $to)
+            ->leftJoin('product_variants', 'product_variants.id', '=', 'order_items.product_variant_id')
+            ->leftJoin('products', 'products.id', '=', 'order_items.product_id')
+            ->selectRaw('COALESCE(SUM(order_items.quantity * COALESCE(product_variants.cost_price_cents, products.cost_price_cents, 0)),0) as cost')
+            ->value('cost');
+
+        $returns = (int) DB::table('returns')->whereBetween('created_at', [$from, $to])->count();
+        $refunded = (int) DB::table('refunds')->where('status', 'completed')->whereBetween('created_at', [$from, $to])->sum('amount_cents');
+        $newCustomers = (int) DB::table('users')->whereBetween('created_at', [$from, $to])->whereNull('deleted_at')->count();
+
+        return [
+            'orders' => (int) $row->orders,
+            'revenue_formatted' => Money::format((int) $row->revenue),
+            'discounts_formatted' => Money::format((int) $row->discounts),
+            'avg_order_formatted' => Money::format((int) round((float) $row->avg_order)),
+            'estimated_cost_formatted' => Money::format($cost),
+            'estimated_profit_formatted' => Money::format(max(0, (int) $row->revenue - $cost)),
+            'returns' => $returns,
+            'refunded_formatted' => Money::format($refunded),
+            'new_customers' => $newCustomers,
+        ];
+    }
+
+    public function salesByDay(CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        return $this->revenueOrders($from, $to)
+            ->groupByRaw('DATE(created_at)')
+            ->orderByRaw('DATE(created_at)')
+            ->selectRaw('DATE(created_at) as day, COUNT(*) as orders, SUM(total_cents) as revenue_cents')
+            ->get()
+            ->map(fn ($r) => [
+                'day' => $r->day,
+                'orders' => (int) $r->orders,
+                'revenue' => Money::toDecimal((int) $r->revenue_cents),
+            ]);
+    }
+
+    public function salesByProduct(CarbonImmutable $from, CarbonImmutable $to, int $limit = 25): Collection
+    {
+        return $this->revenueItems($from, $to)
+            ->groupBy('order_items.product_id', 'order_items.product_name', 'order_items.sku')
+            ->orderByDesc(DB::raw('SUM(order_items.line_total_cents)'))
+            ->limit($limit)
+            ->selectRaw('order_items.product_id, order_items.product_name, order_items.sku, SUM(order_items.quantity) as units, SUM(order_items.line_total_cents) as revenue_cents')
+            ->get()
+            ->map(fn ($r) => [
+                'product_id' => $r->product_id,
+                'name' => $r->product_name,
+                'sku' => $r->sku,
+                'units' => (int) $r->units,
+                'revenue_formatted' => Money::format((int) $r->revenue_cents),
+            ]);
+    }
+
+    public function salesByCategory(CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        return $this->revenueItems($from, $to)
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->join('categories', 'categories.id', '=', 'products.category_id')
+            ->groupBy('categories.id', 'categories.name')
+            ->orderByDesc(DB::raw('SUM(order_items.line_total_cents)'))
+            ->selectRaw('categories.name, SUM(order_items.quantity) as units, SUM(order_items.line_total_cents) as revenue_cents')
+            ->get()
+            ->map(fn ($r) => [
+                'name' => $r->name,
+                'units' => (int) $r->units,
+                'revenue_formatted' => Money::format((int) $r->revenue_cents),
+                'revenue' => Money::toDecimal((int) $r->revenue_cents),
+            ]);
+    }
+
+    public function salesByBrand(CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        return $this->revenueItems($from, $to)
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->join('brands', 'brands.id', '=', 'products.brand_id')
+            ->groupBy('brands.id', 'brands.name')
+            ->orderByDesc(DB::raw('SUM(order_items.line_total_cents)'))
+            ->selectRaw('brands.name, SUM(order_items.quantity) as units, SUM(order_items.line_total_cents) as revenue_cents')
+            ->get()
+            ->map(fn ($r) => [
+                'name' => $r->name,
+                'units' => (int) $r->units,
+                'revenue_formatted' => Money::format((int) $r->revenue_cents),
+                'revenue' => Money::toDecimal((int) $r->revenue_cents),
+            ]);
+    }
+
+    public function salesByPaymentMethod(CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        return $this->revenueOrders($from, $to)
+            ->groupBy('payment_method')
+            ->selectRaw('payment_method, COUNT(*) as orders, SUM(total_cents) as revenue_cents')
+            ->get()
+            ->map(fn ($r) => [
+                'method' => $r->payment_method,
+                'orders' => (int) $r->orders,
+                'revenue_formatted' => Money::format((int) $r->revenue_cents),
+            ]);
+    }
+
+    public function salesByStatus(CarbonImmutable $from, CarbonImmutable $to): Collection
+    {
+        return DB::table('orders')
+            ->whereNull('deleted_at')
+            ->whereBetween('created_at', [$from, $to])
+            ->groupBy('status')
+            ->selectRaw('status, COUNT(*) as orders, SUM(total_cents) as revenue_cents')
+            ->get()
+            ->map(fn ($r) => [
+                'status' => $r->status,
+                'orders' => (int) $r->orders,
+                'revenue_formatted' => Money::format((int) $r->revenue_cents),
+            ]);
+    }
+
+    public function salesByCustomer(CarbonImmutable $from, CarbonImmutable $to, int $limit = 25): Collection
+    {
+        return $this->revenueOrders($from, $to)
+            ->whereNotNull('user_id')
+            ->join('users', 'users.id', '=', 'orders.user_id')
+            ->groupBy('users.id', 'users.name', 'users.email')
+            ->orderByDesc(DB::raw('SUM(orders.total_cents)'))
+            ->limit($limit)
+            ->selectRaw('users.id, users.name, users.email, COUNT(*) as orders, SUM(orders.total_cents) as revenue_cents')
+            ->get()
+            ->map(fn ($r) => [
+                'customer_id' => $r->id,
+                'name' => $r->name,
+                'email' => $r->email,
+                'orders' => (int) $r->orders,
+                'revenue_formatted' => Money::format((int) $r->revenue_cents),
+            ]);
+    }
+
+    public function inventoryValuation(): array
+    {
+        $rows = DB::table('stock_levels')
+            ->leftJoin('product_variants', 'product_variants.id', '=', 'stock_levels.product_variant_id')
+            ->join('products', 'products.id', '=', 'stock_levels.product_id')
+            ->selectRaw('
+                SUM((stock_levels.quantity + stock_levels.reserved) * COALESCE(product_variants.cost_price_cents, products.cost_price_cents, 0)) as cost_value,
+                SUM((stock_levels.quantity + stock_levels.reserved) * COALESCE(product_variants.price_cents, products.price_cents, 0)) as retail_value,
+                SUM(stock_levels.quantity + stock_levels.reserved) as units
+            ')
+            ->first();
+
+        return [
+            'units' => (int) ($rows->units ?? 0),
+            'cost_value_formatted' => Money::format((int) ($rows->cost_value ?? 0)),
+            'retail_value_formatted' => Money::format((int) ($rows->retail_value ?? 0)),
+        ];
+    }
+
+    public function lowStockProducts(int $limit = 50): Collection
+    {
+        return DB::table('stock_levels')
+            ->join('products', 'products.id', '=', 'stock_levels.product_id')
+            ->leftJoin('product_variants', 'product_variants.id', '=', 'stock_levels.product_variant_id')
+            ->join('warehouses', 'warehouses.id', '=', 'stock_levels.warehouse_id')
+            ->whereRaw('stock_levels.quantity <= COALESCE(product_variants.low_stock_threshold, products.low_stock_threshold)')
+            ->where('stock_levels.quantity', '>', 0)
+            ->orderBy('stock_levels.quantity')
+            ->limit($limit)
+            ->selectRaw("products.name, COALESCE(product_variants.name, '') as variant_name, COALESCE(product_variants.sku, products.sku) as sku, warehouses.name as warehouse, stock_levels.quantity, COALESCE(product_variants.low_stock_threshold, products.low_stock_threshold) as threshold")
+            ->get();
+    }
+
+    public function outOfStockProducts(int $limit = 50): Collection
+    {
+        return DB::table('stock_levels')
+            ->join('products', 'products.id', '=', 'stock_levels.product_id')
+            ->leftJoin('product_variants', 'product_variants.id', '=', 'stock_levels.product_variant_id')
+            ->join('warehouses', 'warehouses.id', '=', 'stock_levels.warehouse_id')
+            ->where('stock_levels.quantity', '<=', 0)
+            ->limit($limit)
+            ->selectRaw("products.name, COALESCE(product_variants.name, '') as variant_name, COALESCE(product_variants.sku, products.sku) as sku, warehouses.name as warehouse, stock_levels.quantity")
+            ->get();
+    }
+
+    public function exportCsv(string $report, CarbonImmutable $from, CarbonImmutable $to): StreamedResponse
+    {
+        [$header, $rows] = match ($report) {
+            'sales_by_day' => [
+                ['Day', 'Orders', 'Revenue'],
+                $this->salesByDay($from, $to)->map(fn ($r) => [$r['day'], $r['orders'], $r['revenue']]),
+            ],
+            'sales_by_product' => [
+                ['Product', 'SKU', 'Units', 'Revenue'],
+                $this->salesByProduct($from, $to, 10000)->map(fn ($r) => [$r['name'], $r['sku'], $r['units'], $r['revenue_formatted']]),
+            ],
+            'sales_by_category' => [
+                ['Category', 'Units', 'Revenue'],
+                $this->salesByCategory($from, $to)->map(fn ($r) => [$r['name'], $r['units'], $r['revenue_formatted']]),
+            ],
+            'sales_by_brand' => [
+                ['Brand', 'Units', 'Revenue'],
+                $this->salesByBrand($from, $to)->map(fn ($r) => [$r['name'], $r['units'], $r['revenue_formatted']]),
+            ],
+            'sales_by_customer' => [
+                ['Customer', 'Email', 'Orders', 'Revenue'],
+                $this->salesByCustomer($from, $to, 10000)->map(fn ($r) => [$r['name'], $r['email'], $r['orders'], $r['revenue_formatted']]),
+            ],
+            'inventory_valuation' => [
+                ['Units', 'Cost value', 'Retail value'],
+                collect([$this->inventoryValuation()])->map(fn ($r) => [$r['units'], $r['cost_value_formatted'], $r['retail_value_formatted']]),
+            ],
+            'low_stock' => [
+                ['Product', 'Variant', 'SKU', 'Warehouse', 'Quantity', 'Threshold'],
+                $this->lowStockProducts(10000)->map(fn ($r) => [$r->name, $r->variant_name, $r->sku, $r->warehouse, $r->quantity, $r->threshold]),
+            ],
+            'movements' => [
+                ['Date', 'Product', 'Warehouse', 'Type', 'Before', 'Change', 'After', 'Reason'],
+                DB::table('inventory_movements')
+                    ->join('products', 'products.id', '=', 'inventory_movements.product_id')
+                    ->join('warehouses', 'warehouses.id', '=', 'inventory_movements.warehouse_id')
+                    ->whereBetween('inventory_movements.created_at', [$from, $to])
+                    ->orderBy('inventory_movements.created_at')
+                    ->selectRaw('inventory_movements.created_at, products.name, warehouses.name as warehouse, inventory_movements.type, quantity_before, quantity_change, quantity_after, reason')
+                    ->get()
+                    ->map(fn ($r) => [$r->created_at, $r->name, $r->warehouse, $r->type, $r->quantity_before, $r->quantity_change, $r->quantity_after, $r->reason]),
+            ],
+            'returns' => [
+                ['RMA', 'Order', 'Status', 'Reason', 'Date'],
+                DB::table('returns')
+                    ->join('orders', 'orders.id', '=', 'returns.order_id')
+                    ->whereBetween('returns.created_at', [$from, $to])
+                    ->selectRaw('returns.rma_number, orders.number, returns.status, returns.reason, returns.created_at')
+                    ->get()
+                    ->map(fn ($r) => [$r->rma_number, $r->number, $r->status, $r->reason, $r->created_at]),
+            ],
+            'refunds' => [
+                ['Order', 'Amount', 'Method', 'Reference', 'Date'],
+                DB::table('refunds')
+                    ->join('orders', 'orders.id', '=', 'refunds.order_id')
+                    ->whereBetween('refunds.created_at', [$from, $to])
+                    ->selectRaw('orders.number, refunds.amount_cents, refunds.method, refunds.reference, refunds.created_at')
+                    ->get()
+                    ->map(fn ($r) => [$r->number, Money::format((int) $r->amount_cents), $r->method, $r->reference, $r->created_at]),
+            ],
+        };
+
+        $filename = sprintf('%s_%s_%s.csv', $report, $from->toDateString(), $to->toDateString());
+
+        return response()->streamDownload(function () use ($header, $rows): void {
+            $out = fopen('php://output', 'w');
+            // UTF-8 BOM so Excel opens Arabic text correctly.
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, $header);
+
+            foreach ($rows as $row) {
+                fputcsv($out, (array) $row);
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
+}

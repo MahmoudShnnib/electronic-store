@@ -1,0 +1,58 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Inertia\Inertia;
+use Inertia\Response;
+use Spatie\Activitylog\Models\Activity;
+
+/**
+ * Read-only audit trail. There are intentionally no mutation endpoints.
+ */
+final class AuditLogController extends Controller implements HasMiddleware
+{
+    public static function middleware(): array
+    {
+        return ['can:audit.view'];
+    }
+
+    public function index(Request $request): Response
+    {
+        $logs = Activity::query()
+            ->with('causer')
+            ->when($request->filled('q'), fn ($q) => $q->whereRaw('description ILIKE ?', ['%'.$request->query('q').'%']))
+            ->when($request->filled('event'), fn ($q) => $q->where('event', (string) $request->query('event')))
+            ->when($request->filled('causer_id'), fn ($q) => $q->where('causer_id', (int) $request->query('causer_id')))
+            ->when($request->filled('subject_type'), fn ($q) => $q->where('subject_type', (string) $request->query('subject_type')))
+            ->when($request->filled('from'), fn ($q) => $q->where('created_at', '>=', $request->date('from')->startOfDay()))
+            ->when($request->filled('to'), fn ($q) => $q->where('created_at', '<=', $request->date('to')->endOfDay()))
+            ->latest()
+            ->paginate(50)
+            ->withQueryString()
+            ->through(fn (Activity $a) => [
+                'id' => $a->id,
+                'description' => $a->description,
+                'event' => $a->event,
+                'subject_type' => $a->subject_type !== null ? class_basename($a->subject_type) : null,
+                'subject_id' => $a->subject_id,
+                'causer' => $a->causer?->name ?? __('admin.system'),
+                'properties' => $a->properties,
+                'created_at' => $a->created_at->toDateTimeString(),
+            ]);
+
+        return Inertia::render('admin/audit-logs/Index', [
+            'logs' => $logs,
+            'subjectTypes' => Activity::query()
+                ->whereNotNull('subject_type')
+                ->distinct()
+                ->pluck('subject_type')
+                ->map(fn ($t) => ['value' => $t, 'label' => class_basename($t)]),
+            'filters' => (object) $request->only(['q', 'event', 'causer_id', 'subject_type', 'from', 'to']),
+        ]);
+    }
+}
