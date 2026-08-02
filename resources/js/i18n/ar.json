@@ -50,7 +50,7 @@
         "max": "الحد الأقصى",
         "in_stock_only": "المتوفر فقط",
         "on_sale_only": "التخفيضات فقط",
-        "apply": "تطبيق",
+        "show_results": "عرض النتائج ({count})",
         "clear": "مسح",
         "no_products": "لا توجد منتجات مطابقة للتصفية.",
         "results": "{count} منتج"

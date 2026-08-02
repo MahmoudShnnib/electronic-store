@@ -50,7 +50,7 @@
         "max": "Max",
         "in_stock_only": "In stock only",
         "on_sale_only": "On sale only",
-        "apply": "Apply",
+        "show_results": "Show {count} products",
         "clear": "Clear",
         "no_products": "No products match your filters.",
         "results": "{count} products"

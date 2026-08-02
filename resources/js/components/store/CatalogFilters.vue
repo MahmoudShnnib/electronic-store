@@ -19,9 +19,12 @@ const props = defineProps<{
     locale: string;
     brands: { id: number; name: string; slug: string }[] | null;
     categories: CategoryData[] | null;
+    /** When set (mobile sheet), shows a live "show N results" close button —
+     *  filters apply automatically, so there is no apply action anymore. */
+    resultsCount?: number;
 }>();
 
-const emit = defineEmits<{ apply: []; clear: [] }>();
+const emit = defineEmits<{ done: []; clear: [] }>();
 
 const { t } = useI18n();
 
@@ -110,17 +113,19 @@ function categoryName(option: CategoryData): string {
         <div class="mt-2 flex gap-2">
             <button
                 type="button"
-                class="w-1/3 rounded-lg border border-[#DBDBDB] py-2.5 text-sm font-semibold transition hover:border-black dark:border-neutral-700 dark:hover:border-white"
+                class="rounded-lg border border-[#DBDBDB] py-2.5 text-sm font-semibold transition hover:border-black dark:border-neutral-700 dark:hover:border-white"
+                :class="resultsCount !== undefined ? 'w-1/3' : 'w-full'"
                 @click="emit('clear')"
             >
                 {{ t('catalog.clear') }}
             </button>
             <button
+                v-if="resultsCount !== undefined"
                 type="button"
                 class="flex-1 rounded-lg bg-black py-2.5 text-sm font-semibold text-white transition hover:opacity-85 dark:bg-white dark:text-black"
-                @click="emit('apply')"
+                @click="emit('done')"
             >
-                {{ t('catalog.apply') }}
+                {{ t('catalog.show_results', { count: resultsCount }) }}
             </button>
         </div>
     </div>

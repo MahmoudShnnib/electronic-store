@@ -9,7 +9,7 @@ import { Sheet, SheetContent } from '@/components/ui/sheet';
 import StoreLayout from '@/layouts/StoreLayout.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ArrowUpDown, Check, SlidersHorizontal } from 'lucide-vue-next';
-import { computed, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
@@ -70,9 +70,7 @@ const baseUrl = computed(() => {
     return route('catalog.index');
 });
 
-function apply() {
-    showFilters.value = false;
-
+function refresh() {
     router.get(
         baseUrl.value,
         {
@@ -85,9 +83,25 @@ function apply() {
             on_sale: form.on_sale ? 1 : undefined,
             sort: form.sort !== 'newest' ? form.sort : undefined,
         },
-        { preserveScroll: true, preserveState: true },
+        { preserveScroll: true, preserveState: true, replace: true },
     );
 }
+
+// Filters apply themselves: any change re-fetches after a short pause, so
+// typing a price doesn't fire a request per keystroke. The mobile sheet
+// stays open — results update live behind it.
+let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+
+watch(
+    form,
+    () => {
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(refresh, 400);
+    },
+    { deep: true },
+);
+
+onBeforeUnmount(() => clearTimeout(refreshTimer));
 
 function clearFilters() {
     form.q = '';
@@ -98,7 +112,6 @@ function clearFilters() {
     form.in_stock = false;
     form.on_sale = false;
     form.sort = 'newest';
-    apply();
 }
 
 function sortLabel(option: string): string {
@@ -107,7 +120,6 @@ function sortLabel(option: string): string {
 
 function setSort(option: string) {
     form.sort = option;
-    apply();
 }
 </script>
 
@@ -143,7 +155,6 @@ function setSort(option: string) {
                     :locale="locale"
                     :brands="brand ? null : filterOptions.brands"
                     :categories="category ? null : filterOptions.categories"
-                    @apply="apply"
                     @clear="clearFilters"
                 />
             </div>
@@ -157,7 +168,8 @@ function setSort(option: string) {
                     :locale="locale"
                     :brands="brand ? null : filterOptions.brands"
                     :categories="category ? null : filterOptions.categories"
-                    @apply="apply"
+                    :results-count="products.meta.total"
+                    @done="showFilters = false"
                     @clear="clearFilters"
                 />
             </SheetContent>
