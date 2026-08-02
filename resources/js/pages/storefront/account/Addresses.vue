@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import CitySelect from '@/components/store/CitySelect.vue';
 import EmptyState from '@/components/store/EmptyState.vue';
 import type { AddressData } from '@/components/store/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import StoreLayout from '@/layouts/StoreLayout.vue';
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm } from '@inertiajs/vue3';
 import { MapPin, Pencil, Plus, Trash2 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
@@ -13,13 +14,6 @@ defineOptions({ layout: StoreLayout });
 defineProps<{ addresses: AddressData[]; cities: { en: string; ar: string }[] }>();
 
 const { t } = useI18n();
-const page = usePage();
-const locale = computed(() => page.props.locale as string);
-
-/** The English name is the stored value; the label follows the UI language. */
-function cityLabel(city: { en: string; ar: string }): string {
-    return locale.value === 'ar' ? city.ar : city.en;
-}
 
 const dialogOpen = ref(false);
 const editing = ref<AddressData | null>(null);
@@ -177,10 +171,7 @@ function remove(address: AddressData) {
                     </div>
                     <div>
                         <label class="mb-1 block text-sm">{{ t('checkout.city') }}</label>
-                        <select v-model="form.city" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
-                            <option value="" disabled>{{ t('checkout.select_city') }}</option>
-                            <option v-for="city in cities" :key="city.en" :value="city.en">{{ cityLabel(city) }}</option>
-                        </select>
+                        <CitySelect v-model="form.city" :cities="cities" :sheet-on-mobile="false" :has-error="form.errors.city !== undefined" />
                         <p v-if="form.errors.city" class="mt-1 text-xs text-red-500">{{ form.errors.city }}</p>
                     </div>
                     <div>

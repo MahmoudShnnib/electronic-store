@@ -103,6 +103,7 @@
         "shipping_address": "Shipping address",
         "city": "City",
         "select_city": "Select a city",
+        "search_city": "Search for a city…",
         "area": "Area",
         "notes": "Delivery notes",
         "saved_addresses": "Use a saved address",
@@ -165,7 +166,9 @@
         "currency": "USD",
         "page_not_found": "Page not found",
         "yes": "Yes",
-        "no": "No"
+        "no": "No",
+        "close": "Close",
+        "no_results": "No results"
     },
     "auth": {
         "login_title": "Log in to your account",
