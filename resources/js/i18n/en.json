@@ -603,6 +603,8 @@
         },
         "reports": {
             "sales_title": "Sales reports",
+            "invoices_title": "Invoices",
+            "invoiced": "Invoiced",
             "inventory_title": "Inventory reports",
             "revenue_by_day": "Revenue by day",
             "revenue_by_category": "Revenue by category",

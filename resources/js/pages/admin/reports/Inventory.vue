@@ -37,6 +37,7 @@ function exportUrl(report: string): string {
     <PageHeader :title="t('admin.reports.inventory_title')">
         <template #actions>
             <Link :href="route('admin.reports.sales')" :class="btnSecondary">{{ t('admin.reports.sales_title') }}</Link>
+            <Link :href="route('admin.reports.invoices')" :class="btnSecondary">{{ t('admin.reports.invoices_title') }}</Link>
         </template>
     </PageHeader>
 

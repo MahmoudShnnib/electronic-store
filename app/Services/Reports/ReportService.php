@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Reports;
 
+use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -182,6 +184,69 @@ final class ReportService
             ]);
     }
 
+    /** Totals for the invoice report — computed without the row limit so the
+     *  headline numbers stay correct even when the table is truncated. */
+    public function invoiceSummary(CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $orders = DB::table('orders')
+            ->whereNull('deleted_at')
+            ->whereBetween('created_at', [$from, $to])
+            ->selectRaw('COUNT(*) as invoices, COALESCE(SUM(total_cents),0) as invoiced')
+            ->first();
+
+        $paid = (int) DB::table('payments')
+            ->join('orders', 'orders.id', '=', 'payments.order_id')
+            ->where('payments.status', 'confirmed')
+            ->whereNull('orders.deleted_at')
+            ->whereBetween('orders.created_at', [$from, $to])
+            ->sum('payments.amount_cents');
+
+        return [
+            'invoices' => (int) $orders->invoices,
+            'invoiced_formatted' => Money::format((int) $orders->invoiced),
+            'paid_formatted' => Money::format($paid),
+            'outstanding_formatted' => Money::format(max(0, (int) $orders->invoiced - $paid)),
+        ];
+    }
+
+    /** One row per order: what was invoiced, what has been collected, and
+     *  what is still owed. Paid = confirmed payments only. */
+    public function invoices(CarbonImmutable $from, CarbonImmutable $to, int $limit = 250): Collection
+    {
+        return DB::table('orders')
+            ->leftJoin('payments', function ($join): void {
+                $join->on('payments.order_id', '=', 'orders.id')->where('payments.status', 'confirmed');
+            })
+            ->whereNull('orders.deleted_at')
+            ->whereBetween('orders.created_at', [$from, $to])
+            ->groupBy('orders.id')
+            ->orderByDesc('orders.created_at')
+            ->limit($limit)
+            ->selectRaw('orders.id, orders.number, orders.customer, orders.status, orders.payment_status, orders.total_cents, orders.created_at, COALESCE(SUM(payments.amount_cents),0) as paid_cents')
+            ->get()
+            ->map(function ($r): array {
+                $customer = json_decode((string) $r->customer, true) ?: [];
+                $paid = (int) $r->paid_cents;
+                $outstanding = max(0, (int) $r->total_cents - $paid);
+
+                return [
+                    'order_id' => (int) $r->id,
+                    'number' => $r->number,
+                    'date' => CarbonImmutable::parse($r->created_at)->toDateString(),
+                    'customer' => $customer['name'] ?? '—',
+                    'phone' => $customer['phone'] ?? '',
+                    'status' => $r->status,
+                    'status_label' => OrderStatus::from($r->status)->label(),
+                    'payment_status' => $r->payment_status,
+                    'payment_status_label' => PaymentStatus::from($r->payment_status)->label(),
+                    'total_formatted' => Money::format((int) $r->total_cents),
+                    'paid_formatted' => Money::format($paid),
+                    'outstanding_cents' => $outstanding,
+                    'outstanding_formatted' => Money::format($outstanding),
+                ];
+            });
+    }
+
     public function inventoryValuation(): array
     {
         $rows = DB::table('stock_levels')
@@ -249,6 +314,13 @@ final class ReportService
             'sales_by_customer' => [
                 ['Customer', 'Email', 'Orders', 'Revenue'],
                 $this->salesByCustomer($from, $to, 10000)->map(fn ($r) => [$r['name'], $r['email'], $r['orders'], $r['revenue_formatted']]),
+            ],
+            'invoices' => [
+                ['Invoice', 'Date', 'Customer', 'Phone', 'Status', 'Payment status', 'Total', 'Paid', 'Outstanding'],
+                $this->invoices($from, $to, 100000)->map(fn ($r) => [
+                    $r['number'], $r['date'], $r['customer'], $r['phone'], $r['status'],
+                    $r['payment_status'], $r['total_formatted'], $r['paid_formatted'], $r['outstanding_formatted'],
+                ]),
             ],
             'inventory_valuation' => [
                 ['Units', 'Cost value', 'Retail value'],

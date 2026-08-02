@@ -46,6 +46,17 @@ final class ReportController extends Controller implements HasMiddleware
         ]);
     }
 
+    public function invoices(Request $request): Response
+    {
+        [$from, $to] = $this->dateRange($request);
+
+        return Inertia::render('admin/reports/Invoices', [
+            'summary' => $this->reports->invoiceSummary($from, $to),
+            'invoices' => $this->reports->invoices($from, $to),
+            'filters' => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
+        ]);
+    }
+
     public function inventory(Request $request): Response
     {
         return Inertia::render('admin/reports/Inventory', [
@@ -59,7 +70,7 @@ final class ReportController extends Controller implements HasMiddleware
     {
         abort_unless(in_array($report, [
             'sales_by_day', 'sales_by_product', 'sales_by_category', 'sales_by_brand',
-            'sales_by_customer', 'inventory_valuation', 'low_stock', 'movements', 'returns', 'refunds',
+            'sales_by_customer', 'invoices', 'inventory_valuation', 'low_stock', 'movements', 'returns', 'refunds',
         ], true), 404);
 
         [$from, $to] = $this->dateRange($request);

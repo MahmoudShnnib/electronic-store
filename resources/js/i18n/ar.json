@@ -603,6 +603,8 @@
         },
         "reports": {
             "sales_title": "تقارير المبيعات",
+            "invoices_title": "الفواتير",
+            "invoiced": "إجمالي الفواتير",
             "inventory_title": "تقارير المخزون",
             "revenue_by_day": "الإيرادات حسب اليوم",
             "revenue_by_category": "الإيرادات حسب التصنيف",

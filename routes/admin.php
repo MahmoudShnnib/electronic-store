@@ -71,6 +71,7 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
         // Reports
         Route::get('reports', [Admin\ReportController::class, 'index'])->name('reports.index');
         Route::get('reports/sales', [Admin\ReportController::class, 'sales'])->name('reports.sales');
+        Route::get('reports/invoices', [Admin\ReportController::class, 'invoices'])->name('reports.invoices');
         Route::get('reports/inventory', [Admin\ReportController::class, 'inventory'])->name('reports.inventory');
         Route::get('reports/export/{report}', [Admin\ReportController::class, 'export'])->name('reports.export');
 
