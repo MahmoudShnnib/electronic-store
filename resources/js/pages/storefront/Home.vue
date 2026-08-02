@@ -161,6 +161,7 @@ const productSections = computed(() =>
 
 /** A single tile can't loop seamlessly — render it once, unanimated. */
 const marqueeCopies = computed(() => (promoTiles.value.length >= 2 ? 3 : 1));
+const brandCopies = computed(() => (props.brands.length >= 2 ? 3 : 1));
 
 // Category rail scrolling.
 const rail = ref<HTMLElement | null>(null);
@@ -381,17 +382,27 @@ function scrollRail(direction: 1 | -1) {
     </section>
 
     <!-- Brands -->
-    <section v-if="brands.length > 0" class="mx-auto max-w-7xl px-4 py-14">
+    <section v-if="brands.length > 0" class="mx-auto max-w-7xl overflow-hidden px-4 py-14">
         <h2 class="mb-8 text-2xl font-medium">{{ t('home.shop_by_brand') }}</h2>
-        <div class="flex flex-wrap gap-3">
-            <Link
-                v-for="brand in brands"
-                :key="brand.id"
-                :href="route('catalog.brand', brand.slug)"
-                class="rounded-md border border-[#DBDBDB] px-6 py-2.5 text-sm font-medium transition hover:border-black hover:bg-black hover:text-white dark:border-neutral-700 dark:hover:border-white dark:hover:bg-white dark:hover:text-black"
+        <div class="promo-marquee-wrap flex">
+            <div
+                v-for="copy in brandCopies"
+                :key="copy"
+                class="promo-marquee flex shrink-0 gap-3 pe-3"
+                :class="{ 'promo-marquee-static': brandCopies === 1 }"
+                :style="{ animationDuration: `${brands.length * 2.5}s` }"
+                :aria-hidden="copy > 1 ? 'true' : undefined"
             >
-                {{ brand.name }}
-            </Link>
+                <Link
+                    v-for="brand in brands"
+                    :key="brand.id"
+                    :href="route('catalog.brand', brand.slug)"
+                    :tabindex="copy > 1 ? -1 : undefined"
+                    class="shrink-0 whitespace-nowrap rounded-md border border-[#DBDBDB] px-6 py-2.5 text-sm font-medium transition hover:border-black hover:bg-black hover:text-white dark:border-neutral-700 dark:hover:border-white dark:hover:bg-white dark:hover:text-black"
+                >
+                    {{ brand.name }}
+                </Link>
+            </div>
         </div>
     </section>
 </template>
