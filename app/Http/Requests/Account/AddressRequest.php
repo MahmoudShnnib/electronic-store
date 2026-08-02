@@ -29,7 +29,7 @@ final class AddressRequest extends FormRequest
                 'required', 'string', 'max:120',
                 Rule::in(array_column(config('store.cities', []), 'en')),
             ],
-            'area' => ['nullable', 'string', 'max:120'],
+            'area' => ['required', 'string', 'max:120'],
             'notes' => ['nullable', 'string', 'max:500'],
             'is_default_shipping' => ['boolean'],
             'is_default_billing' => ['boolean'],

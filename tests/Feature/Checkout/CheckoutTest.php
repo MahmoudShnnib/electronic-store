@@ -191,5 +191,5 @@ it('rejects a delivery city outside the configured list', function (): void {
         'customer' => ['name' => 'Guest Buyer', 'email' => '', 'phone' => '0911111111'],
         'shipping_address' => ['country' => 'LY', 'city' => 'Cairo', 'area' => ''],
         'payment_method' => 'cod',
-    ])->assertSessionHasErrors('shipping_address.city');
+    ])->assertSessionHasErrors(['shipping_address.city', 'shipping_address.area']);
 });

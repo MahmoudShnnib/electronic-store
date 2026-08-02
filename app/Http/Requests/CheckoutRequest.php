@@ -27,7 +27,7 @@ final class CheckoutRequest extends FormRequest
                 'required', 'string', 'max:120',
                 Rule::in(array_column(config('store.cities', []), 'en')),
             ],
-            'shipping_address.area' => ['nullable', 'string', 'max:120'],
+            'shipping_address.area' => ['required', 'string', 'max:120'],
             'payment_method' => ['required', Rule::enum(PaymentMethod::class), Rule::in(config('store.payment_methods', ['cod']))],
             'customer_note' => ['nullable', 'string', 'max:1000'],
             'idempotency_key' => ['nullable', 'string', 'max:64'],

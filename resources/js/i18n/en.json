@@ -104,7 +104,7 @@
         "city": "City",
         "select_city": "Select a city",
         "search_city": "Search for a city…",
-        "area": "Area",
+        "area": "Exact address",
         "notes": "Delivery notes",
         "saved_addresses": "Use a saved address",
         "payment": "Payment method",
