@@ -39,9 +39,7 @@ final class CalculateCartTotals
             ];
         }
 
-        [$discount, $coupon, $couponError, $freeShipping] = $this->resolveCoupon($cart->coupon, $subtotal, $lines, $userId);
-
-        $shipping = $this->shippingFee($subtotal, $freeShipping, $lines !== []);
+        [$discount, $coupon, $couponError] = $this->resolveCoupon($cart->coupon, $subtotal, $lines, $userId);
 
         // Distribute the order-level discount across lines proportionally so
         // tax is charged on the discounted amount.
@@ -79,53 +77,51 @@ final class CalculateCartTotals
             subtotalCents: $subtotal,
             discountCents: $discount,
             taxCents: $tax,
-            shippingCents: $shipping,
-            totalCents: max(0, $subtotal - $discount) + $tax + $shipping,
+            totalCents: max(0, $subtotal - $discount) + $tax,
             coupon: $coupon,
             couponError: $couponError,
         );
     }
 
     /**
-     * @return array{0: int, 1: ?Coupon, 2: ?string, 3: bool}
+     * @return array{0: int, 1: ?Coupon, 2: ?string}
      */
     private function resolveCoupon(?Coupon $coupon, int $subtotal, array $lines, ?int $userId): array
     {
         if ($coupon === null) {
-            return [0, null, null, false];
+            return [0, null, null];
         }
 
         if (! $coupon->isCurrentlyValid()) {
-            return [0, $coupon, __('This coupon is no longer valid.'), false];
+            return [0, $coupon, __('This coupon is no longer valid.')];
         }
 
         if ($userId !== null
             && $coupon->per_customer_limit !== null
             && $coupon->usesByUser($userId) >= $coupon->per_customer_limit) {
-            return [0, $coupon, __('You have already used this coupon the maximum number of times.'), false];
+            return [0, $coupon, __('You have already used this coupon the maximum number of times.')];
         }
 
         if ($coupon->min_order_cents !== null && $subtotal < $coupon->min_order_cents) {
-            return [0, $coupon, __("The order subtotal does not meet this coupon's minimum."), false];
+            return [0, $coupon, __("The order subtotal does not meet this coupon's minimum.")];
         }
 
         $eligible = $this->eligibleSubtotal($coupon, $lines);
 
-        if ($eligible === 0 && $coupon->type !== CouponType::FreeShipping) {
-            return [0, $coupon, __('This coupon does not apply to any item in your cart.'), false];
+        if ($eligible === 0) {
+            return [0, $coupon, __('This coupon does not apply to any item in your cart.')];
         }
 
         $discount = match ($coupon->type) {
             CouponType::Fixed => min((int) $coupon->value_cents, $eligible),
             CouponType::Percentage => (int) round($eligible * ((float) $coupon->percent) / 100),
-            CouponType::FreeShipping => 0,
         };
 
         if ($coupon->max_discount_cents !== null) {
             $discount = min($discount, $coupon->max_discount_cents);
         }
 
-        return [$discount, $coupon, null, $coupon->type === CouponType::FreeShipping];
+        return [$discount, $coupon, null];
     }
 
     /** Subtotal of the lines the coupon's product/category/brand scope covers. */
@@ -149,20 +145,5 @@ final class CalculateCartTotals
 
             return $matches ? $line['subtotal'] : 0;
         }, $lines));
-    }
-
-    private function shippingFee(int $subtotal, bool $freeShipping, bool $hasItems): int
-    {
-        if (! $hasItems || $freeShipping) {
-            return 0;
-        }
-
-        $threshold = (int) config('store.free_shipping_threshold_cents');
-
-        if ($threshold > 0 && $subtotal >= $threshold) {
-            return 0;
-        }
-
-        return (int) config('store.shipping_fee_cents');
     }
 }

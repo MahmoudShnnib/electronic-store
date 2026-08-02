@@ -27,7 +27,6 @@ final class OrderResource extends JsonResource
             'subtotal' => Money::toDecimal($this->subtotal_cents),
             'discount' => Money::toDecimal($this->discount_cents),
             'tax' => Money::toDecimal($this->tax_cents),
-            'shipping' => Money::toDecimal($this->shipping_cents),
             'total' => Money::toDecimal($this->total_cents),
             'coupon_code' => $this->coupon_code,
             'cancellable' => $this->status->isCancellable(),

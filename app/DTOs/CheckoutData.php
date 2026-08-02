@@ -18,7 +18,6 @@ final readonly class CheckoutData
         public array $shippingAddress,
         public array $billingAddress,
         public PaymentMethod $paymentMethod,
-        public ?string $shippingMethod = null,
         public ?string $customerNote = null,
         public ?string $idempotencyKey = null,
     ) {

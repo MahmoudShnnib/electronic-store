@@ -23,8 +23,6 @@ final class AddressResource extends JsonResource
             'country' => $this->country,
             'city' => $this->city,
             'area' => $this->area,
-            'street' => $this->street,
-            'building' => $this->building,
             'notes' => $this->notes,
             'is_default_shipping' => $this->is_default_shipping,
             'is_default_billing' => $this->is_default_billing,

@@ -16,7 +16,6 @@ final readonly class CartTotals
         public int $subtotalCents,
         public int $discountCents,
         public int $taxCents,
-        public int $shippingCents,
         public int $totalCents,
         public ?Coupon $coupon = null,
         public ?string $couponError = null,

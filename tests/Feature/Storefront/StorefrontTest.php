@@ -99,8 +99,8 @@ it('allows reviews only for verified purchasers and moderates them', function ()
     app(AddToCart::class)->handle($cart, $product, null, 1);
     $order = app(PlaceOrder::class)->handle($cart, new CheckoutData(
         customer: ['name' => 'B', 'email' => $buyer->email, 'phone' => '091'],
-        shippingAddress: ['name' => 'B', 'phone' => '091', 'country' => 'LY', 'city' => 'T', 'street' => 'S'],
-        billingAddress: ['name' => 'B', 'phone' => '091', 'country' => 'LY', 'city' => 'T', 'street' => 'S'],
+        shippingAddress: ['name' => 'B', 'phone' => '091', 'country' => 'LY', 'city' => 'T'],
+        billingAddress: ['name' => 'B', 'phone' => '091', 'country' => 'LY', 'city' => 'T'],
         paymentMethod: PaymentMethod::CashOnDelivery,
     ), $buyer);
 

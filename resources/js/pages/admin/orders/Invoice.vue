@@ -10,8 +10,6 @@ interface Address {
     country?: string;
     city?: string;
     area?: string | null;
-    street?: string;
-    building?: string | null;
 }
 
 defineProps<{
@@ -26,16 +24,13 @@ defineProps<{
         subtotal_formatted: string;
         discount_formatted: string;
         tax_formatted: string;
-        shipping_formatted: string;
         total_formatted: string;
     };
     store: { name: string; details: string | null };
 }>();
 
 function formatAddress(address: Address): string {
-    return [[address.street, address.building].filter(Boolean).join(' '), [address.area, address.city, address.country].filter(Boolean).join(', ')]
-        .filter(Boolean)
-        .join(' — ');
+    return [address.area, address.city, address.country].filter(Boolean).join(', ');
 }
 
 function printInvoice(): void {
@@ -111,10 +106,6 @@ function printInvoice(): void {
                     <div class="flex justify-between">
                         <dt class="text-gray-500">{{ t('admin.common.tax') }}</dt>
                         <dd>{{ order.tax_formatted }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-gray-500">{{ t('admin.common.shipping') }}</dt>
-                        <dd>{{ order.shipping_formatted }}</dd>
                     </div>
                     <div class="flex justify-between border-t-2 border-gray-900 pt-2 text-base font-bold">
                         <dt>{{ t('admin.common.total') }}</dt>

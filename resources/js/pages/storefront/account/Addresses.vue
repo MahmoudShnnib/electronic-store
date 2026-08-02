@@ -3,16 +3,23 @@ import EmptyState from '@/components/store/EmptyState.vue';
 import type { AddressData } from '@/components/store/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import StoreLayout from '@/layouts/StoreLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { MapPin, Pencil, Plus, Trash2 } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
 
-defineProps<{ addresses: AddressData[] }>();
+defineProps<{ addresses: AddressData[]; cities: { en: string; ar: string }[] }>();
 
 const { t } = useI18n();
+const page = usePage();
+const locale = computed(() => page.props.locale as string);
+
+/** The English name is the stored value; the label follows the UI language. */
+function cityLabel(city: { en: string; ar: string }): string {
+    return locale.value === 'ar' ? city.ar : city.en;
+}
 
 const dialogOpen = ref(false);
 const editing = ref<AddressData | null>(null);
@@ -24,8 +31,6 @@ const form = useForm({
     country: 'LY',
     city: '',
     area: '',
-    street: '',
-    building: '',
     notes: '',
     is_default_shipping: false,
     is_default_billing: false,
@@ -46,8 +51,6 @@ function openEdit(address: AddressData) {
     form.country = address.country;
     form.city = address.city;
     form.area = address.area ?? '';
-    form.street = address.street;
-    form.building = address.building ?? '';
     form.notes = address.notes ?? '';
     form.is_default_shipping = address.is_default_shipping;
     form.is_default_billing = address.is_default_billing;
@@ -126,7 +129,7 @@ function remove(address: AddressData) {
                 <p class="mt-2 text-sm text-muted-foreground">
                     {{ address.name }} · <span dir="ltr">{{ address.phone }}</span
                     ><br />
-                    {{ [address.street, address.building, address.area, address.city].filter(Boolean).join(', ') }}
+                    {{ [address.area, address.city].filter(Boolean).join(', ') }}
                 </p>
 
                 <div class="mt-auto flex flex-wrap gap-1.5 pt-3">
@@ -174,7 +177,10 @@ function remove(address: AddressData) {
                     </div>
                     <div>
                         <label class="mb-1 block text-sm">{{ t('checkout.city') }}</label>
-                        <input v-model="form.city" type="text" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+                        <select v-model="form.city" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                            <option value="" disabled>{{ t('checkout.select_city') }}</option>
+                            <option v-for="city in cities" :key="city.en" :value="city.en">{{ cityLabel(city) }}</option>
+                        </select>
                         <p v-if="form.errors.city" class="mt-1 text-xs text-red-500">{{ form.errors.city }}</p>
                     </div>
                     <div>
@@ -182,15 +188,6 @@ function remove(address: AddressData) {
                         <input v-model="form.area" type="text" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
                     </div>
                     <div class="sm:col-span-2">
-                        <label class="mb-1 block text-sm">{{ t('checkout.street') }}</label>
-                        <input v-model="form.street" type="text" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
-                        <p v-if="form.errors.street" class="mt-1 text-xs text-red-500">{{ form.errors.street }}</p>
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-sm">{{ t('checkout.building') }}</label>
-                        <input v-model="form.building" type="text" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
-                    </div>
-                    <div>
                         <label class="mb-1 block text-sm">{{ t('checkout.notes') }}</label>
                         <input v-model="form.notes" type="text" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
                     </div>

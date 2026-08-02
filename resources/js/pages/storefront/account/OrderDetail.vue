@@ -12,8 +12,6 @@ interface AddressSnapshot {
     country?: string;
     city?: string;
     area?: string | null;
-    street?: string;
-    building?: string | null;
     notes?: string | null;
 }
 
@@ -31,7 +29,6 @@ const props = defineProps<{
         subtotal_formatted: string;
         discount_formatted: string;
         tax_formatted: string;
-        shipping_formatted: string;
         total_formatted: string;
         coupon_code: string | null;
         customer_note: string | null;
@@ -59,7 +56,7 @@ function cancelOrder() {
 }
 
 function formatAddress(address: AddressSnapshot): string {
-    return [address.name, address.phone, address.street, address.building, address.area, address.city, address.country].filter(Boolean).join(' · ');
+    return [address.name, address.phone, address.area, address.city, address.country].filter(Boolean).join(' · ');
 }
 </script>
 
@@ -151,10 +148,6 @@ function formatAddress(address: AddressSnapshot): string {
                             <dt class="text-muted-foreground">{{ t('cart.tax') }}</dt>
                             <dd>{{ order.tax_formatted }}</dd>
                         </div>
-                        <div class="flex justify-between">
-                            <dt class="text-muted-foreground">{{ t('cart.shipping') }}</dt>
-                            <dd>{{ order.shipping_formatted }}</dd>
-                        </div>
                         <div class="flex justify-between border-t border-border pt-3 font-bold">
                             <dt>{{ t('cart.total') }}</dt>
                             <dd>{{ order.total_formatted }}</dd>
@@ -174,8 +167,6 @@ function formatAddress(address: AddressSnapshot): string {
                     <h2 class="mb-2 font-semibold">{{ t('checkout.shipping_address') }}</h2>
                     <p class="text-muted-foreground">{{ formatAddress(order.shipping_address) }}</p>
 
-                    <h2 class="mb-2 mt-4 font-semibold">{{ t('checkout.billing_address') }}</h2>
-                    <p class="text-muted-foreground">{{ formatAddress(order.billing_address) }}</p>
                 </section>
             </aside>
         </div>

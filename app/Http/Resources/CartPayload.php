@@ -45,8 +45,6 @@ final class CartPayload
             'discount_formatted' => Money::format($totals->discountCents),
             'tax_cents' => $totals->taxCents,
             'tax_formatted' => Money::format($totals->taxCents),
-            'shipping_cents' => $totals->shippingCents,
-            'shipping_formatted' => Money::format($totals->shippingCents),
             'total_cents' => $totals->totalCents,
             'total_formatted' => Money::format($totals->totalCents),
             'coupon' => $totals->coupon?->only(['code', 'type']),

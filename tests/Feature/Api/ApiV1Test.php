@@ -72,14 +72,13 @@ it('runs a full guest cart → checkout flow with a cart token', function (): vo
 
     $checkout = $this->withHeader('X-Cart-Token', $token)->postJson('/api/v1/checkout', [
         'customer' => ['name' => 'Guest', 'email' => 'guest@test.dev', 'phone' => '091'],
-        'shipping_address' => ['name' => 'Guest', 'phone' => '091', 'country' => 'LY', 'city' => 'Tripoli', 'street' => 'Main'],
-        'billing_same_as_shipping' => true,
+        'shipping_address' => ['country' => 'LY', 'city' => 'Tripoli', 'area' => 'Downtown'],
         'payment_method' => 'cod',
         'idempotency_key' => 'api-guest-1',
     ]);
 
     $checkout->assertCreated()
-        ->assertJsonPath('data.total', 215) // 200 + 15 shipping
+        ->assertJsonPath('data.total', 200)
         ->assertJsonStructure(['payment' => ['status', 'instructions']]);
 
     expect(Order::query()->sole()->placed_via)->toBe('api');
@@ -94,8 +93,7 @@ it('replays checkout idempotently', function (): void {
 
     $payload = [
         'customer' => ['name' => 'U', 'email' => $user->email, 'phone' => '091'],
-        'shipping_address' => ['name' => 'U', 'phone' => '091', 'country' => 'LY', 'city' => 'Tripoli', 'street' => 'Main'],
-        'billing_same_as_shipping' => true,
+        'shipping_address' => ['country' => 'LY', 'city' => 'Tripoli', 'area' => 'Downtown'],
         'payment_method' => 'cod',
         'idempotency_key' => 'api-idem-1',
     ];
@@ -117,8 +115,7 @@ it('scopes orders to the authenticated user (no IDOR)', function (): void {
     $this->postJson('/api/v1/cart/items', ['product_id' => $product->id, 'quantity' => 1]);
     $this->postJson('/api/v1/checkout', [
         'customer' => ['name' => 'O', 'email' => $owner->email, 'phone' => '091'],
-        'shipping_address' => ['name' => 'O', 'phone' => '091', 'country' => 'LY', 'city' => 'Tripoli', 'street' => 'Main'],
-        'billing_same_as_shipping' => true,
+        'shipping_address' => ['country' => 'LY', 'city' => 'Tripoli', 'area' => 'Downtown'],
         'payment_method' => 'cod',
     ])->assertCreated();
 
@@ -142,14 +139,14 @@ it('manages addresses over the API', function (): void {
 
     $created = $this->postJson('/api/v1/addresses', [
         'name' => 'Home', 'phone' => '091', 'country' => 'LY',
-        'city' => 'Tripoli', 'street' => 'Main', 'is_default_shipping' => true,
+        'city' => 'Tripoli', 'area' => 'Andalus', 'is_default_shipping' => true,
     ])->assertCreated();
 
     $id = $created->json('data.id');
 
     $this->patchJson("/api/v1/addresses/{$id}", [
         'name' => 'Home 2', 'phone' => '092', 'country' => 'LY',
-        'city' => 'Benghazi', 'street' => 'Second',
+        'city' => 'Benghazi', 'area' => 'Salmani',
     ])->assertOk()->assertJsonPath('data.city', 'Benghazi');
 
     // Another user cannot touch it.

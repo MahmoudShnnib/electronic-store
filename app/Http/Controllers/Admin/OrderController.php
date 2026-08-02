@@ -98,7 +98,6 @@ final class OrderController extends Controller implements HasMiddleware
                 'discount_formatted' => Money::format($order->discount_cents, $order->currency),
                 'coupon_code' => $order->coupon_code,
                 'tax_formatted' => Money::format($order->tax_cents, $order->currency),
-                'shipping_formatted' => Money::format($order->shipping_cents, $order->currency),
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
                 'total_cents' => $order->total_cents,
                 'paid_cents' => $paidCents,
@@ -214,7 +213,6 @@ final class OrderController extends Controller implements HasMiddleware
                 'subtotal_formatted' => Money::format($order->subtotal_cents, $order->currency),
                 'discount_formatted' => Money::format($order->discount_cents, $order->currency),
                 'tax_formatted' => Money::format($order->tax_cents, $order->currency),
-                'shipping_formatted' => Money::format($order->shipping_cents, $order->currency),
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
             ],
             'store' => [

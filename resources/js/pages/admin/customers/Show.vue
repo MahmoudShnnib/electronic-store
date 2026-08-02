@@ -20,8 +20,6 @@ interface AddressRow {
     country: string;
     city: string;
     area: string | null;
-    street: string;
-    building: string | null;
     is_default_shipping: boolean;
     is_default_billing: boolean;
 }
@@ -115,7 +113,7 @@ function toggleActive(): void {
                         </p>
                         <p class="text-gray-600 dark:text-gray-300">{{ address.name }} · {{ address.phone }}</p>
                         <p class="text-gray-500">
-                            {{ [address.street, address.building, address.area, address.city, address.country].filter(Boolean).join(', ') }}
+                            {{ [address.area, address.city, address.country].filter(Boolean).join(', ') }}
                         </p>
                     </li>
                     <li v-if="customer.addresses.length === 0" class="text-gray-400">{{ t('admin.customers.no_addresses') }}</li>

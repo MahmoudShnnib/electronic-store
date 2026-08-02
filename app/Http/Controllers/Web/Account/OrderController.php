@@ -56,7 +56,6 @@ final class OrderController extends Controller
                 'subtotal_formatted' => Money::format($order->subtotal_cents, $order->currency),
                 'discount_formatted' => Money::format($order->discount_cents, $order->currency),
                 'tax_formatted' => Money::format($order->tax_cents, $order->currency),
-                'shipping_formatted' => Money::format($order->shipping_cents, $order->currency),
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
                 'coupon_code' => $order->coupon_code,
                 'customer_note' => $order->customer_note,

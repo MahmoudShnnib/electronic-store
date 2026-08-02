@@ -10,7 +10,6 @@ return [
     'coupon_type' => [
         'fixed' => 'مبلغ ثابت',
         'percentage' => 'نسبة مئوية',
-        'free_shipping' => 'شحن مجاني',
     ],
 
     'item_condition' => [

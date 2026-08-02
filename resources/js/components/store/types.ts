@@ -78,8 +78,6 @@ export interface CartData {
     discount_formatted: string;
     tax_cents: number;
     tax_formatted: string;
-    shipping_cents: number;
-    shipping_formatted: string;
     total_cents: number;
     total_formatted: string;
     coupon: { code: string; type: string } | null;
@@ -94,8 +92,6 @@ export interface AddressData {
     country: string;
     city: string;
     area: string | null;
-    street: string;
-    building: string | null;
     notes: string | null;
     is_default_shipping: boolean;
     is_default_billing: boolean;

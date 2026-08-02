@@ -18,13 +18,11 @@ return new class extends Migration
             $table->string('status')->default('pending');
             $table->string('payment_status')->default('unpaid');
             $table->string('payment_method');
-            $table->string('shipping_method')->nullable();
             $table->string('currency', 3)->default('USD');
             $table->unsignedBigInteger('subtotal_cents')->default(0);
             $table->unsignedBigInteger('discount_cents')->default(0);
             $table->string('coupon_code')->nullable();
             $table->unsignedBigInteger('tax_cents')->default(0);
-            $table->unsignedBigInteger('shipping_cents')->default(0);
             $table->unsignedBigInteger('total_cents')->default(0);
             $table->text('customer_note')->nullable();
             $table->text('internal_note')->nullable();

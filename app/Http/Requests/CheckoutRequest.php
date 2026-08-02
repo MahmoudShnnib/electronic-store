@@ -18,30 +18,16 @@ final class CheckoutRequest extends FormRequest
 
     public function rules(): array
     {
-        $address = fn (string $prefix) => [
-            "{$prefix}.name" => ['required', 'string', 'max:120'],
-            "{$prefix}.phone" => ['required', 'string', 'max:32'],
-            "{$prefix}.country" => ['required', 'string', 'size:2'],
-            "{$prefix}.city" => ['required', 'string', 'max:120'],
-            "{$prefix}.area" => ['nullable', 'string', 'max:120'],
-            "{$prefix}.street" => ['required', 'string', 'max:255'],
-            "{$prefix}.building" => ['nullable', 'string', 'max:120'],
-            "{$prefix}.notes" => ['nullable', 'string', 'max:500'],
-        ];
-
         return [
             'customer.name' => ['required', 'string', 'max:120'],
             'customer.email' => ['nullable', 'email', 'max:255'],
             'customer.phone' => ['required', 'string', 'max:32'],
-            ...$address('shipping_address'),
-            'billing_same_as_shipping' => ['boolean'],
-            ...collect($address('billing_address'))
-                ->map(fn (array $rules) => array_map(
-                    fn ($rule) => $rule === 'required' ? 'required_if:billing_same_as_shipping,false' : $rule,
-                    $rules,
-                ))
-                ->all(),
-            'shipping_method' => ['nullable', 'string', 'max:64'],
+            'shipping_address.country' => ['required', 'string', 'size:2'],
+            'shipping_address.city' => [
+                'required', 'string', 'max:120',
+                Rule::in(array_column(config('store.cities', []), 'en')),
+            ],
+            'shipping_address.area' => ['nullable', 'string', 'max:120'],
             'payment_method' => ['required', Rule::enum(PaymentMethod::class), Rule::in(config('store.payment_methods', ['cod']))],
             'customer_note' => ['nullable', 'string', 'max:1000'],
             'idempotency_key' => ['nullable', 'string', 'max:64'],
@@ -52,17 +38,19 @@ final class CheckoutRequest extends FormRequest
     {
         $validated = $this->validated();
 
-        $shipping = $validated['shipping_address'];
-        $billing = ($validated['billing_same_as_shipping'] ?? true)
-            ? $shipping
-            : $validated['billing_address'];
+        // Contact and delivery details are one section now — the address
+        // snapshot reuses the customer's name and phone.
+        $shipping = [
+            'name' => $validated['customer']['name'],
+            'phone' => $validated['customer']['phone'],
+            ...$validated['shipping_address'],
+        ];
 
         return new CheckoutData(
             customer: $validated['customer'],
             shippingAddress: $shipping,
-            billingAddress: $billing,
+            billingAddress: $shipping,
             paymentMethod: PaymentMethod::from($validated['payment_method']),
-            shippingMethod: $validated['shipping_method'] ?? 'standard',
             customerNote: $validated['customer_note'] ?? null,
             idempotencyKey: $validated['idempotency_key'] ?? $this->header('Idempotency-Key'),
         );

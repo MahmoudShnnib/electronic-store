@@ -11,7 +11,6 @@ return [
     'coupon_type' => [
         'fixed' => 'Fixed',
         'percentage' => 'Percentage',
-        'free_shipping' => 'Free shipping',
     ],
 
     'item_condition' => [

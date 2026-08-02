@@ -18,7 +18,7 @@ final class SettingController extends Controller implements HasMiddleware
     private const EDITABLE = [
         'store_name', 'contact_info', 'bank_transfer_details', 'invoice_details',
         'page.about', 'page.contact', 'page.privacy-policy', 'page.terms', 'page.return-policy',
-        'shipping_fee', 'free_shipping_threshold', 'return_window_days',
+        'return_window_days',
     ];
 
     public static function middleware(): array

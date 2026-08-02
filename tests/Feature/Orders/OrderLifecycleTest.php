@@ -24,8 +24,8 @@ function placedOrder(User $user, Product $product, int $quantity = 2): Order
 
     return app(PlaceOrder::class)->handle($cart, new CheckoutData(
         customer: ['name' => $user->name, 'email' => $user->email, 'phone' => '091'],
-        shippingAddress: ['name' => $user->name, 'phone' => '091', 'country' => 'LY', 'city' => 'Tripoli', 'street' => 'X'],
-        billingAddress: ['name' => $user->name, 'phone' => '091', 'country' => 'LY', 'city' => 'Tripoli', 'street' => 'X'],
+        shippingAddress: ['name' => $user->name, 'phone' => '091', 'country' => 'LY', 'city' => 'Tripoli'],
+        billingAddress: ['name' => $user->name, 'phone' => '091', 'country' => 'LY', 'city' => 'Tripoli'],
         paymentMethod: PaymentMethod::CashOnDelivery,
     ), $user);
 }

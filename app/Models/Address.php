@@ -14,7 +14,7 @@ final class Address extends Model
 
     protected $fillable = [
         'user_id', 'label', 'name', 'phone', 'country', 'city', 'area',
-        'street', 'building', 'notes', 'is_default_shipping', 'is_default_billing',
+        'notes', 'is_default_shipping', 'is_default_billing',
     ];
 
     protected function casts(): array
@@ -39,8 +39,6 @@ final class Address extends Model
             'country' => $this->country,
             'city' => $this->city,
             'area' => $this->area,
-            'street' => $this->street,
-            'building' => $this->building,
             'notes' => $this->notes,
         ];
     }

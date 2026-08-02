@@ -17,8 +17,6 @@ return new class extends Migration
             $table->string('country', 2)->default('LY');
             $table->string('city');
             $table->string('area')->nullable();
-            $table->string('street');
-            $table->string('building')->nullable();
             $table->string('notes', 500)->nullable();
             $table->boolean('is_default_shipping')->default(false);
             $table->boolean('is_default_billing')->default(false);

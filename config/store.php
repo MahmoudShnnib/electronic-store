@@ -46,11 +46,6 @@ return [
         ['en' => 'Hun', 'ar' => 'هون'],
     ],
 
-    // Flat delivery fee in cents, applied unless a coupon grants free shipping
-    // or the subtotal passes the free-shipping threshold.
-    'shipping_fee_cents' => env('STORE_SHIPPING_FEE_CENTS', 1500),
-    'free_shipping_threshold_cents' => env('STORE_FREE_SHIPPING_THRESHOLD_CENTS', 50000),
-
     // Fallback VAT-style rate (percent) when a product has no explicit tax rate.
     'default_tax_rate' => env('STORE_DEFAULT_TAX_RATE', 0),
 

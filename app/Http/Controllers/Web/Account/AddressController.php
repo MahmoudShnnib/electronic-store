@@ -24,6 +24,7 @@ final class AddressController extends Controller
     {
         return Inertia::render('storefront/account/Addresses', [
             'addresses' => $request->user()->addresses()->latest()->get(),
+            'cities' => config('store.cities', []),
         ]);
     }
 

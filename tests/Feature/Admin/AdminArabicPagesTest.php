@@ -83,8 +83,8 @@ it('sends no English labels to the order detail screen', function (): void {
 
     $order = app(PlaceOrder::class)->handle($cart, new CheckoutData(
         customer: ['name' => $buyer->name, 'email' => $buyer->email, 'phone' => '091'],
-        shippingAddress: ['name' => $buyer->name, 'phone' => '091', 'country' => 'LY', 'city' => 'Tripoli', 'street' => 'X'],
-        billingAddress: ['name' => $buyer->name, 'phone' => '091', 'country' => 'LY', 'city' => 'Tripoli', 'street' => 'X'],
+        shippingAddress: ['name' => $buyer->name, 'phone' => '091', 'country' => 'LY', 'city' => 'Tripoli'],
+        billingAddress: ['name' => $buyer->name, 'phone' => '091', 'country' => 'LY', 'city' => 'Tripoli'],
         paymentMethod: PaymentMethod::CashOnDelivery,
     ), $buyer);
 

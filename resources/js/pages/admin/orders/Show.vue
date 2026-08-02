@@ -19,8 +19,6 @@ interface Address {
     country?: string;
     city?: string;
     area?: string | null;
-    street?: string;
-    building?: string | null;
     notes?: string | null;
 }
 
@@ -43,7 +41,6 @@ const props = defineProps<{
         discount_formatted: string;
         coupon_code: string | null;
         tax_formatted: string;
-        shipping_formatted: string;
         total_formatted: string;
         total_cents: number;
         paid_cents: number;
@@ -117,7 +114,6 @@ function formatAddress(address: Address): string {
     return [
         address.name,
         address.phone,
-        [address.street, address.building].filter(Boolean).join(' '),
         [address.area, address.city, address.country].filter(Boolean).join(', '),
         address.notes,
     ]
@@ -185,8 +181,6 @@ function formatAddress(address: Address): string {
                         </tr>
                         <tr>
                             <td colspan="5" />
-                            <td class="px-3 py-1.5 text-end text-gray-500">{{ t('admin.common.shipping') }}</td>
-                            <td class="px-3 py-1.5 text-end">{{ order.shipping_formatted }}</td>
                         </tr>
                         <tr class="font-semibold text-gray-900 dark:text-gray-100">
                             <td colspan="5" />
@@ -213,8 +207,6 @@ function formatAddress(address: Address): string {
 
                     <h3 class="mt-4 text-xs font-semibold uppercase text-gray-400">{{ t('admin.orders.shipping_address') }}</h3>
                     <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ formatAddress(order.shipping_address) }}</p>
-                    <h3 class="mt-3 text-xs font-semibold uppercase text-gray-400">{{ t('admin.orders.billing_address') }}</h3>
-                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ formatAddress(order.billing_address) }}</p>
 
                     <template v-if="order.customer_note">
                         <h3 class="mt-3 text-xs font-semibold uppercase text-gray-400">{{ t('admin.orders.customer_note') }}</h3>

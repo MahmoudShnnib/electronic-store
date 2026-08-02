@@ -28,7 +28,7 @@ function cartFor(?User $user, Product $product, int $quantity = 1): Cart
 
 function checkoutData(array $overrides = []): CheckoutData
 {
-    $address = ['name' => 'Test Buyer', 'phone' => '0912345678', 'country' => 'LY', 'city' => 'Tripoli', 'street' => 'Main St'];
+    $address = ['name' => 'Test Buyer', 'phone' => '0912345678', 'country' => 'LY', 'city' => 'Tripoli', 'area' => 'Hay Alandalus'];
 
     return new CheckoutData(...[
         'customer' => ['name' => 'Test Buyer', 'email' => 'buyer@test.dev', 'phone' => '0912345678'],
@@ -50,8 +50,7 @@ it('recalculates all totals server-side', function (): void {
 
     expect($totals->subtotalCents)->toBe(200_00)
         ->and($totals->taxCents)->toBe(20_00)
-        ->and($totals->shippingCents)->toBe((int) config('store.shipping_fee_cents'))
-        ->and($totals->totalCents)->toBe(200_00 + 20_00 + (int) config('store.shipping_fee_cents'));
+        ->and($totals->totalCents)->toBe(200_00 + 20_00);
 });
 
 it('places an order, snapshots items, and reserves stock through the ledger', function (): void {
@@ -153,14 +152,44 @@ it('enforces per-customer coupon limits', function (): void {
     app(ApplyCoupon::class)->handle($cart2, $coupon->code, $user->id);
 })->throws(ValidationException::class);
 
-it('grants free shipping above the threshold', function (): void {
-    $product = Product::factory()->create([
-        'price_cents' => (int) config('store.free_shipping_threshold_cents'),
-    ]);
+it('accepts a checkout with the merged contact/delivery form and no email', function (): void {
+    $product = Product::factory()->create(['price_cents' => 100_00]);
     giveStock($product, 5);
 
-    $user = customer();
-    $totals = app(CalculateCartTotals::class)->handle(cartFor($user, $product, 1), $user->id);
+    $this->actingAs(customer());
+    $this->post('/cart/items', ['product_id' => $product->id, 'quantity' => 1]);
 
-    expect($totals->shippingCents)->toBe(0);
+    $this->post('/checkout', [
+        'customer' => ['name' => 'Guest Buyer', 'email' => '', 'phone' => '0911111111'],
+        'shipping_address' => ['country' => 'LY', 'city' => 'Benghazi', 'area' => 'Alsalmani'],
+        'payment_method' => 'cod',
+        'customer_note' => 'Call before delivery',
+    ])->assertSessionHasNoErrors()->assertRedirect();
+
+    $order = Order::query()->sole();
+
+    expect($order->shipping_address)->toEqualCanonicalizing([
+        'name' => 'Guest Buyer',
+        'phone' => '0911111111',
+        'country' => 'LY',
+        'city' => 'Benghazi',
+        'area' => 'Alsalmani',
+    ])
+        ->and($order->billing_address)->toBe($order->shipping_address)
+        ->and($order->customer_note)->toBe('Call before delivery')
+        ->and($order->total_cents)->toBe(100_00);
+});
+
+it('rejects a delivery city outside the configured list', function (): void {
+    $product = Product::factory()->create(['price_cents' => 100_00]);
+    giveStock($product, 5);
+
+    $this->actingAs(customer());
+    $this->post('/cart/items', ['product_id' => $product->id, 'quantity' => 1]);
+
+    $this->post('/checkout', [
+        'customer' => ['name' => 'Guest Buyer', 'email' => '', 'phone' => '0911111111'],
+        'shipping_address' => ['country' => 'LY', 'city' => 'Cairo', 'area' => ''],
+        'payment_method' => 'cod',
+    ])->assertSessionHasErrors('shipping_address.city');
 });

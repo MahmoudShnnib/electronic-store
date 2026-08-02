@@ -35,14 +35,6 @@ final class CouponFactory extends Factory
         ]);
     }
 
-    public function freeShipping(): self
-    {
-        return $this->state([
-            'type' => CouponType::FreeShipping,
-            'value_cents' => null,
-        ]);
-    }
-
     public function expired(): self
     {
         return $this->state(['expires_at' => now()->subDay()]);

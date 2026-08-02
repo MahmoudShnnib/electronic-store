@@ -20,9 +20,9 @@ final class Order extends Model
 
     protected $fillable = [
         'number', 'user_id', 'customer', 'billing_address', 'shipping_address',
-        'status', 'payment_status', 'payment_method', 'shipping_method',
+        'status', 'payment_status', 'payment_method',
         'currency', 'subtotal_cents', 'discount_cents', 'coupon_code',
-        'tax_cents', 'shipping_cents', 'total_cents', 'customer_note',
+        'tax_cents', 'total_cents', 'customer_note',
         'internal_note', 'idempotency_key', 'placed_via', 'confirmed_at',
         'shipped_at', 'delivered_at', 'completed_at', 'cancelled_at',
     ];
@@ -39,7 +39,6 @@ final class Order extends Model
             'subtotal_cents' => 'integer',
             'discount_cents' => 'integer',
             'tax_cents' => 'integer',
-            'shipping_cents' => 'integer',
             'total_cents' => 'integer',
             'confirmed_at' => 'immutable_datetime',
             'shipped_at' => 'immutable_datetime',

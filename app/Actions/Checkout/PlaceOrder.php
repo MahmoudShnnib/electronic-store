@@ -33,8 +33,8 @@ use Illuminate\Validation\ValidationException;
  *     clear cart
  *   }
  *
- * Prices, discounts, taxes, and shipping are always recomputed server-side
- * via CalculateCartTotals. Nothing from the client is trusted.
+ * Prices, discounts, and taxes are always recomputed server-side via
+ * CalculateCartTotals. Nothing from the client is trusted.
  */
 final class PlaceOrder
 {
@@ -158,13 +158,11 @@ final class PlaceOrder
             'status' => OrderStatus::Pending,
             'payment_status' => PaymentStatus::Unpaid,
             'payment_method' => $data->paymentMethod,
-            'shipping_method' => $data->shippingMethod,
             'currency' => (string) config('store.currency'),
             'subtotal_cents' => $totals->subtotalCents,
             'discount_cents' => $totals->discountCents,
             'coupon_code' => $totals->discountCents > 0 ? $totals->coupon?->code : null,
             'tax_cents' => $totals->taxCents,
-            'shipping_cents' => $totals->shippingCents,
             'total_cents' => $totals->totalCents,
             'customer_note' => $data->customerNote,
             'idempotency_key' => $data->idempotencyKey,
