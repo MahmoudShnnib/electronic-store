@@ -24,10 +24,12 @@ final class ReportService
 
     private function revenueOrders(CarbonImmutable $from, CarbonImmutable $to): Builder
     {
+        // Columns are qualified because salesByCustomer() joins users, which
+        // shares column names (deleted_at, created_at) with orders.
         return DB::table('orders')
-            ->whereIn('status', self::REVENUE_STATUSES)
-            ->whereNull('deleted_at')
-            ->whereBetween('created_at', [$from, $to]);
+            ->whereIn('orders.status', self::REVENUE_STATUSES)
+            ->whereNull('orders.deleted_at')
+            ->whereBetween('orders.created_at', [$from, $to]);
     }
 
     private function revenueItems(CarbonImmutable $from, CarbonImmutable $to): Builder
@@ -164,7 +166,7 @@ final class ReportService
     public function salesByCustomer(CarbonImmutable $from, CarbonImmutable $to, int $limit = 25): Collection
     {
         return $this->revenueOrders($from, $to)
-            ->whereNotNull('user_id')
+            ->whereNotNull('orders.user_id')
             ->join('users', 'users.id', '=', 'orders.user_id')
             ->groupBy('users.id', 'users.name', 'users.email')
             ->orderByDesc(DB::raw('SUM(orders.total_cents)'))
