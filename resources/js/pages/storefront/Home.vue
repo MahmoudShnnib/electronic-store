@@ -159,6 +159,9 @@ const productSections = computed(() =>
         .filter((section) => section.products.length > 0),
 );
 
+/** A single tile can't loop seamlessly — render it once, unanimated. */
+const marqueeCopies = computed(() => (promoTiles.value.length >= 2 ? 3 : 1));
+
 // Category rail scrolling.
 const rail = ref<HTMLElement | null>(null);
 
@@ -273,31 +276,43 @@ function scrollRail(direction: 1 | -1) {
         </template>
     </section>
 
-    <!-- Promo tiles: horizontally scrollable, alternating light/dark -->
-    <section v-if="promoTiles.length > 0" class="mx-auto max-w-7xl px-4 pt-8">
-        <div class="flex snap-x gap-4 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <Link
-                v-for="(tile, index) in promoTiles"
-                :key="tile.id"
-                :href="route('catalog.category', tile.slug)"
-                class="relative flex h-40 w-[86%] shrink-0 snap-start items-center gap-4 overflow-hidden rounded-2xl px-5 transition hover:opacity-95 sm:w-[380px]"
-                :class="index % 2 === 0 ? 'bg-[#E9E7E4] text-black' : 'bg-[#1C1C1C] text-white'"
+    <!-- Promo tiles: endless drifting marquee, alternating light/dark.
+         The row is repeated three times and each copy slides its own full
+         width, so when one copy exits the next is already in its place. -->
+    <section v-if="promoTiles.length > 0" class="mx-auto max-w-7xl overflow-hidden px-4 pt-8">
+        <div class="promo-marquee-wrap flex pb-2">
+            <div
+                v-for="copy in marqueeCopies"
+                :key="copy"
+                class="promo-marquee flex shrink-0 gap-4 pe-4"
+                :class="{ 'promo-marquee-static': marqueeCopies === 1 }"
+                :style="{ animationDuration: `${promoTiles.length * 8}s` }"
+                :aria-hidden="copy > 1 ? 'true' : undefined"
             >
-                <div class="relative z-10 flex-1">
-                    <h3 class="text-lg font-semibold leading-tight">{{ categoryName(tile) }}</h3>
-                    <span
-                        v-if="tile.max_discount > 0"
-                        class="mt-3 inline-block rounded-md px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide"
-                        :class="index % 2 === 0 ? 'bg-black text-white' : 'bg-white text-black'"
-                    >
-                        {{ t('home.up_to_off', { percent: tile.max_discount }) }}
-                    </span>
-                    <span v-else class="mt-3 block text-xs opacity-70">
-                        {{ t('home.product_count', tile.products_count) }}
-                    </span>
-                </div>
-                <img v-if="tile.image" :src="tile.image" :alt="categoryName(tile)" loading="lazy" class="h-28 w-28 rounded-xl object-cover" />
-            </Link>
+                <Link
+                    v-for="(tile, index) in promoTiles"
+                    :key="tile.id"
+                    :href="route('catalog.category', tile.slug)"
+                    :tabindex="copy > 1 ? -1 : undefined"
+                    class="relative flex h-40 w-[300px] shrink-0 items-center gap-4 overflow-hidden rounded-2xl px-5 transition hover:opacity-95 sm:w-[380px]"
+                    :class="index % 2 === 0 ? 'bg-[#E9E7E4] text-black' : 'bg-[#1C1C1C] text-white'"
+                >
+                    <div class="relative z-10 flex-1">
+                        <h3 class="text-lg font-semibold leading-tight">{{ categoryName(tile) }}</h3>
+                        <span
+                            v-if="tile.max_discount > 0"
+                            class="mt-3 inline-block rounded-md px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide"
+                            :class="index % 2 === 0 ? 'bg-black text-white' : 'bg-white text-black'"
+                        >
+                            {{ t('home.up_to_off', { percent: tile.max_discount }) }}
+                        </span>
+                        <span v-else class="mt-3 block text-xs opacity-70">
+                            {{ t('home.product_count', tile.products_count) }}
+                        </span>
+                    </div>
+                    <img v-if="tile.image" :src="tile.image" :alt="categoryName(tile)" loading="lazy" class="h-28 w-28 rounded-xl object-cover" />
+                </Link>
+            </div>
         </div>
     </section>
 
@@ -380,3 +395,42 @@ function scrollRail(direction: 1 | -1) {
         </div>
     </section>
 </template>
+
+<style>
+@keyframes promo-marquee-ltr {
+    to {
+        transform: translateX(-100%);
+    }
+}
+
+@keyframes promo-marquee-rtl {
+    to {
+        transform: translateX(100%);
+    }
+}
+
+.promo-marquee {
+    animation: promo-marquee-ltr 48s linear infinite;
+}
+
+[dir='rtl'] .promo-marquee {
+    animation-name: promo-marquee-rtl;
+}
+
+.promo-marquee-wrap:hover .promo-marquee,
+.promo-marquee-wrap:focus-within .promo-marquee {
+    animation-play-state: paused;
+}
+
+.promo-marquee-static,
+[dir='rtl'] .promo-marquee-static {
+    animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .promo-marquee,
+    [dir='rtl'] .promo-marquee {
+        animation: none;
+    }
+}
+</style>
