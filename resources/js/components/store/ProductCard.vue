@@ -82,12 +82,11 @@ function toggleWishlist() {
             </div>
 
             <div class="mt-auto flex items-end justify-between gap-2 pt-2">
-                <span v-if="product.in_stock" class="text-[11px] font-medium text-muted-foreground">
-                    {{ t('product.free_delivery') }}
-                </span>
-                <span v-else class="rounded-lg bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
+                <span v-if="!product.in_stock" class="rounded-lg bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
                     {{ t('product.out_of_stock') }}
                 </span>
+                <span v-else />
+
 
                 <button
                     v-if="product.in_stock"

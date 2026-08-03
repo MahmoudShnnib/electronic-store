@@ -76,8 +76,7 @@
         "review_body": "تقييمك",
         "submit_review": "إرسال التقييم",
         "no_reviews": "لا توجد تقييمات بعد.",
-        "percent_off": "خصم {percent}%",
-        "free_delivery": "توصيل مجاني"
+        "percent_off": "خصم {percent}%"
     },
     "cart": {
         "title": "سلة التسوق",

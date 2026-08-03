@@ -76,8 +76,7 @@
         "review_body": "Your review",
         "submit_review": "Submit review",
         "no_reviews": "No reviews yet.",
-        "percent_off": "{percent}% off",
-        "free_delivery": "Free delivery"
+        "percent_off": "{percent}% off"
     },
     "cart": {
         "title": "Shopping cart",

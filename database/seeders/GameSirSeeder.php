@@ -62,7 +62,7 @@ final class GameSirSeeder extends Seeder
                 'short_ar' => 'يد تحكم لاسلكية احترافية بعصي Hall Effect وقاعدة شحن بإضاءة RGB.',
                 'description' => "Level up with the GameSir Super Nova, built for professional performance and high precision across all game genres. Hall Effect drift-resistant sticks ensure accurate response and a longer lifespan, fast-response buttons and a comfortable grip keep long sessions easy on the hands.\n\nConnect over USB-C, Bluetooth, or 2.4GHz for wide device compatibility, and keep it charged and ready on the elegant RGB charging dock.\n\n• Hall Effect drift-resistant sticks\n• Bluetooth, 2.4GHz and USB-C connectivity\n• RGB charging dock\n• Comfortable anti-slip grip\n• Long-lasting battery\n• Works with PC, Nintendo Switch, Android and iOS",
                 'description_ar' => "ارتقِ بتجربة اللعب مع GameSir Super Nova، المصممة لتوفير أداء احترافي ودقة عالية في جميع أنواع الألعاب. تأتي بعصي Hall Effect المقاومة للانجراف لضمان استجابة دقيقة وعمر افتراضي أطول، مع أزرار سريعة الاستجابة وتصميم مريح يمنحك راحة أثناء جلسات اللعب الطويلة.\n\nتدعم اليد الاتصال عبر USB-C وBluetooth و2.4GHz مما يجعلها متوافقة مع مجموعة واسعة من الأجهزة، كما تأتي مع قاعدة شحن أنيقة بإضاءة RGB للحفاظ على شحنها وجاهزيتها في جميع الأوقات.\n\nالمميزات:\n• عصي Hall Effect مقاومة للانجراف.\n• اتصال لاسلكي Bluetooth و2.4GHz بالإضافة إلى USB-C.\n• قاعدة شحن بإضاءة RGB.\n• تصميم مريح مع قبضة مانعة للانزلاق.\n• بطارية تدوم لساعات طويلة.\n• متوافقة مع PC وNintendo Switch وAndroid وiOS.",
-                'images' => [['gamesir-super-nova.jpg', 'GameSir Super Nova wireless controller on its RGB charging dock']],
+                'images' => [['gamesir-super-nova.png', 'GameSir Super Nova wireless controller on its RGB charging dock']],
             ],
             [
                 'name' => 'GameSir Nova Lite',
@@ -73,7 +73,7 @@ final class GameSirSeeder extends Seeder
                 'short_ar' => 'يد تحكم خفيفة وموثوقة بعصي Hall Effect وثلاث طرق اتصال.',
                 'description' => "Enjoy smooth gaming with the GameSir Nova Lite, designed for dependable performance and a comfortable fit for every play style. Hall Effect drift-resistant sticks deliver high precision and a longer lifespan, alongside fast-response buttons for excellent control in every game.\n\nSupports Bluetooth, 2.4GHz and USB-C so you can play across all your devices.\n\n• Hall Effect drift-resistant sticks\n• Bluetooth, 2.4GHz and USB-C connectivity\n• Comfortable lightweight design for long sessions\n• Precise, fast-response buttons\n• Long-life rechargeable battery\n• Works with PC, Nintendo Switch, Android and iOS",
                 'description_ar' => "استمتع بتجربة لعب سلسة مع GameSir Nova Lite، المصممة لتقديم أداء موثوق وتصميم مريح يناسب مختلف أساليب اللعب. تتميز بعصي Hall Effect المقاومة للانجراف، مما يوفر دقة عالية وعمرًا افتراضيًا أطول، إلى جانب أزرار سريعة الاستجابة تمنحك تحكمًا ممتازًا في جميع الألعاب.\n\nتدعم اليد عدة طرق اتصال USB-C وBluetooth و2.4GHz لتمنحك مرونة في الاستخدام على مختلف الأجهزة، بما في ذلك.\n\nالمميزات:\n• عصي Hall Effect مقاومة للانجراف.\n• اتصال عبر Bluetooth و2.4GHz وUSB-C.\n• تصميم مريح وخفيف للاستخدام الطويل.\n• أزرار دقيقة وسريعة الاستجابة.\n• بطارية قابلة لإعادة الشحن بعمر تشغيل طويل.\n• متوافقة مع PC، Nintendo Switch، Android، وiOS.",
-                'images' => [['gamesir-nova-lite.jpg', 'GameSir Nova Lite controller']],
+                'images' => [['gamesir-nova-lite.png', 'GameSir Nova Lite controller']],
             ],
             [
                 'name' => 'GameSir Nova Lite Signature Edition',
@@ -84,7 +84,7 @@ final class GameSirSeeder extends Seeder
                 'short_ar' => 'إصدار ذهبي خاص بتوقيع مميز وعصي Hall Effect.',
                 'description' => "The GameSir Nova Lite Signature Edition combines professional performance with a luxurious gold finish and an elegant signature that gives it a unique look, while keeping every feature players need for smooth, precise gaming.\n\nEquipped with Hall Effect drift-resistant sticks for higher precision and a longer lifespan, plus a comfortable design and fast-response buttons for complete control in every game.\n\n• Special edition with a luxury gold design\n• Hall Effect drift-resistant sticks\n• Bluetooth, 2.4GHz and USB-C connectivity\n• Comfortable for long sessions\n• Rechargeable battery with excellent runtime\n• Works with PC, Nintendo Switch, Android and iOS",
                 'description_ar' => "اجمع بين الأداء الاحترافي والتصميم الفاخر مع GameSir Nova Lite Signature Edition. تأتي هذه النسخة بتشطيب ذهبي أنيق مع توقيع مميز يمنحها مظهرًا فريدًا، مع الحفاظ على جميع المزايا التي يحتاجها اللاعبون للحصول على تجربة لعب سلسة ودقيقة.\n\nمزودة بعصي Hall Effect المقاومة للانجراف لضمان دقة أعلى وعمر استخدام أطول، بالإضافة إلى تصميم مريح وأزرار سريعة الاستجابة تمنحك تحكمًا كاملاً في مختلف الألعاب.\n\nالمميزات:\n• إصدار خاص بتصميم ذهبي فاخر.\n• عصي Hall Effect مقاومة للانجراف.\n• اتصال عبر Bluetooth و2.4GHz وUSB-C.\n• تصميم مريح للاستخدام لساعات طويلة.\n• بطارية قابلة لإعادة الشحن بعمر تشغيل ممتاز.\n• متوافقة مع PC، Nintendo Switch، Android، وiOS.",
-                'images' => [['gamesir-nova-lite-signature.jpg', 'GameSir Nova Lite Signature Edition in gold']],
+                'images' => [['gamesir-nova-lite-signature.png', 'GameSir Nova Lite Signature Edition in gold']],
             ],
             [
                 'name' => 'GameSir T3 Lite',
@@ -96,8 +96,8 @@ final class GameSirSeeder extends Seeder
                 'description' => "Enjoy stable, fast gaming with the GameSir T3 Lite, engineered for instant response thanks to its wired USB connection. A comfortable design suits long play sessions, with precise buttons and smooth sticks for excellent control across all game genres.\n\n• Fast, stable wired USB connection\n• Comfortable lightweight design\n• Precise sticks and highly responsive buttons\n• Works with PC and Nintendo Switch\n• Durable build quality for daily use",
                 'description_ar' => "استمتع بتجربة لعب مستقرة وسريعة مع GameSir T3 Lite، المصممة لتقديم استجابة فورية بفضل الاتصال السلكي عبر USB. تتميز بتصميم مريح يناسب جلسات اللعب الطويلة، مع أزرار دقيقة وعصي تحكم سلسة تمنحك تحكمًا ممتازًا في مختلف الألعاب.\n\nالمميزات:\n• اتصال USB سلكي سريع ومستقر.\n• تصميم مريح وخفيف الوزن.\n• عصا تحكم دقيقة وأزرار عالية الاستجابة.\n• توافق مع PC وNintendo Switch.\n• جودة تصنيع متينة للاستخدام اليومي.",
                 'images' => [
-                    ['gamesir-t3-lite-1.jpg', 'GameSir T3 Lite wired controller in grey'],
-                    ['gamesir-t3-lite-2.jpg', 'GameSir T3 Lite wired controller in white'],
+                    ['gamesir-t3-lite-1.png', 'GameSir T3 Lite wired controller in grey'],
+                    ['gamesir-t3-lite-2.png', 'GameSir T3 Lite wired controller in white'],
                 ],
             ],
         ];
