@@ -98,6 +98,24 @@ html[lang='ar'] body {
         @apply border-border;
     }
 
+    /* Everything is sized in rem, so nudging the root scales the whole UI.
+       17px on tablets, 18px on desktop; phones keep the 16px default. */
+    html {
+        font-size: 16px;
+    }
+
+    @media (min-width: 768px) {
+        html {
+            font-size: 17px;
+        }
+    }
+
+    @media (min-width: 1280px) {
+        html {
+            font-size: 18px;
+        }
+    }
+
     body {
         @apply bg-background text-foreground;
     }
