@@ -49,6 +49,7 @@ class DatabaseSeeder extends Seeder
         if (app()->environment('local')) {
             $this->call(DemoCatalogSeeder::class);
             $this->call(ProductImageSeeder::class);
+            $this->call(GameSirSeeder::class);
         }
     }
 }
