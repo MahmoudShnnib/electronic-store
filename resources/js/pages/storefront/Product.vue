@@ -82,6 +82,7 @@ const selectedImageIndex = ref(
 const selectedVariantId = ref<number | null>(props.product.variants.length > 0 ? props.product.variants[0].id : null);
 const quantity = ref(1);
 const adding = ref(false);
+const buying = ref(false);
 
 const selectedVariant = computed(() => props.product.variants.find((v) => v.id === selectedVariantId.value) ?? null);
 
@@ -103,6 +104,24 @@ function addToCart() {
             quantity: quantity.value,
         },
         { preserveScroll: true, onFinish: () => (adding.value = false) },
+    );
+}
+
+/** Add to cart, then jump straight to checkout. */
+function buyNow() {
+    buying.value = true;
+    router.post(
+        route('cart.add'),
+        {
+            product_id: props.product.id,
+            variant_id: selectedVariantId.value,
+            quantity: quantity.value,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => router.visit(route('checkout.show')),
+            onError: () => (buying.value = false),
+        },
     );
 }
 
@@ -240,6 +259,14 @@ function submitReview() {
                     @click="addToCart"
                 >
                     {{ t('product.add_to_cart') }}
+                </button>
+                <button
+                    type="button"
+                    :disabled="!canBuy || buying"
+                    class="flex-1 rounded-xl bg-[#0F9D58] px-6 py-3 font-semibold text-white transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+                    @click="buyNow"
+                >
+                    {{ buying ? t('common.loading') : t('product.buy_now') }}
                 </button>
                 <button
                     type="button"
