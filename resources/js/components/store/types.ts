@@ -14,6 +14,7 @@ export interface ProductCardData {
     image: string | null;
     status: string;
     in_stock: boolean;
+    has_variants: boolean;
     is_featured: boolean;
     rating_avg: number | null;
     rating_count: number;

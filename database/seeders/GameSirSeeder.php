@@ -96,8 +96,15 @@ final class GameSirSeeder extends Seeder
                 'description' => "Enjoy stable, fast gaming with the GameSir T3 Lite, engineered for instant response thanks to its wired USB connection. A comfortable design suits long play sessions, with precise buttons and smooth sticks for excellent control across all game genres.\n\n• Fast, stable wired USB connection\n• Comfortable lightweight design\n• Precise sticks and highly responsive buttons\n• Works with PC and Nintendo Switch\n• Durable build quality for daily use",
                 'description_ar' => "استمتع بتجربة لعب مستقرة وسريعة مع GameSir T3 Lite، المصممة لتقديم استجابة فورية بفضل الاتصال السلكي عبر USB. تتميز بتصميم مريح يناسب جلسات اللعب الطويلة، مع أزرار دقيقة وعصي تحكم سلسة تمنحك تحكمًا ممتازًا في مختلف الألعاب.\n\nالمميزات:\n• اتصال USB سلكي سريع ومستقر.\n• تصميم مريح وخفيف الوزن.\n• عصا تحكم دقيقة وأزرار عالية الاستجابة.\n• توافق مع PC وNintendo Switch.\n• جودة تصنيع متينة للاستخدام اليومي.",
                 'images' => [
-                    ['gamesir-t3-lite-1.png', 'GameSir T3 Lite wired controller in grey'],
-                    ['gamesir-t3-lite-2.png', 'GameSir T3 Lite wired controller in white'],
+                    ['gamesir-t3-lite-1.png', 'GameSir T3 Lite wired controller in white'],
+                ],
+                // Grey and white are separate colourways, each with its own
+                // photo and stock — sold as variants of one product.
+                // (Note: file -1 is the WHITE unit, -2 the grey one — the PDF
+                // laid them out right-to-left.)
+                'variants' => [
+                    ['name' => 'Grey / رمادي', 'attrs' => ['Color' => 'Grey'], 'image' => 'products/gamesir-t3-lite-2.png', 'stock' => 25],
+                    ['name' => 'White / أبيض', 'attrs' => ['Color' => 'White'], 'image' => 'products/gamesir-t3-lite-1.png', 'stock' => 25],
                 ],
             ],
         ];
@@ -120,6 +127,7 @@ final class GameSirSeeder extends Seeder
                     'price_cents' => $data['price'],
                     'status' => 'active',
                     'is_featured' => $data['featured'] ?? false,
+                    'has_variants' => isset($data['variants']),
                     'published_at' => now(),
                 ],
             );
@@ -136,7 +144,26 @@ final class GameSirSeeder extends Seeder
                 }
             }
 
-            if ($data['stock'] > 0 && $product->stockLevels()->doesntExist()) {
+            if (isset($data['variants'])) {
+                foreach ($data['variants'] as $vi => $variantData) {
+                    $variant = $product->variants()->firstOrCreate(
+                        ['sku' => strtoupper(Str::slug($data['name'], '-')).'-V'.($vi + 1)],
+                        [
+                            'name' => $variantData['name'],
+                            'attributes' => $variantData['attrs'],
+                            'cost_price_cents' => $data['cost'],
+                            'price_cents' => $data['price'],
+                            'image_path' => $variantData['image'],
+                            'position' => $vi,
+                            'is_active' => true,
+                        ],
+                    );
+
+                    if ($variant->stockLevels()->doesntExist()) {
+                        $adjust->handle($warehouse, $product, $variant, $variantData['stock'], MovementType::Initial, 'Opening stock', $adminId);
+                    }
+                }
+            } elseif ($data['stock'] > 0 && $product->stockLevels()->doesntExist()) {
                 $adjust->handle($warehouse, $product, null, $data['stock'], MovementType::Initial, 'Opening stock', $adminId);
             }
         }

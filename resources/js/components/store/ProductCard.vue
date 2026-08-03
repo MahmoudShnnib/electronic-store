@@ -13,10 +13,38 @@ const page = usePage();
 const authenticated = computed(() => (page.props.auth as { user: unknown | null }).user !== null);
 
 const adding = ref(false);
+const buying = ref(false);
 
 function addToCart() {
+    // Variant products need a colour/option picked first.
+    if (props.product.has_variants) {
+        router.visit(route('products.show', props.product.slug));
+
+        return;
+    }
+
     adding.value = true;
     router.post(route('cart.add'), { product_id: props.product.id, quantity: 1 }, { preserveScroll: true, onFinish: () => (adding.value = false) });
+}
+
+/** Straight to checkout with one unit (or to the page when a variant must be chosen). */
+function buyNow() {
+    if (props.product.has_variants) {
+        router.visit(route('products.show', props.product.slug));
+
+        return;
+    }
+
+    buying.value = true;
+    router.post(
+        route('cart.add'),
+        { product_id: props.product.id, quantity: 1 },
+        {
+            preserveScroll: true,
+            onSuccess: () => router.visit(route('checkout.show')),
+            onError: () => (buying.value = false),
+        },
+    );
 }
 
 function toggleWishlist() {
@@ -85,7 +113,15 @@ function toggleWishlist() {
                 <span v-if="!product.in_stock" class="rounded-lg bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground">
                     {{ t('product.out_of_stock') }}
                 </span>
-                <span v-else />
+                <button
+                    v-else
+                    type="button"
+                    :disabled="buying"
+                    class="rounded-full bg-[#0F9D58] px-3.5 py-2 text-xs font-semibold text-white transition hover:opacity-85 disabled:opacity-50"
+                    @click.prevent="buyNow"
+                >
+                    {{ t('product.buy_now') }}
+                </button>
 
 
                 <button
