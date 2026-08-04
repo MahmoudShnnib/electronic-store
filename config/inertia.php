@@ -89,9 +89,11 @@ return [
 
         'ensure_pages_exist' => true,
 
+        // Lowercase to match this repo exactly — macOS tolerates the default
+        // js/Pages casing but Linux CI does not.
         'page_paths' => [
 
-            resource_path('js/Pages'),
+            resource_path('js/pages'),
 
         ],
 
