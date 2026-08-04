@@ -109,6 +109,7 @@
         "saved_addresses": "Use a saved address",
         "payment": "Payment method",
         "review": "Order review",
+        "edit_order": "Edit",
         "place_order": "Place order",
         "order_note": "Note (optional)",
         "confirmation_title": "Thank you for your order!",

@@ -3,7 +3,7 @@ import CitySelect from '@/components/store/CitySelect.vue';
 import type { AddressData, CartData } from '@/components/store/types';
 import StoreLayout from '@/layouts/StoreLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ImageOff } from 'lucide-vue-next';
+import { ImageOff, Pencil } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
@@ -187,7 +187,16 @@ function error(key: string): string | undefined {
 
             <!-- Review / summary -->
             <aside class="h-fit w-full rounded-xl border border-border bg-card p-5 lg:w-96">
-                <h2 class="mb-4 font-semibold">3. {{ t('checkout.review') }}</h2>
+                <div class="mb-4 flex items-center justify-between gap-2">
+                    <h2 class="font-semibold">3. {{ t('checkout.review') }}</h2>
+                    <Link
+                        :href="route('cart.show')"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition hover:border-black dark:hover:border-white"
+                    >
+                        <Pencil class="h-3.5 w-3.5" />
+                        {{ t('checkout.edit_order') }}
+                    </Link>
+                </div>
 
                 <ul class="mb-4 max-h-80 space-y-3 overflow-y-auto text-sm">
                     <li v-for="item in cart.items" :key="item.id" class="flex items-center gap-3">
