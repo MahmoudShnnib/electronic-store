@@ -35,6 +35,33 @@ let nextId = 1;
 
 const BASKET_HALF = 9; // catch tolerance, % of arena width
 
+/** Fixed drift slots so the teaser looks composed, not random. */
+const TEASER_SLOTS = [
+    { x: '6%', y: '8%' },
+    { x: '30%', y: '55%' },
+    { x: '55%', y: '10%' },
+    { x: '72%', y: '48%' },
+    { x: '88%', y: '18%' },
+];
+
+/** Cutout PNGs float like real objects; photos with baked-in backgrounds
+ *  read as rectangles, so only use them when nothing better exists. */
+const floatables = computed(() => {
+    const cutouts = props.images.filter((src) => src.endsWith('.png'));
+
+    return cutouts.length >= 3 ? cutouts : props.images;
+});
+
+const teaserItems = computed(() =>
+    TEASER_SLOTS.filter((_, i) => i < floatables.value.length).map((slot, i) => ({
+        src: floatables.value[i % floatables.value.length],
+        x: slot.x,
+        y: slot.y,
+        delay: `${i * 0.9}s`,
+        duration: `${5 + (i % 3)}s`,
+    })),
+);
+
 const spawnEvery = computed(() => Math.max(0.45, 1.3 - score.value * 0.02));
 const fallSpeed = computed(() => 130 + score.value * 6);
 
@@ -167,27 +194,56 @@ onBeforeUnmount(() => {
 
 <template>
     <section class="mx-auto max-w-7xl px-4 pt-14">
-        <!-- Teaser -->
+        <!-- Teaser: a slice of the game itself, products drifting behind the pitch -->
         <button
             v-if="!open"
             type="button"
-            class="group flex w-full items-center justify-between gap-4 rounded-2xl border border-border bg-card p-5 text-start transition hover:shadow-lg"
+            class="group relative block w-full overflow-hidden rounded-3xl border border-[#0F9D58]/25 bg-gradient-to-l from-[#0F9D58]/15 via-card to-card p-6 text-start transition hover:border-[#0F9D58]/60 hover:shadow-xl hover:shadow-[#0F9D58]/10 sm:p-9"
             @click="toggleOpen"
         >
-            <span class="flex items-center gap-4">
-                <span class="rounded-xl bg-[#0F9D58]/10 p-3 text-[#0F9D58]">
-                    <Gamepad2 class="h-7 w-7" />
+            <!-- Drifting catalogue items -->
+            <img
+                v-for="(img, i) in teaserItems"
+                :key="i"
+                :src="img.src"
+                alt=""
+                aria-hidden="true"
+                class="game-float pointer-events-none absolute h-12 w-12 object-contain opacity-40 transition group-hover:opacity-70 sm:h-16 sm:w-16"
+                :class="{ 'hidden sm:block': i > 2 }"
+                :style="{ insetInlineStart: img.x, top: img.y, animationDelay: img.delay, animationDuration: img.duration }"
+            />
+
+            <!-- Dotted catch line -->
+            <span class="pointer-events-none absolute inset-x-8 bottom-6 hidden border-t-2 border-dashed border-[#0F9D58]/30 sm:block" aria-hidden="true" />
+
+            <div class="relative z-10 flex flex-wrap items-center justify-between gap-6">
+                <span class="flex items-center gap-5">
+                    <span class="game-wiggle rounded-2xl bg-[#0F9D58] p-3.5 text-white shadow-lg shadow-[#0F9D58]/40">
+                        <Gamepad2 class="h-8 w-8" />
+                    </span>
+                    <span>
+                        <span class="block bg-gradient-to-l from-[#0F9D58] to-foreground bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl">
+                            {{ t('home.game_title') }}
+                        </span>
+                        <span class="mt-1.5 block max-w-md text-sm text-muted-foreground">{{ t('home.game_subtitle') }}</span>
+                        <span
+                            v-if="best > 0"
+                            class="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-[#0F9D58]/10 px-3 py-1 text-xs font-bold text-[#0F9D58]"
+                        >
+                            🏆 {{ t('home.game_best', { best }) }}
+                        </span>
+                    </span>
                 </span>
-                <span>
-                    <span class="block text-lg font-semibold">{{ t('home.game_title') }}</span>
-                    <span class="mt-0.5 block text-sm text-muted-foreground">{{ t('home.game_subtitle') }}</span>
+
+                <span class="relative shrink-0">
+                    <span class="game-glow absolute inset-0 rounded-2xl bg-[#0F9D58]" aria-hidden="true" />
+                    <span
+                        class="relative flex items-center gap-2 rounded-2xl bg-[#0F9D58] px-8 py-3.5 text-base font-bold text-white transition group-hover:scale-105"
+                    >
+                        ▶ {{ t('home.game_play') }}
+                    </span>
                 </span>
-            </span>
-            <span
-                class="shrink-0 rounded-xl bg-black px-5 py-2.5 text-sm font-semibold text-white transition group-hover:opacity-85 dark:bg-white dark:text-black"
-            >
-                {{ t('home.game_play') }}
-            </span>
+            </div>
         </button>
 
         <!-- Game -->
@@ -256,3 +312,57 @@ onBeforeUnmount(() => {
         </div>
     </section>
 </template>
+
+<style>
+@keyframes game-float {
+    0%,
+    100% {
+        transform: translateY(0) rotate(-4deg);
+    }
+    50% {
+        transform: translateY(-14px) rotate(5deg);
+    }
+}
+
+@keyframes game-wiggle {
+    0%,
+    100% {
+        transform: rotate(-6deg);
+    }
+    50% {
+        transform: rotate(8deg);
+    }
+}
+
+@keyframes game-glow {
+    0%,
+    100% {
+        opacity: 0.55;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0;
+        transform: scale(1.18);
+    }
+}
+
+.game-float {
+    animation: game-float 6s ease-in-out infinite;
+}
+
+.game-wiggle {
+    animation: game-wiggle 2.6s ease-in-out infinite;
+}
+
+.game-glow {
+    animation: game-glow 2s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .game-float,
+    .game-wiggle,
+    .game-glow {
+        animation: none;
+    }
+}
+</style>
