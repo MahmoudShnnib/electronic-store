@@ -7,9 +7,11 @@ use App\Models\ProductVariant;
 use App\Models\User;
 use App\Models\Warehouse;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
-pest()->extend(Tests\TestCase::class)
-    ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
     ->beforeEach(function (): void {
         $this->seed(RolesAndPermissionsSeeder::class);
     })

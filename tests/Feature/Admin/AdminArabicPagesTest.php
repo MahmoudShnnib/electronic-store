@@ -9,7 +9,6 @@ use App\Enums\PaymentMethod;
 use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\Category;
-use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;

@@ -14,22 +14,24 @@ use App\Http\Requests\Cart\AddToCartRequest;
 use App\Http\Requests\Cart\ApplyCouponRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Http\Resources\CartPayload;
+use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\Response;
 
 final class CartController extends Controller
 {
     public function __construct(
         private readonly ResolveCart $resolveCart,
         private readonly CalculateCartTotals $calculateTotals,
-    ) {
-    }
+    ) {}
 
-    public function show(Request $request): \Symfony\Component\HttpFoundation\Response
+    public function show(Request $request): Response
     {
         $cart = $this->resolveCart->handle($request);
 
@@ -96,7 +98,7 @@ final class CartController extends Controller
         abort_if($cart === null || $item->cart_id !== $cart->id, 403);
     }
 
-    private function cookie(\App\Models\Cart $cart): \Symfony\Component\HttpFoundation\Cookie
+    private function cookie(Cart $cart): Cookie
     {
         return cookie(
             ResolveCart::GUEST_COOKIE,

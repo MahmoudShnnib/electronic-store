@@ -14,6 +14,31 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    # The app is PostgreSQL-only (jsonb columns, NULLS NOT DISTINCT indexes),
+    # so tests run against a real Postgres service, not SQLite.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: store
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: electronic_store_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U store"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # phpunit.xml's <env> defaults don't override real environment
+      # variables, so these point the suite at the service container.
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      DB_USERNAME: store
+      DB_PASSWORD: secret
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,7 +48,7 @@ jobs:
         with:
           php-version: 8.4
           tools: composer:v2
-          coverage: xdebug
+          coverage: none
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -33,9 +58,6 @@ jobs:
 
       - name: Install Node Dependencies
         run: npm ci
-
-      - name: Create SQLite Database
-        run: touch database/database.sqlite
 
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
@@ -53,4 +75,4 @@ jobs:
         run: npm run build
 
       - name: Tests
-        run: ./vendor/bin/phpunit
+        run: php artisan test

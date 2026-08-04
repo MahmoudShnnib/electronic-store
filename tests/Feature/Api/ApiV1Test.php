@@ -3,6 +3,7 @@
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use Laravel\Sanctum\Sanctum;
 
 it('registers and returns a bearer token', function (): void {
     $response = $this->postJson('/api/v1/auth/register', [
@@ -89,7 +90,7 @@ it('replays checkout idempotently', function (): void {
     giveStock($product, 5);
     $user = customer();
 
-    \Laravel\Sanctum\Sanctum::actingAs($user);
+    Sanctum::actingAs($user);
 
     $payload = [
         'customer' => ['name' => 'U', 'email' => $user->email, 'phone' => '091'],
@@ -111,7 +112,7 @@ it('scopes orders to the authenticated user (no IDOR)', function (): void {
     giveStock($product, 5);
 
     $owner = customer();
-    \Laravel\Sanctum\Sanctum::actingAs($owner);
+    Sanctum::actingAs($owner);
     $this->postJson('/api/v1/cart/items', ['product_id' => $product->id, 'quantity' => 1]);
     $this->postJson('/api/v1/checkout', [
         'customer' => ['name' => 'O', 'email' => $owner->email, 'phone' => '091'],
@@ -121,7 +122,7 @@ it('scopes orders to the authenticated user (no IDOR)', function (): void {
 
     $order = Order::query()->sole();
 
-    \Laravel\Sanctum\Sanctum::actingAs(customer());
+    Sanctum::actingAs(customer());
 
     $this->getJson("/api/v1/orders/{$order->id}")->assertForbidden();
     $this->getJson('/api/v1/orders')->assertOk()->assertJsonCount(0, 'data');
@@ -135,7 +136,7 @@ it('requires authentication for account endpoints', function (): void {
 
 it('manages addresses over the API', function (): void {
     $user = customer();
-    \Laravel\Sanctum\Sanctum::actingAs($user);
+    Sanctum::actingAs($user);
 
     $created = $this->postJson('/api/v1/addresses', [
         'name' => 'Home', 'phone' => '091', 'country' => 'LY',
@@ -150,14 +151,14 @@ it('manages addresses over the API', function (): void {
     ])->assertOk()->assertJsonPath('data.city', 'Benghazi');
 
     // Another user cannot touch it.
-    \Laravel\Sanctum\Sanctum::actingAs(customer());
+    Sanctum::actingAs(customer());
     $this->deleteJson("/api/v1/addresses/{$id}")->assertForbidden();
 });
 
 it('toggles wishlist items', function (): void {
     $user = customer();
     $product = Product::factory()->create();
-    \Laravel\Sanctum\Sanctum::actingAs($user);
+    Sanctum::actingAs($user);
 
     $this->postJson("/api/v1/wishlist/{$product->id}")->assertCreated();
     $this->getJson('/api/v1/wishlist')->assertOk()->assertJsonCount(1, 'data');

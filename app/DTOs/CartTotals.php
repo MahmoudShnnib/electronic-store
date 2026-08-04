@@ -19,8 +19,7 @@ final readonly class CartTotals
         public int $totalCents,
         public ?Coupon $coupon = null,
         public ?string $couponError = null,
-    ) {
-    }
+    ) {}
 
     public function isEmpty(): bool
     {

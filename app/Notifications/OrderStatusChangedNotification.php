@@ -14,9 +14,7 @@ final class OrderStatusChangedNotification extends Notification implements Shoul
 {
     use Queueable;
 
-    public function __construct(private readonly Order $order)
-    {
-    }
+    public function __construct(private readonly Order $order) {}
 
     public function via(object $notifiable): array
     {
@@ -27,7 +25,7 @@ final class OrderStatusChangedNotification extends Notification implements Shoul
     {
         $status = $this->order->status->label();
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject("Order {$this->order->number} is now {$status}")
             ->line("Your order {$this->order->number} status changed to: {$status}.")
             ->action('View order', url("/account/orders/{$this->order->id}"))

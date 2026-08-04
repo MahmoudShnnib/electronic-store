@@ -19,8 +19,7 @@ final readonly class CartLine
         public int $lineTaxCents,
         public int $lineTotalCents,
         public ?int $cartItemId = null,
-    ) {
-    }
+    ) {}
 
     public function sku(): string
     {

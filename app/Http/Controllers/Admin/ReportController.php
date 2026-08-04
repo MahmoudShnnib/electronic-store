@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Reports\ExportReportRequest;
 use App\Services\Reports\ReportService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Inertia\Inertia;
@@ -20,9 +21,7 @@ final class ReportController extends Controller implements HasMiddleware
         return ['can:reports.view'];
     }
 
-    public function __construct(private readonly ReportService $reports)
-    {
-    }
+    public function __construct(private readonly ReportService $reports) {}
 
     public function index(Request $request): Response
     {
@@ -79,7 +78,7 @@ final class ReportController extends Controller implements HasMiddleware
     }
 
     /**
-     * @return array{0: \Carbon\CarbonImmutable, 1: \Carbon\CarbonImmutable}
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
      */
     private function dateRange(Request $request): array
     {

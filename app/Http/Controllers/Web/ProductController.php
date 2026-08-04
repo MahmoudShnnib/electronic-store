@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductCardResource;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Support\Money;
 use Illuminate\Support\Facades\Storage;
@@ -160,7 +161,7 @@ final class ProductController extends Controller
         }
 
         // Verified purchase required: user must have a delivered order containing it.
-        return \App\Models\OrderItem::query()
+        return OrderItem::query()
             ->where('product_id', $product->id)
             ->whereHas('order', fn ($q) => $q
                 ->where('user_id', $user->id)

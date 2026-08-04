@@ -127,99 +127,99 @@ function setSort(option: string) {
     <Head :title="title" />
 
     <div class="mx-auto w-full max-w-7xl px-4 py-8">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold">{{ title }}</h1>
-        <p v-if="category?.description || brand?.description" class="mt-1 text-sm text-muted-foreground">
-            {{ category?.description ?? brand?.description }}
-        </p>
+        <div class="mb-6">
+            <h1 class="text-2xl font-bold">{{ title }}</h1>
+            <p v-if="category?.description || brand?.description" class="mt-1 text-sm text-muted-foreground">
+                {{ category?.description ?? brand?.description }}
+            </p>
 
-        <!-- Subcategory chips -->
-        <div v-if="childCategories && childCategories.length > 0" class="mt-3 flex flex-wrap gap-2">
-            <Link
-                v-for="child in childCategories"
-                :key="child.id"
-                :href="route('catalog.category', child.slug)"
-                class="rounded-full border border-border bg-card px-4 py-1.5 text-sm transition hover:border-black hover:opacity-70 dark:hover:border-white"
-            >
-                {{ locale === 'ar' && child.name_ar ? child.name_ar : child.name }}
-            </Link>
-        </div>
-    </div>
-
-    <div class="flex flex-col gap-6 lg:flex-row">
-        <!-- Filters: desktop sidebar -->
-        <aside class="hidden shrink-0 lg:block lg:w-64">
-            <div class="rounded-xl border border-border bg-card p-4">
-                <CatalogFilters
-                    :form="form"
-                    :locale="locale"
-                    :brands="brand ? null : filterOptions.brands"
-                    :categories="category ? null : filterOptions.categories"
-                    @clear="clearFilters"
-                />
+            <!-- Subcategory chips -->
+            <div v-if="childCategories && childCategories.length > 0" class="mt-3 flex flex-wrap gap-2">
+                <Link
+                    v-for="child in childCategories"
+                    :key="child.id"
+                    :href="route('catalog.category', child.slug)"
+                    class="rounded-full border border-border bg-card px-4 py-1.5 text-sm transition hover:border-black hover:opacity-70 dark:hover:border-white"
+                >
+                    {{ locale === 'ar' && child.name_ar ? child.name_ar : child.name }}
+                </Link>
             </div>
-        </aside>
+        </div>
 
-        <!-- Filters: mobile bottom sheet -->
-        <Sheet :open="showFilters" @update:open="showFilters = $event">
-            <SheetContent side="bottom" class="max-h-[85dvh] overflow-y-auto rounded-t-3xl bg-white p-5 pt-10 dark:bg-neutral-950 lg:hidden">
-                <CatalogFilters
-                    :form="form"
-                    :locale="locale"
-                    :brands="brand ? null : filterOptions.brands"
-                    :categories="category ? null : filterOptions.categories"
-                    :results-count="products.meta.total"
-                    @done="showFilters = false"
-                    @clear="clearFilters"
-                />
-            </SheetContent>
-        </Sheet>
-
-        <!-- Results -->
-        <div class="flex-1">
-            <div class="mb-4 flex items-center justify-between gap-3">
-                <p class="text-sm text-muted-foreground">{{ t('catalog.results', { count: products.meta.total }) }}</p>
-
-                <div class="flex items-center gap-2">
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm lg:hidden"
-                        @click="showFilters = true"
-                    >
-                        <SlidersHorizontal class="h-4 w-4" />
-                        {{ t('catalog.filters') }}
-                    </button>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition hover:border-black dark:hover:border-white"
-                        >
-                            <ArrowUpDown class="h-4 w-4 text-muted-foreground" />
-                            {{ sortLabel(form.sort ?? 'newest') }}
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" class="w-56">
-                            <DropdownMenuItem
-                                v-for="option in sortOptions"
-                                :key="option"
-                                class="flex items-center justify-between gap-2"
-                                @select="setSort(option)"
-                            >
-                                {{ sortLabel(option) }}
-                                <Check v-if="(form.sort ?? 'newest') === option" class="h-4 w-4" />
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+        <div class="flex flex-col gap-6 lg:flex-row">
+            <!-- Filters: desktop sidebar -->
+            <aside class="hidden shrink-0 lg:block lg:w-64">
+                <div class="rounded-xl border border-border bg-card p-4">
+                    <CatalogFilters
+                        :form="form"
+                        :locale="locale"
+                        :brands="brand ? null : filterOptions.brands"
+                        :categories="category ? null : filterOptions.categories"
+                        @clear="clearFilters"
+                    />
                 </div>
+            </aside>
+
+            <!-- Filters: mobile bottom sheet -->
+            <Sheet :open="showFilters" @update:open="showFilters = $event">
+                <SheetContent side="bottom" class="max-h-[85dvh] overflow-y-auto rounded-t-3xl bg-white p-5 pt-10 dark:bg-neutral-950 lg:hidden">
+                    <CatalogFilters
+                        :form="form"
+                        :locale="locale"
+                        :brands="brand ? null : filterOptions.brands"
+                        :categories="category ? null : filterOptions.categories"
+                        :results-count="products.meta.total"
+                        @done="showFilters = false"
+                        @clear="clearFilters"
+                    />
+                </SheetContent>
+            </Sheet>
+
+            <!-- Results -->
+            <div class="flex-1">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <p class="text-sm text-muted-foreground">{{ t('catalog.results', { count: products.meta.total }) }}</p>
+
+                    <div class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm lg:hidden"
+                            @click="showFilters = true"
+                        >
+                            <SlidersHorizontal class="h-4 w-4" />
+                            {{ t('catalog.filters') }}
+                        </button>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger
+                                class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition hover:border-black dark:hover:border-white"
+                            >
+                                <ArrowUpDown class="h-4 w-4 text-muted-foreground" />
+                                {{ sortLabel(form.sort ?? 'newest') }}
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" class="w-56">
+                                <DropdownMenuItem
+                                    v-for="option in sortOptions"
+                                    :key="option"
+                                    class="flex items-center justify-between gap-2"
+                                    @select="setSort(option)"
+                                >
+                                    {{ sortLabel(option) }}
+                                    <Check v-if="(form.sort ?? 'newest') === option" class="h-4 w-4" />
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>
+
+                <EmptyState v-if="products.data.length === 0" :message="t('catalog.no_products')" />
+
+                <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+                    <ProductCard v-for="product in products.data" :key="product.id" :product="product" />
+                </div>
+
+                <Pagination :links="products.meta.links" />
             </div>
-
-            <EmptyState v-if="products.data.length === 0" :message="t('catalog.no_products')" />
-
-            <div v-else class="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
-                <ProductCard v-for="product in products.data" :key="product.id" :product="product" />
-            </div>
-
-            <Pagination :links="products.meta.links" />
         </div>
-    </div>
     </div>
 </template>

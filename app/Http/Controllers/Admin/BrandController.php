@@ -10,6 +10,7 @@ use App\Models\Brand;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -35,7 +36,7 @@ final class BrandController extends Controller implements HasMiddleware
                 'name' => $b->name,
                 'name_ar' => $b->name_ar,
                 'slug' => $b->slug,
-                'logo' => $b->logo_path !== null ? \Illuminate\Support\Facades\Storage::disk('public')->url($b->logo_path) : null,
+                'logo' => $b->logo_path !== null ? Storage::disk('public')->url($b->logo_path) : null,
                 'position' => $b->position,
                 'is_active' => $b->is_active,
                 'products_count' => $b->products_count,

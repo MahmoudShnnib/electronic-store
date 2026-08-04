@@ -95,9 +95,6 @@ const HERO_ROTATE_MS = 6000;
 const heroSlides = computed(() => takeUnique([...props.featured.data, ...props.newArrivals.data], HERO_SLIDE_COUNT));
 
 const activeSlide = ref(0);
-const heroProduct = computed(() => heroSlides.value[activeSlide.value] ?? null);
-
-
 function goToSlide(index: number) {
     const count = heroSlides.value.length;
     if (count === 0) return;
@@ -144,9 +141,7 @@ function splitName(name: string): { light: string; bold: string } {
  * Promo tiles lead with whatever is actually discounted; categories with a live
  * sale come first so the "up to N% off" badge is truthful rather than decorative.
  */
-const promoTiles = computed(() =>
-    [...props.categories].sort((a, b) => b.max_discount - a.max_discount).slice(0, 6),
-);
+const promoTiles = computed(() => [...props.categories].sort((a, b) => b.max_discount - a.max_discount).slice(0, 6));
 
 /** Stacked homepage rows, each rendered only when it has something to show. */
 const productSections = computed(() =>
@@ -173,13 +168,6 @@ const gameImages = computed(() => [
 /** A single tile can't loop seamlessly — render it once, unanimated. */
 const marqueeCopies = computed(() => (promoTiles.value.length >= 2 ? 3 : 1));
 const brandCopies = computed(() => (props.brands.length >= 2 ? 3 : 1));
-
-// Category rail scrolling.
-const rail = ref<HTMLElement | null>(null);
-
-function scrollRail(direction: 1 | -1) {
-    rail.value?.scrollBy({ left: direction * 340 * (locale.value === 'ar' ? -1 : 1), behavior: 'smooth' });
-}
 </script>
 
 <template>
@@ -332,12 +320,15 @@ function scrollRail(direction: 1 | -1) {
     <section v-if="categories.length > 0" class="mx-auto max-w-7xl px-4 pt-10">
         <div class="mb-4 flex items-center justify-between">
             <h2 class="text-lg font-semibold">{{ t('home.shop_by_category') }}</h2>
-            <Link :href="route('catalog.index')" class="flex items-center gap-1 text-sm text-[#8B8B8B] transition hover:text-black dark:hover:text-white">
+            <Link
+                :href="route('catalog.index')"
+                class="flex items-center gap-1 text-sm text-[#8B8B8B] transition hover:text-black dark:hover:text-white"
+            >
                 {{ t('home.more') }}
                 <ChevronRight class="h-4 w-4 rtl:rotate-180" />
             </Link>
         </div>
-        <div ref="rail" class="flex snap-x gap-3 overflow-x-auto pb-2 lg:gap-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div class="flex snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] lg:gap-4 [&::-webkit-scrollbar]:hidden">
             <Link
                 v-for="category in categories"
                 :key="category.id"

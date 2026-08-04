@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Cart\AddToCart;
+use App\Actions\Cart\MergeGuestCart;
 use App\Actions\Checkout\PlaceOrder;
 use App\Actions\Orders\UpdateOrderStatus;
 use App\DTOs\CheckoutData;
@@ -10,6 +11,7 @@ use App\Enums\ReviewStatus;
 use App\Models\Cart;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
 it('renders the home page', function (): void {
@@ -70,7 +72,7 @@ it('adds to cart as a guest and merges after login', function (): void {
 
     $user = customer(['password' => 'secret-password-1']);
 
-    app(\App\Actions\Cart\MergeGuestCart::class)->handle($token, $user);
+    app(MergeGuestCart::class)->handle($token, $user);
 
     expect($user->carts()->sole()->items()->sole()->quantity)->toBe(2);
 });
@@ -122,7 +124,7 @@ it('allows reviews only for verified purchasers and moderates them', function ()
         ->assertInertia(fn (Assert $page) => $page->where('ratingSummary.count', 0));
 
     staff('super_admin');
-    $this->actingAs(\App\Models\User::role('super_admin')->first())
+    $this->actingAs(User::role('super_admin')->first())
         ->post(route('admin.reviews.moderate', $review), ['status' => 'approved'])
         ->assertRedirect();
 

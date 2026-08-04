@@ -209,10 +209,7 @@ const footerPages = [
                 </div>
 
                 <!-- Wordmark on the opposite side, facing the hamburger -->
-                <Link
-                    :href="route('home')"
-                    class="ms-auto flex shrink-0 items-baseline gap-0.5 text-xl font-bold lowercase tracking-tight md:ms-0"
-                >
+                <Link :href="route('home')" class="ms-auto flex shrink-0 items-baseline gap-0.5 text-xl font-bold lowercase tracking-tight md:ms-0">
                     <span class="text-2xl leading-none">◆</span>
                     <span>{{ appName }}</span>
                 </Link>

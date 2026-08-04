@@ -20,6 +20,5 @@ final readonly class CheckoutData
         public PaymentMethod $paymentMethod,
         public ?string $customerNote = null,
         public ?string $idempotencyKey = null,
-    ) {
-    }
+    ) {}
 }

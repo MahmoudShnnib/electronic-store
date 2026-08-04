@@ -7,6 +7,7 @@ namespace App\Actions\Orders;
 use App\Actions\Inventory\RecordMovement;
 use App\Enums\OrderStatus;
 use App\Models\Order;
+use App\Models\StockLevel;
 use App\Notifications\OrderStatusChangedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,8 +21,7 @@ final class UpdateOrderStatus
     public function __construct(
         private readonly RecordMovement $recordMovement,
         private readonly CancelOrder $cancelOrder,
-    ) {
-    }
+    ) {}
 
     public function handle(Order $order, OrderStatus $to, ?string $comment = null, ?int $userId = null): Order
     {
@@ -50,7 +50,7 @@ final class UpdateOrderStatus
                         continue;
                     }
 
-                    $stock = \App\Models\StockLevel::query()
+                    $stock = StockLevel::query()
                         ->where('warehouse_id', $item->warehouse_id)
                         ->where('product_id', $item->product_id)
                         ->where('product_variant_id', $item->product_variant_id)

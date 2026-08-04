@@ -16,9 +16,7 @@ use Illuminate\Support\Facades\Gate;
 
 final class AddressController extends Controller
 {
-    public function __construct(private readonly SaveAddress $saveAddress)
-    {
-    }
+    public function __construct(private readonly SaveAddress $saveAddress) {}
 
     public function index(Request $request): AnonymousResourceCollection
     {

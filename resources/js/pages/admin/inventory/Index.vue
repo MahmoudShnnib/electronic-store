@@ -32,7 +32,7 @@ interface StockRow extends Record<string, unknown> {
     low_stock: boolean;
 }
 
-const props = defineProps<{
+defineProps<{
     levels: Paginator<StockRow>;
     warehouses: { id: number; name: string; code: string }[];
     filters: Record<string, unknown>;

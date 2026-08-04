@@ -17,9 +17,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class ConfirmPayment
 {
-    public function __construct(private readonly PaymentGatewayManager $gateways)
-    {
-    }
+    public function __construct(private readonly PaymentGatewayManager $gateways) {}
 
     public function handle(
         Order $order,

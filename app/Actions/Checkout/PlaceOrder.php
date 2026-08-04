@@ -8,6 +8,7 @@ use App\Actions\Cart\CalculateCartTotals;
 use App\Actions\Inventory\InsufficientStockException;
 use App\Actions\Inventory\RecordMovement;
 use App\DTOs\CartLine;
+use App\DTOs\CartTotals;
 use App\DTOs\CheckoutData;
 use App\Enums\MovementType;
 use App\Enums\OrderStatus;
@@ -41,8 +42,7 @@ final class PlaceOrder
     public function __construct(
         private readonly CalculateCartTotals $calculateTotals,
         private readonly RecordMovement $recordMovement,
-    ) {
-    }
+    ) {}
 
     public function handle(Cart $cart, CheckoutData $data, ?User $user, string $placedVia = 'web'): Order
     {
@@ -148,7 +148,7 @@ final class PlaceOrder
         return $order;
     }
 
-    private function createOrderRow(CheckoutData $data, ?User $user, \App\DTOs\CartTotals $totals, string $placedVia): Order
+    private function createOrderRow(CheckoutData $data, ?User $user, CartTotals $totals, string $placedVia): Order
     {
         $attributes = [
             'user_id' => $user?->id,

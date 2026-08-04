@@ -33,7 +33,7 @@ interface CategoryRow extends Record<string, unknown> {
     image_url: string | null;
 }
 
-const props = defineProps<{
+defineProps<{
     categories: Paginator<CategoryRow>;
     parentOptions: { id: number; name: string }[];
     filters: Record<string, unknown>;
@@ -224,10 +224,7 @@ function destroy(): void {
                         alt=""
                         class="h-16 w-16 rounded-lg object-cover ring-1 ring-black/10 dark:ring-white/10"
                     />
-                    <div
-                        v-else
-                        class="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-gray-400 dark:bg-neutral-800"
-                    >
+                    <div v-else class="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-gray-400 dark:bg-neutral-800">
                         <ImageIcon class="h-6 w-6" />
                     </div>
                     <div class="flex-1 space-y-2">

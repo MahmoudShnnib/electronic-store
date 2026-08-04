@@ -4,6 +4,7 @@ use App\Enums\PriceType;
 use App\Models\Category;
 use App\Models\PriceHistory;
 use App\Models\Product;
+use Spatie\Activitylog\Models\Activity;
 
 function productPayload(array $overrides = []): array
 {
@@ -52,7 +53,7 @@ it('records price history and audit trail on price change', function (): void {
     expect($product->refresh()->price_cents)->toBe(90000)
         ->and($history->old_price_cents)->toBe(100000)
         ->and($history->new_price_cents)->toBe(90000)
-        ->and(\Spatie\Activitylog\Models\Activity::query()->where('subject_type', Product::class)->exists())->toBeTrue();
+        ->and(Activity::query()->where('subject_type', Product::class)->exists())->toBeTrue();
 });
 
 it('manages variants through the product form', function (): void {

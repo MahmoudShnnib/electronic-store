@@ -15,9 +15,7 @@ final class OrderPlacedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(private readonly Order $order)
-    {
-    }
+    public function __construct(private readonly Order $order) {}
 
     public function via(object $notifiable): array
     {
@@ -26,9 +24,9 @@ final class OrderPlacedNotification extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject("Order {$this->order->number} received")
-            ->greeting("Thank you for your order!")
+            ->greeting('Thank you for your order!')
             ->line("We've received order {$this->order->number} totalling ".Money::format($this->order->total_cents, $this->order->currency).'.')
             ->line('Payment method: '.$this->order->payment_method->label())
             ->action('Track your order', url("/account/orders/{$this->order->id}"))

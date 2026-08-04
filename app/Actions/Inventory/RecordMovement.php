@@ -11,6 +11,7 @@ use App\Models\ProductVariant;
 use App\Models\StockLevel;
 use App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -24,7 +25,7 @@ final class RecordMovement
     /**
      * @param  int  $quantityChange  signed change to available-to-sell `quantity`
      * @param  int  $reservedChange  signed change to `reserved`
-     * @param  int  $damagedChange   signed change to `damaged`
+     * @param  int  $damagedChange  signed change to `damaged`
      * @param  int  $incomingChange  signed change to `incoming`
      */
     public function handle(
@@ -105,7 +106,7 @@ final class RecordMovement
                 'product_id' => $product->id,
                 'product_variant_id' => $variant?->id,
             ]);
-        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException) {
             // Lost the race — the row now exists; fall through and lock it.
         }
 

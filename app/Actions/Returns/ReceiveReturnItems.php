@@ -20,9 +20,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class ReceiveReturnItems
 {
-    public function __construct(private readonly RecordMovement $recordMovement)
-    {
-    }
+    public function __construct(private readonly RecordMovement $recordMovement) {}
 
     /**
      * @param  array<int, string>  $conditions  return_item_id => resellable|damaged

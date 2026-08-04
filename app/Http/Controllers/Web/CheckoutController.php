@@ -11,7 +11,9 @@ use App\Enums\PaymentMethod;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CheckoutRequest;
 use App\Http\Resources\CartPayload;
+use App\Models\Order;
 use App\Services\Payments\PaymentGatewayManager;
+use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -22,8 +24,7 @@ final class CheckoutController extends Controller
     public function __construct(
         private readonly ResolveCart $resolveCart,
         private readonly CalculateCartTotals $calculateTotals,
-    ) {
-    }
+    ) {}
 
     public function show(Request $request): Response|RedirectResponse
     {
@@ -79,7 +80,7 @@ final class CheckoutController extends Controller
 
     public function confirmation(Request $request, string $number): Response
     {
-        $order = \App\Models\Order::query()
+        $order = Order::query()
             ->where('number', $number)
             ->with('items')
             ->firstOrFail();
@@ -98,13 +99,13 @@ final class CheckoutController extends Controller
         return Inertia::render('storefront/OrderConfirmation', [
             'order' => [
                 'number' => $order->number,
-                'total_formatted' => \App\Support\Money::format($order->total_cents, $order->currency),
+                'total_formatted' => Money::format($order->total_cents, $order->currency),
                 'payment_method' => $order->payment_method->label(),
                 'status' => $order->status->value,
                 'items' => $order->items->map(fn ($i) => [
                     'name' => $i->variant_name !== null ? "{$i->product_name} — {$i->variant_name}" : $i->product_name,
                     'quantity' => $i->quantity,
-                    'line_total_formatted' => \App\Support\Money::format($i->line_total_cents, $order->currency),
+                    'line_total_formatted' => Money::format($i->line_total_cents, $order->currency),
                 ]),
             ],
             'paymentInstructions' => $request->session()->get('payment_instructions'),

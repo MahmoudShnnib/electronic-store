@@ -10,6 +10,7 @@ use App\Http\Requests\Api\V1\LoginRequest;
 use App\Http\Requests\Api\V1\RegisterRequest;
 use App\Http\Requests\Api\V1\UpdateProfileRequest;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -34,7 +35,7 @@ final class AuthController extends Controller
 
         $user->assignRole('customer');
 
-        event(new \Illuminate\Auth\Events\Registered($user));
+        event(new Registered($user));
 
         return response()->json([
             'token' => $user->createToken($validated['device_name'])->plainTextToken,

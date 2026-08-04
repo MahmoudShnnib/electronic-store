@@ -13,6 +13,7 @@ use App\Http\Requests\Admin\Orders\ConfirmPaymentRequest;
 use App\Http\Requests\Admin\Orders\UpdateOrderNoteRequest;
 use App\Http\Requests\Admin\Orders\UpdateOrderStatusRequest;
 use App\Models\Order;
+use App\Models\Setting;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -217,7 +218,7 @@ final class OrderController extends Controller implements HasMiddleware
             ],
             'store' => [
                 'name' => config('app.name'),
-                'details' => \App\Models\Setting::get('invoice_details'),
+                'details' => Setting::get('invoice_details'),
             ],
         ]);
     }

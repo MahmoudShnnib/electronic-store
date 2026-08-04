@@ -19,9 +19,7 @@ use InvalidArgumentException;
  */
 final class TransferStock
 {
-    public function __construct(private readonly RecordMovement $recordMovement)
-    {
-    }
+    public function __construct(private readonly RecordMovement $recordMovement) {}
 
     /**
      * @param  list<array{product_id: int, product_variant_id: ?int, quantity: int}>  $items

@@ -111,12 +111,7 @@ function submitNote(): void {
 }
 
 function formatAddress(address: Address): string {
-    return [
-        address.name,
-        address.phone,
-        [address.area, address.city, address.country].filter(Boolean).join(', '),
-        address.notes,
-    ]
+    return [address.name, address.phone, [address.area, address.city, address.country].filter(Boolean).join(', '), address.notes]
         .filter(Boolean)
         .join(' · ');
 }

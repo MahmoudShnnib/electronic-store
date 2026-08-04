@@ -131,7 +131,7 @@ onBeforeUnmount(() => {
             class="z-[70] flex flex-col overflow-hidden border border-border bg-card shadow-xl"
             :class="
                 sheetOnMobile
-                    ? 'fixed inset-x-0 bottom-0 max-h-[75vh] rounded-t-2xl sm:absolute sm:inset-x-0 sm:top-full sm:bottom-auto sm:mt-2 sm:max-h-80 sm:rounded-xl'
+                    ? 'fixed inset-x-0 bottom-0 max-h-[75vh] rounded-t-2xl sm:absolute sm:inset-x-0 sm:bottom-auto sm:top-full sm:mt-2 sm:max-h-80 sm:rounded-xl'
                     : 'absolute inset-x-0 top-full mt-2 max-h-80 rounded-xl'
             "
             role="listbox"
@@ -153,7 +153,7 @@ onBeforeUnmount(() => {
                         v-model="query"
                         type="text"
                         :placeholder="t('checkout.search_city')"
-                        class="w-full rounded-lg border border-input bg-background py-2 text-sm ltr:pl-9 ltr:pr-3 rtl:pr-9 rtl:pl-3 focus:outline-none focus:ring-1 focus:ring-foreground/30"
+                        class="w-full rounded-lg border border-input bg-background py-2 text-sm focus:outline-none focus:ring-1 focus:ring-foreground/30 ltr:pl-9 ltr:pr-3 rtl:pl-3 rtl:pr-9"
                     />
                 </div>
             </div>
@@ -165,9 +165,7 @@ onBeforeUnmount(() => {
                         type="button"
                         class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-sm transition sm:border-0"
                         :class="
-                            model === city.en
-                                ? 'bg-neutral-100 font-semibold dark:bg-neutral-800'
-                                : 'border border-border hover:bg-muted sm:border-0'
+                            model === city.en ? 'bg-neutral-100 font-semibold dark:bg-neutral-800' : 'border border-border hover:bg-muted sm:border-0'
                         "
                         role="option"
                         :aria-selected="model === city.en"

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Inventory\AdjustStock;
+use App\Actions\Inventory\InsufficientStockException;
 use App\Actions\Inventory\TransferStock;
 use App\Enums\MovementType;
 use App\Http\Controllers\Controller;
@@ -127,7 +128,7 @@ final class InventoryController extends Controller implements HasMiddleware
                 $validated['reason'],
                 $request->user()->id,
             );
-        } catch (\App\Actions\Inventory\InsufficientStockException $e) {
+        } catch (InsufficientStockException $e) {
             return back()->withErrors(['quantity_change' => $e->getMessage()]);
         }
 
@@ -146,7 +147,7 @@ final class InventoryController extends Controller implements HasMiddleware
                 $validated['notes'] ?? null,
                 $request->user()->id,
             );
-        } catch (\App\Actions\Inventory\InsufficientStockException $e) {
+        } catch (InsufficientStockException $e) {
             return back()->withErrors(['items' => $e->getMessage()]);
         }
 

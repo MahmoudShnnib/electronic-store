@@ -8,9 +8,7 @@ use App\Models\CartItem;
 
 final class UpdateCartItem
 {
-    public function __construct(private readonly AddToCart $addToCart)
-    {
-    }
+    public function __construct(private readonly AddToCart $addToCart) {}
 
     public function handle(CartItem $item, int $quantity): ?CartItem
     {

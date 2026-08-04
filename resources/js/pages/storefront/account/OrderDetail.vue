@@ -166,7 +166,6 @@ function formatAddress(address: AddressSnapshot): string {
                 <section class="rounded-xl border border-border bg-card p-5 text-sm">
                     <h2 class="mb-2 font-semibold">{{ t('checkout.shipping_address') }}</h2>
                     <p class="text-muted-foreground">{{ formatAddress(order.shipping_address) }}</p>
-
                 </section>
             </aside>
         </div>

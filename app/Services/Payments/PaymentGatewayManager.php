@@ -14,8 +14,8 @@ final class PaymentGatewayManager
 
     public function __construct()
     {
-        $this->register(new CashOnDeliveryGateway());
-        $this->register(new BankTransferGateway());
+        $this->register(new CashOnDeliveryGateway);
+        $this->register(new BankTransferGateway);
     }
 
     public function register(PaymentGateway $gateway): void

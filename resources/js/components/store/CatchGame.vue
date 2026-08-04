@@ -214,7 +214,10 @@ onBeforeUnmount(() => {
             />
 
             <!-- Dotted catch line -->
-            <span class="pointer-events-none absolute inset-x-8 bottom-6 hidden border-t-2 border-dashed border-[#0F9D58]/30 sm:block" aria-hidden="true" />
+            <span
+                class="pointer-events-none absolute inset-x-8 bottom-6 hidden border-t-2 border-dashed border-[#0F9D58]/30 sm:block"
+                aria-hidden="true"
+            />
 
             <div class="relative z-10 flex flex-wrap items-center justify-between gap-6">
                 <span class="flex items-center gap-5">
@@ -222,7 +225,9 @@ onBeforeUnmount(() => {
                         <Gamepad2 class="h-8 w-8" />
                     </span>
                     <span>
-                        <span class="block bg-gradient-to-l from-[#0F9D58] to-foreground bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl">
+                        <span
+                            class="block bg-gradient-to-l from-[#0F9D58] to-foreground bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl"
+                        >
                             {{ t('home.game_title') }}
                         </span>
                         <span class="mt-1.5 block max-w-md text-sm text-muted-foreground">{{ t('home.game_subtitle') }}</span>
@@ -259,7 +264,12 @@ onBeforeUnmount(() => {
                     <span class="flex items-center gap-0.5" aria-hidden="true">
                         <Heart v-for="n in 3" :key="n" class="h-4 w-4" :class="n <= lives ? 'fill-red-500 text-red-500' : 'text-border'" />
                     </span>
-                    <button type="button" class="rounded-md p-1.5 text-muted-foreground hover:bg-muted" :aria-label="t('common.close')" @click="toggleOpen">
+                    <button
+                        type="button"
+                        class="rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+                        :aria-label="t('common.close')"
+                        @click="toggleOpen"
+                    >
                         <X class="h-4 w-4" />
                     </button>
                 </div>

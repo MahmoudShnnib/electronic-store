@@ -18,9 +18,7 @@ use InvalidArgumentException;
  */
 final class ReceivePurchaseOrder
 {
-    public function __construct(private readonly RecordMovement $recordMovement)
-    {
-    }
+    public function __construct(private readonly RecordMovement $recordMovement) {}
 
     /**
      * @param  array<int, int>  $quantities  purchase_order_item_id => quantity received now

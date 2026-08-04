@@ -71,7 +71,7 @@ function toggleWishlist() {
 
         <button
             type="button"
-            class="absolute top-2 z-10 rounded-full bg-white/80 p-1.5 text-gray-600 shadow transition hover:text-red-500 dark:bg-gray-900/80 dark:text-gray-300 ltr:right-2 rtl:left-2 lg:opacity-0 lg:group-hover:opacity-100"
+            class="absolute top-2 z-10 rounded-full bg-white/80 p-1.5 text-gray-600 shadow transition hover:text-red-500 dark:bg-gray-900/80 dark:text-gray-300 lg:opacity-0 lg:group-hover:opacity-100 ltr:right-2 rtl:left-2"
             :aria-label="t('nav.wishlist')"
             @click.prevent="toggleWishlist"
         >
@@ -122,7 +122,6 @@ function toggleWishlist() {
                 >
                     {{ t('product.buy_now') }}
                 </button>
-
 
                 <button
                     v-if="product.in_stock"

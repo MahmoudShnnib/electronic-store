@@ -20,6 +20,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -257,7 +258,7 @@ final class PurchaseOrderController extends Controller implements HasMiddleware
         return $request->validated();
     }
 
-    private function productOptions(): \Illuminate\Support\Collection
+    private function productOptions(): Collection
     {
         return Product::query()
             ->with('variants:id,product_id,name,sku,cost_price_cents')

@@ -9,12 +9,13 @@ use App\Http\Requests\Admin\Catalog\CategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
-final class CategoryController extends Controller implements \Illuminate\Routing\Controllers\HasMiddleware
+final class CategoryController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
     {

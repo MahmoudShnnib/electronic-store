@@ -17,9 +17,7 @@ use InvalidArgumentException;
  */
 final class AdjustStock
 {
-    public function __construct(private readonly RecordMovement $recordMovement)
-    {
-    }
+    public function __construct(private readonly RecordMovement $recordMovement) {}
 
     public function handle(
         Warehouse $warehouse,

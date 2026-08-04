@@ -29,8 +29,8 @@ const hasPages = computed(() => cleaned.value.length > 3);
                         ? 'border-black bg-black font-semibold text-white dark:border-white dark:bg-white dark:text-black'
                         : 'border-border bg-card hover:bg-muted'
                 "
-                v-text="link.label"
-            />
+                >{{ link.label }}</Link
+            >
             <span v-else class="min-w-9 px-3 py-1.5 text-center text-sm text-muted-foreground" v-text="link.label" />
         </template>
     </nav>

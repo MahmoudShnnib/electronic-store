@@ -18,9 +18,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class CancelOrder
 {
-    public function __construct(private readonly RecordMovement $recordMovement)
-    {
-    }
+    public function __construct(private readonly RecordMovement $recordMovement) {}
 
     public function handle(Order $order, ?string $reason = null, ?int $userId = null): Order
     {

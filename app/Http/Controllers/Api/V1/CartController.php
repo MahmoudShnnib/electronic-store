@@ -30,8 +30,7 @@ final class CartController extends Controller
     public function __construct(
         private readonly ResolveCart $resolveCart,
         private readonly CalculateCartTotals $calculateTotals,
-    ) {
-    }
+    ) {}
 
     public function show(Request $request): JsonResponse
     {

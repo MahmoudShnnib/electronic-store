@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductCardResource;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\OrderItem;
 use App\Models\Product;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -33,7 +36,7 @@ final class HomeController extends Controller
                 'bestSellers' => $card(Product::query()
                     ->withCount(['stockLevels'])
                     ->addSelect([
-                        'sold_count' => \App\Models\OrderItem::query()
+                        'sold_count' => OrderItem::query()
                             ->selectRaw('COALESCE(SUM(quantity), 0)')
                             ->whereColumn('order_items.product_id', 'products.id'),
                     ])
@@ -44,10 +47,10 @@ final class HomeController extends Controller
         return Inertia::render('storefront/Home', [
             'categories' => $this->categoryCards(),
             'brands' => Brand::query()->active()->orderBy('position')->take(12)->get(),
-            'featured' => \App\Http\Resources\ProductCardResource::collection($sections['featured']),
-            'newArrivals' => \App\Http\Resources\ProductCardResource::collection($sections['newArrivals']),
-            'onSale' => \App\Http\Resources\ProductCardResource::collection($sections['onSale']),
-            'bestSellers' => \App\Http\Resources\ProductCardResource::collection($sections['bestSellers']),
+            'featured' => ProductCardResource::collection($sections['featured']),
+            'newArrivals' => ProductCardResource::collection($sections['newArrivals']),
+            'onSale' => ProductCardResource::collection($sections['onSale']),
+            'bestSellers' => ProductCardResource::collection($sections['bestSellers']),
         ]);
     }
 
@@ -65,7 +68,7 @@ final class HomeController extends Controller
         return Cache::remember('home.category_cards', now()->addMinutes(10), function (): array {
             $categories = Category::query()->active()->orderBy('position')->get();
 
-            /** @var \Illuminate\Support\Collection<int|null, \Illuminate\Support\Collection<int, Category>> $byParent */
+            /** @var Collection<int|null, Collection<int, Category>> $byParent */
             $byParent = $categories->groupBy('parent_id');
 
             // Every id in a category's subtree, itself included.

@@ -115,7 +115,10 @@ function exportUrl(): string {
                     <td class="px-3 py-2.5"><StatusBadge :status="row.payment_status" :label="row.payment_status_label" /></td>
                     <td class="px-3 py-2.5 text-end font-medium">{{ row.total_formatted }}</td>
                     <td class="px-3 py-2.5 text-end text-emerald-600 dark:text-emerald-400">{{ row.paid_formatted }}</td>
-                    <td class="px-3 py-2.5 text-end" :class="row.outstanding_cents > 0 ? 'font-semibold text-amber-600 dark:text-amber-400' : 'text-gray-400'">
+                    <td
+                        class="px-3 py-2.5 text-end"
+                        :class="row.outstanding_cents > 0 ? 'font-semibold text-amber-600 dark:text-amber-400' : 'text-gray-400'"
+                    >
                         {{ row.outstanding_formatted }}
                     </td>
                     <td class="px-3 py-2.5 text-end">

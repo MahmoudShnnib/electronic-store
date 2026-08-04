@@ -54,6 +54,10 @@ function categoryName(option: CategoryData): string {
 }
 </script>
 
+<!-- The parent passes its reactive filter form down on purpose: this panel is
+     a controlled view over it, and the page's deep watcher auto-applies any
+     mutation made here. -->
+<!-- eslint-disable vue/no-mutating-props -->
 <template>
     <div>
         <h2 class="mb-4 font-semibold">{{ t('catalog.filters') }}</h2>

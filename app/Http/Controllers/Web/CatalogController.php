@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductCardResource;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\OrderItem;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -101,7 +102,7 @@ final class CatalogController extends Controller
             'price_desc' => $query->orderByRaw('COALESCE(sale_price_cents, price_cents) DESC'),
             'name' => $query->orderBy('name'),
             'best_selling' => $query->addSelect([
-                'sold_count' => \App\Models\OrderItem::query()
+                'sold_count' => OrderItem::query()
                     ->selectRaw('COALESCE(SUM(quantity), 0)')
                     ->whereColumn('order_items.product_id', 'products.id'),
             ])->orderByDesc('sold_count'),
