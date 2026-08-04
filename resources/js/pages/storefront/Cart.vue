@@ -125,10 +125,6 @@ function removeCoupon() {
             </div>
 
             <dl class="space-y-2 text-sm">
-                <div class="flex justify-between">
-                    <dt class="text-muted-foreground">{{ t('cart.subtotal') }}</dt>
-                    <dd class="font-medium">{{ cart.subtotal_formatted }}</dd>
-                </div>
                 <div v-if="cart.discount_cents > 0" class="flex justify-between text-green-600">
                     <dt>{{ t('cart.discount') }}</dt>
                     <dd>-{{ cart.discount_formatted }}</dd>

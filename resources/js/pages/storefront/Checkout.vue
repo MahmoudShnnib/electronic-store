@@ -207,10 +207,6 @@ function error(key: string): string | undefined {
                 </ul>
 
                 <dl class="space-y-2 border-t border-border pt-3 text-sm">
-                    <div class="flex justify-between">
-                        <dt class="text-muted-foreground">{{ t('cart.subtotal') }}</dt>
-                        <dd>{{ cart.subtotal_formatted }}</dd>
-                    </div>
                     <div v-if="cart.discount_cents > 0" class="flex justify-between text-green-600">
                         <dt>
                             {{ t('cart.discount') }} <template v-if="cart.coupon">({{ cart.coupon.code }})</template>
