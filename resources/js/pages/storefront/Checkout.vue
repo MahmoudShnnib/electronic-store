@@ -2,7 +2,8 @@
 import CitySelect from '@/components/store/CitySelect.vue';
 import type { AddressData, CartData } from '@/components/store/types';
 import StoreLayout from '@/layouts/StoreLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ImageOff } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
@@ -188,10 +189,20 @@ function error(key: string): string | undefined {
             <aside class="h-fit w-full rounded-xl border border-border bg-card p-5 lg:w-96">
                 <h2 class="mb-4 font-semibold">3. {{ t('checkout.review') }}</h2>
 
-                <ul class="mb-4 max-h-64 space-y-2 overflow-y-auto text-sm">
-                    <li v-for="item in cart.items" :key="item.id" class="flex items-center justify-between gap-2">
-                        <span class="line-clamp-1">{{ item.name }} × {{ item.quantity }}</span>
-                        <span class="shrink-0 font-medium">{{ item.line_subtotal_formatted }}</span>
+                <ul class="mb-4 max-h-80 space-y-3 overflow-y-auto text-sm">
+                    <li v-for="item in cart.items" :key="item.id" class="flex items-center gap-3">
+                        <Link
+                            :href="route('products.show', item.slug)"
+                            class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted"
+                        >
+                            <img v-if="item.image" :src="item.image" :alt="item.name" class="h-full w-full object-contain" />
+                            <ImageOff v-else class="h-6 w-6 text-muted-foreground" />
+                        </Link>
+                        <div class="min-w-0 flex-1">
+                            <p class="line-clamp-2 font-medium leading-snug">{{ item.name }}</p>
+                            <p class="mt-0.5 text-xs text-muted-foreground" dir="auto">{{ item.quantity }} × {{ item.unit_price_formatted }}</p>
+                        </div>
+                        <span class="shrink-0 font-semibold">{{ item.line_subtotal_formatted }}</span>
                     </li>
                 </ul>
 
