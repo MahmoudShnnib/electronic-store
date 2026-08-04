@@ -188,6 +188,21 @@ const footerPages = [
                     </SheetContent>
                 </Sheet>
 
+                <!-- Cart (desktop only — the mobile bottom nav already has it) -->
+                <Link
+                    :href="route('cart.show')"
+                    class="relative hidden rounded-md p-2 hover:bg-[#F5F5F5] dark:hover:bg-neutral-900 lg:block"
+                    :aria-label="t('nav.cart')"
+                >
+                    <ShoppingBag class="h-5 w-5" />
+                    <span
+                        v-if="cartCount > 0"
+                        class="absolute -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold leading-none text-white dark:bg-white dark:text-black ltr:-right-0.5 rtl:-left-0.5"
+                    >
+                        {{ cartCount }}
+                    </span>
+                </Link>
+
                 <!-- Search -->
                 <div class="mx-auto hidden max-w-md flex-1 md:block">
                     <SearchBar />
