@@ -35,7 +35,15 @@
         "scroll_forward": "Scroll forward",
         "top_deals": "Top deals on electronics",
         "more": "More",
-        "up_to_off": "Up to {percent}% off"
+        "up_to_off": "Up to {percent}% off",
+        "game_title": "Catch the products!",
+        "game_subtitle": "Take a break — catch the falling products and set a high score.",
+        "game_play": "Play",
+        "game_help": "Move the cart with your finger, mouse, or arrow keys and catch the products before they fall. 3 misses and it’s over!",
+        "game_score": "Score: {score}",
+        "game_best": "Best: {best}",
+        "game_over": "Game over!",
+        "game_play_again": "Play again"
     },
     "catalog": {
         "filters": "Filters",

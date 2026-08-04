@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import CatchGame from '@/components/store/CatchGame.vue';
 import ProductCard from '@/components/store/ProductCard.vue';
 import type { ProductCardData } from '@/components/store/types';
 import StoreLayout from '@/layouts/StoreLayout.vue';
@@ -158,6 +159,16 @@ const productSections = computed(() =>
         .map((section) => ({ ...section, products: section.products.slice(0, 8) }))
         .filter((section) => section.products.length > 0),
 );
+
+/** Distinct product photos that fall in the mini-game. */
+const gameImages = computed(() => [
+    ...new Set(
+        productSections.value
+            .flatMap((section) => section.products)
+            .map((product) => product.image)
+            .filter((image): image is string => image !== null),
+    ),
+]);
 
 /** A single tile can't loop seamlessly — render it once, unanimated. */
 const marqueeCopies = computed(() => (promoTiles.value.length >= 2 ? 3 : 1));
@@ -407,6 +418,9 @@ function scrollRail(direction: 1 | -1) {
             </div>
         </div>
     </section>
+
+    <!-- Mini-game: catch the falling products -->
+    <CatchGame v-if="gameImages.length > 0" :images="gameImages" />
 </template>
 
 <style>
