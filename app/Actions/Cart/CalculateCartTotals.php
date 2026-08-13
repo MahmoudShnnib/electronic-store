@@ -41,18 +41,31 @@ final class CalculateCartTotals
 
         [$discount, $coupon, $couponError] = $this->resolveCoupon($cart->coupon, $subtotal, $lines, $userId);
 
-        // Distribute the order-level discount across lines proportionally so
-        // tax is charged on the discounted amount.
+        // Distribute the discount proportionally so tax is charged on the
+        // discounted amount — but ONLY across the lines the coupon actually
+        // covers. A product-limited coupon must not shave tax off items it
+        // doesn't apply to.
+        $eligible = array_map(fn (array $line) => $coupon !== null && $this->lineIsEligible($coupon, $line), $lines);
+        $eligibleSubtotal = array_sum(array_map(
+            fn (array $line, bool $ok) => $ok ? $line['subtotal'] : 0,
+            $lines,
+            $eligible,
+        ));
+        $lastEligibleIndex = array_key_last(array_filter($eligible));
+
         $builtLines = [];
         $tax = 0;
         $remainingDiscount = $discount;
 
         foreach ($lines as $index => $line) {
-            $isLast = $index === array_key_last($lines);
+            $lineDiscount = 0;
 
-            $lineDiscount = $subtotal > 0
-                ? ($isLast ? $remainingDiscount : intdiv($line['subtotal'] * $discount, max(1, $subtotal)))
-                : 0;
+            if ($eligible[$index] && $eligibleSubtotal > 0) {
+                $lineDiscount = $index === $lastEligibleIndex
+                    ? $remainingDiscount
+                    : intdiv($line['subtotal'] * $discount, $eligibleSubtotal);
+            }
+
             $remainingDiscount -= $lineDiscount;
 
             $taxable = max(0, $line['subtotal'] - $lineDiscount);
@@ -127,23 +140,27 @@ final class CalculateCartTotals
     /** Subtotal of the lines the coupon's product/category/brand scope covers. */
     private function eligibleSubtotal(Coupon $coupon, array $lines): int
     {
+        return array_sum(array_map(
+            fn (array $line): int => $this->lineIsEligible($coupon, $line) ? $line['subtotal'] : 0,
+            $lines,
+        ));
+    }
+
+    /** Whether one cart line falls inside the coupon's scope. */
+    private function lineIsEligible(Coupon $coupon, array $line): bool
+    {
         if ($coupon->applies_to === 'all') {
-            return array_sum(array_column($lines, 'subtotal'));
+            return true;
         }
 
         $ids = array_map('intval', $coupon->applies_to_ids ?? []);
+        $product = $line['item']->product;
 
-        return array_sum(array_map(function (array $line) use ($coupon, $ids): int {
-            $product = $line['item']->product;
-
-            $matches = match ($coupon->applies_to) {
-                'products' => in_array($product->id, $ids, true),
-                'categories' => in_array($product->category_id, $ids, true),
-                'brands' => $product->brand_id !== null && in_array($product->brand_id, $ids, true),
-                default => false,
-            };
-
-            return $matches ? $line['subtotal'] : 0;
-        }, $lines));
+        return match ($coupon->applies_to) {
+            'products' => in_array($product->id, $ids, true),
+            'categories' => in_array($product->category_id, $ids, true),
+            'brands' => $product->brand_id !== null && in_array($product->brand_id, $ids, true),
+            default => false,
+        };
     }
 }

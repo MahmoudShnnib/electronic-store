@@ -24,6 +24,21 @@ final class ApplyCoupon
             throw ValidationException::withMessages(['coupon' => __('You have already used this coupon.')]);
         }
 
+        // Enforce the minimum at apply time — accepting the code and then
+        // silently zeroing the discount at checkout reads as a broken coupon.
+        if ($coupon->min_order_cents !== null) {
+            $subtotal = (int) $cart->items()->with(['product', 'variant'])->get()
+                ->sum(fn ($item) => $item->unitPriceCents() * $item->quantity);
+
+            if ($subtotal < $coupon->min_order_cents) {
+                throw ValidationException::withMessages([
+                    'coupon' => __('This coupon requires a minimum order of :min.', [
+                        'min' => \App\Support\Money::format((int) $coupon->min_order_cents),
+                    ]),
+                ]);
+            }
+        }
+
         $cart->update(['coupon_id' => $coupon->id]);
 
         return $cart->refresh();

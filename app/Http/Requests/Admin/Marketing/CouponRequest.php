@@ -23,7 +23,11 @@ final class CouponRequest extends FormRequest
         return [
             'code' => [
                 'required', 'string', 'max:64', 'alpha_dash',
-                Rule::unique('coupons', 'code')->ignore($this->route('coupon')?->id),
+                // Deleted coupons don't reserve their code — matching the
+                // partial unique index, which only covers live rows.
+                Rule::unique('coupons', 'code')
+                    ->ignore($this->route('coupon')?->id)
+                    ->whereNull('deleted_at'),
             ],
             'type' => ['required', Rule::enum(CouponType::class)],
             'value' => ['nullable', 'required_if:type,fixed', 'numeric', 'min:0.01'],
