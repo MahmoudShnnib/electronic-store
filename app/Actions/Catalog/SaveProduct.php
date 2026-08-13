@@ -123,7 +123,21 @@ final class SaveProduct
             }
 
             unset($data['id']);
-            $variant = $product->variants()->create($data);
+
+            // A soft-deleted variant still occupies the sku's unique index, so
+            // re-adding one with the same code revives it instead of crashing.
+            $trashed = isset($data['sku'])
+                ? $product->variants()->onlyTrashed()->where('sku', $data['sku'])->first()
+                : null;
+
+            if ($trashed !== null) {
+                $trashed->restore();
+                $trashed->update($data);
+                $variant = $trashed;
+            } else {
+                $variant = $product->variants()->create($data);
+            }
+
             $this->recordPriceHistory($product, $variant, null, (int) $variant->price_cents, PriceType::Regular, $userId);
             $keptIds[] = $variant->id;
         }

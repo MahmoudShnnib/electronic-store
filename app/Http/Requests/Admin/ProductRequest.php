@@ -58,7 +58,7 @@ final class ProductRequest extends FormRequest
             'variants.*.attributes' => ['nullable', 'array'],
             'variants.*.cost_price' => ['nullable', 'numeric', 'min:0'],
             'variants.*.price' => ['required_with:variants', 'numeric', 'min:0'],
-            'variants.*.sale_price' => ['nullable', 'numeric', 'min:0'],
+            'variants.*.sale_price' => ['nullable', 'numeric', 'min:0', 'lt:variants.*.price'],
             'variants.*.low_stock_threshold' => ['nullable', 'integer', 'min:0'],
             'variants.*.is_active' => ['boolean'],
 
@@ -66,6 +66,80 @@ final class ProductRequest extends FormRequest
             'specifications.*.value' => ['nullable', 'string', 'max:500'],
             'specifications.*.value_ar' => ['nullable', 'string', 'max:500'],
         ];
+    }
+
+    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    {
+        $validator->after(function (\Illuminate\Validation\Validator $v): void {
+            $this->validateVariantSkus($v);
+            $this->validateSpecificationTypes($v);
+        });
+    }
+
+    /**
+     * A friendly "already taken" message instead of a database crash: the
+     * variants.sku column carries a hard unique index (soft-deleted rows
+     * included), so anything that would violate it must fail validation.
+     * A trashed variant of THIS product is fine — SaveProduct restores it.
+     */
+    private function validateVariantSkus(\Illuminate\Validation\Validator $v): void
+    {
+        $productId = $this->route('product')?->id;
+
+        foreach ($this->input('variants', []) ?? [] as $index => $variant) {
+            $sku = $variant['sku'] ?? null;
+
+            if (! is_string($sku) || $sku === '') {
+                continue;
+            }
+
+            // Conflicts: any row holding the sku (trashed rows still occupy the
+            // unique index) except the variant itself and trashed variants of
+            // this same product — those SaveProduct restores instead.
+            $taken = \App\Models\ProductVariant::withTrashed()
+                ->where('sku', $sku)
+                ->when(isset($variant['id']), fn ($q) => $q->whereKeyNot((int) $variant['id']))
+                ->when($productId !== null, fn ($q) => $q->where(fn ($qq) => $qq
+                    ->where('product_id', '!=', $productId)
+                    ->orWhereNull('deleted_at')))
+                ->exists();
+
+            if ($taken) {
+                $v->errors()->add(
+                    "variants.{$index}.sku",
+                    __('The SKU ":sku" is already used by another variant.', ['sku' => $sku]),
+                );
+            }
+        }
+    }
+
+    /** Number-type specification attributes must actually receive numbers. */
+    private function validateSpecificationTypes(\Illuminate\Validation\Validator $v): void
+    {
+        $specs = $this->input('specifications', []) ?? [];
+
+        if ($specs === []) {
+            return;
+        }
+
+        $types = \App\Models\SpecificationAttribute::query()
+            ->whereIn('id', array_keys($specs))
+            ->pluck('type', 'id');
+
+        foreach ($specs as $attributeId => $spec) {
+            $value = $spec['value'] ?? null;
+
+            if ($value === null || trim((string) $value) === '') {
+                continue;
+            }
+
+            if ($types->get((int) $attributeId) === 'number' && ! is_numeric($value)) {
+                $v->errors()->add(
+                    "specifications.{$attributeId}.value",
+                    __('This specification only accepts a number.'),
+                );
+            }
+        }
     }
 
     /**
@@ -106,7 +180,11 @@ final class ProductRequest extends FormRequest
             'is_featured' => (bool) ($v['is_featured'] ?? false),
             'meta_title' => $v['meta_title'] ?? null,
             'meta_description' => $v['meta_description'] ?? null,
-            'published_at' => $v['status'] === ProductStatus::Active->value ? now() : null,
+            // First activation stamps the publish date; after that it never
+            // moves — editing a live product must not push it back to the top
+            // of "Newest", and deactivating must not erase its history.
+            'published_at' => $this->route('product')?->published_at
+                ?? ($v['status'] === ProductStatus::Active->value ? now() : null),
         ];
     }
 
@@ -115,11 +193,13 @@ final class ProductRequest extends FormRequest
      */
     public function variantPayload(): ?array
     {
-        $variants = $this->validated()['variants'] ?? null;
-
-        if ($variants === null) {
+        // Only an absent key means "leave variants untouched" — a submitted
+        // empty list is an instruction to delete every variant.
+        if (! $this->has('variants')) {
             return null;
         }
+
+        $variants = $this->validated()['variants'] ?? [];
 
         return array_map(fn (array $v) => [
             'id' => $v['id'] ?? null,

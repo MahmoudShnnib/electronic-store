@@ -128,7 +128,9 @@ function submit(): void {
         supplier_id: data.supplier_id === '' ? null : data.supplier_id,
         slug: data.slug === '' ? null : data.slug,
         sale_price: data.sale_price === ('' as unknown) ? null : data.sale_price,
-        variants: data.variants.length > 0 ? data.variants : null,
+        // Always send the array — an empty list means "delete every variant";
+        // null would mean "leave variants untouched" and removals never save.
+        variants: data.variants,
     }));
 
     if (isEdit) {

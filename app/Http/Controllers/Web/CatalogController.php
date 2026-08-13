@@ -88,18 +88,28 @@ final class CatalogController extends Controller
                 'category_id',
                 array_filter(array_map('intval', (array) $request->query('categories'))),
             ))
-            ->when($request->filled('min_price'), fn (Builder $q) => $q->where('price_cents', '>=', (int) ((float) $request->query('min_price') * 100)))
-            ->when($request->filled('max_price'), fn (Builder $q) => $q->where('price_cents', '<=', (int) ((float) $request->query('max_price') * 100)))
+            ->when($request->filled('min_price'), fn (Builder $q) => $q->whereRaw(self::EFFECTIVE_PRICE.' >= ?', [(int) ((float) $request->query('min_price') * 100)]))
+            ->when($request->filled('max_price'), fn (Builder $q) => $q->whereRaw(self::EFFECTIVE_PRICE.' <= ?', [(int) ((float) $request->query('max_price') * 100)]))
             ->when($request->boolean('in_stock'), fn (Builder $q) => $q->purchasable())
             ->when($request->boolean('on_sale'), fn (Builder $q) => $q->onSale())
             ->tap(fn (Builder $q) => $this->applySort($q, (string) $request->query('sort', 'newest')));
     }
 
+    /**
+     * What the shopper actually pays right now: the sale price while the sale
+     * is live, the regular price otherwise. Used by both filtering and sorting
+     * so a max-price filter never hides an item whose *sale* price qualifies.
+     */
+    private const EFFECTIVE_PRICE = '(CASE WHEN sale_price_cents IS NOT NULL'
+        .' AND (sale_starts_at IS NULL OR sale_starts_at <= NOW())'
+        .' AND (sale_ends_at IS NULL OR sale_ends_at >= NOW())'
+        .' THEN sale_price_cents ELSE price_cents END)';
+
     private function applySort(Builder $query, string $sort): void
     {
         match ($sort) {
-            'price_asc' => $query->orderByRaw('COALESCE(sale_price_cents, price_cents) ASC'),
-            'price_desc' => $query->orderByRaw('COALESCE(sale_price_cents, price_cents) DESC'),
+            'price_asc' => $query->orderByRaw(self::EFFECTIVE_PRICE.' ASC'),
+            'price_desc' => $query->orderByRaw(self::EFFECTIVE_PRICE.' DESC'),
             'name' => $query->orderBy('name'),
             'best_selling' => $query->addSelect([
                 'sold_count' => OrderItem::query()

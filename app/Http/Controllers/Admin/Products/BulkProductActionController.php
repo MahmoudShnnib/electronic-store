@@ -36,7 +36,10 @@ final class BulkProductActionController extends Controller
             $this->authorize('update', $product);
 
             $product->update(match ($validated['action']) {
-                'activate' => ['status' => ProductStatus::Active],
+                // First activation stamps the publish date, matching the
+                // single-product form — bulk-activated products enter
+                // "Newest" too.
+                'activate' => ['status' => ProductStatus::Active, 'published_at' => $product->published_at ?? now()],
                 'deactivate' => ['status' => ProductStatus::Inactive],
                 'feature' => ['is_featured' => true],
                 'unfeature' => ['is_featured' => false],
