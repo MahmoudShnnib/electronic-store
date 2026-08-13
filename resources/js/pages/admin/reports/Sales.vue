@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import AdminDateInput from '@/components/admin/AdminDateInput.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import StatCard from '@/components/admin/StatCard.vue';
-import { btnSecondary, inputClass } from '@/components/admin/ui';
+import { btnSecondary } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ArcElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip } from 'chart.js';
@@ -100,12 +101,8 @@ function exportUrl(report: string): string {
 
     <!-- Date range -->
     <div class="mb-6 flex flex-wrap items-end gap-3">
-        <label class="text-sm text-gray-600 dark:text-gray-300"
-            >{{ t('admin.common.from') }}<input v-model="from" type="date" class="mt-1 block" :class="inputClass" />
-        </label>
-        <label class="text-sm text-gray-600 dark:text-gray-300"
-            >{{ t('admin.common.to') }}<input v-model="to" type="date" class="mt-1 block" :class="inputClass" />
-        </label>
+        <label class="text-sm text-gray-600 dark:text-gray-300">{{ t('admin.common.from') }}<AdminDateInput v-model="from" class="mt-1" /> </label>
+        <label class="text-sm text-gray-600 dark:text-gray-300">{{ t('admin.common.to') }}<AdminDateInput v-model="to" class="mt-1" /> </label>
         <button type="button" :class="btnSecondary" @click="applyRange">{{ t('admin.common.apply') }}</button>
     </div>
 

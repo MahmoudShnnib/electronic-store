@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdminSelect from '@/components/admin/AdminSelect.vue';
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import DataTable, { type Column } from '@/components/admin/DataTable.vue';
 import FilterBar from '@/components/admin/FilterBar.vue';
@@ -6,7 +7,7 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
+import { btnPrimary, btnSecondary, checkboxClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Plus, RotateCcw, Trash2 } from 'lucide-vue-next';
@@ -125,14 +126,18 @@ function restore(product: ProductRow): void {
         ]"
     >
         <div v-if="selected.length > 0 && can.update" class="flex items-center gap-2">
-            <select v-model="bulkAction" :class="inputClass" class="w-auto">
-                <option value="">{{ t('admin.products.bulk_action', { count: selected.length }) }}</option>
-                <option value="activate">{{ t('admin.common.activate') }}</option>
-                <option value="deactivate">{{ t('admin.common.deactivate') }}</option>
-                <option value="feature">{{ t('admin.products.feature') }}</option>
-                <option value="unfeature">{{ t('admin.products.unfeature') }}</option>
-                <option v-if="can.delete" value="delete">{{ t('admin.common.delete') }}</option>
-            </select>
+            <AdminSelect
+                v-model="bulkAction"
+                class="!w-auto"
+                :empty-label="t('admin.products.bulk_action', { count: selected.length })"
+                :options="[
+                    { value: 'activate', label: t('admin.common.activate') },
+                    { value: 'deactivate', label: t('admin.common.deactivate') },
+                    { value: 'feature', label: t('admin.products.feature') },
+                    { value: 'unfeature', label: t('admin.products.unfeature') },
+                    { value: 'delete', label: t('admin.common.delete') },
+                ]"
+            />
             <button type="button" :class="btnSecondary" @click="applyBulk">{{ t('admin.common.apply') }}</button>
         </div>
     </FilterBar>

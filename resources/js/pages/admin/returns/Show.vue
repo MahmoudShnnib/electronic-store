@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdminSelect from '@/components/admin/AdminSelect.vue';
 import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
@@ -102,10 +103,14 @@ const lightbox = ref<string | null>(null);
                             <td class="px-3 py-2.5 text-end">{{ item.unit_price_formatted }}</td>
                             <td class="px-3 py-2.5">
                                 <template v-if="productReturn.status === 'approved'">
-                                    <select v-model="receiveForm.conditions[item.id]" :class="inputClass" class="w-36">
-                                        <option value="resellable">{{ t('admin.returns.resellable') }}</option>
-                                        <option value="damaged">{{ t('admin.returns.damaged') }}</option>
-                                    </select>
+                                    <AdminSelect
+                                        v-model="receiveForm.conditions[item.id]"
+                                        class="w-36"
+                                        :options="[
+                                            { value: 'resellable', label: t('admin.returns.resellable') },
+                                            { value: 'damaged', label: t('admin.returns.damaged') },
+                                        ]"
+                                    />
                                 </template>
                                 <StatusBadge v-else-if="item.condition" :status="item.condition" />
                                 <span v-else class="text-gray-400">—</span>
@@ -199,9 +204,7 @@ const lightbox = ref<string | null>(null);
                     {{ t('admin.returns.receive_hint') }}
                 </p>
                 <Field :label="t('admin.common.warehouse')" :error="receiveForm.errors.warehouse_id">
-                    <select v-model.number="receiveForm.warehouse_id" :class="inputClass">
-                        <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
-                    </select>
+                    <AdminSelect v-model="receiveForm.warehouse_id" :options="warehouses.map((w) => ({ value: w.id, label: w.name }))" />
                 </Field>
                 <button
                     type="button"

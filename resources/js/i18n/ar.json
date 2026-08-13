@@ -372,7 +372,11 @@
             "expected_date": "التاريخ المتوقع",
             "rma": "رقم المرتجع",
             "move_to": "نقل إلى",
-            "low_stock_threshold": "حد المخزون المنخفض"
+            "low_stock_threshold": "حد المخزون المنخفض",
+            "pick_date": "اختر تاريخاً",
+            "clear": "مسح",
+            "time": "الوقت",
+            "done": "تم"
         },
         "dashboard": {
             "title": "لوحة التحكم",

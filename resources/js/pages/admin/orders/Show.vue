@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdminSelect from '@/components/admin/AdminSelect.vue';
 import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
@@ -234,10 +235,7 @@ function formatAddress(address: Address): string {
                 </div>
                 <form v-if="order.allowed_transitions.length > 0" class="grid gap-3" @submit.prevent="submitStatus">
                     <Field :label="t('admin.common.move_to')" :error="statusForm.errors.status">
-                        <select v-model="statusForm.status" :class="inputClass">
-                            <option value="" disabled>{{ t('admin.common.choose') }}</option>
-                            <option v-for="t in order.allowed_transitions" :key="t.value" :value="t.value">{{ t.label }}</option>
-                        </select>
+                        <AdminSelect v-model="statusForm.status" :placeholder="t('admin.common.choose')" :options="order.allowed_transitions" />
                     </Field>
                     <Field :label="t('admin.common.comment')" :error="statusForm.errors.comment">
                         <input v-model="statusForm.comment" type="text" :class="inputClass" />
@@ -311,12 +309,15 @@ function formatAddress(address: Address): string {
                         <input v-model.number="refundForm.amount" type="number" step="0.01" min="0.01" :class="inputClass" />
                     </Field>
                     <Field :label="t('admin.common.method')" :error="refundForm.errors.method">
-                        <select v-model="refundForm.method" :class="inputClass">
-                            <option value="cash">{{ t('admin.orders.cash') }}</option>
-                            <option value="bank_transfer">{{ t('admin.orders.bank_transfer') }}</option>
-                            <option value="store_credit">{{ t('admin.orders.store_credit') }}</option>
-                            <option value="original">{{ t('admin.orders.original_method') }}</option>
-                        </select>
+                        <AdminSelect
+                            v-model="refundForm.method"
+                            :options="[
+                                { value: 'cash', label: t('admin.orders.cash') },
+                                { value: 'bank_transfer', label: t('admin.orders.bank_transfer') },
+                                { value: 'store_credit', label: t('admin.orders.store_credit') },
+                                { value: 'original', label: t('admin.orders.original_method') },
+                            ]"
+                        />
                     </Field>
                     <input
                         v-model="refundForm.reference"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdminSelect from '@/components/admin/AdminSelect.vue';
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import DataTable, { type Column } from '@/components/admin/DataTable.vue';
 import Field from '@/components/admin/Field.vue';
@@ -207,10 +208,11 @@ function destroy(): void {
                     <input v-model="form.slug" type="text" :class="inputClass" dir="ltr" />
                 </Field>
                 <Field :label="t('admin.common.parent')" :error="form.errors.parent_id">
-                    <select v-model="form.parent_id" :class="inputClass">
-                        <option value="">{{ t('admin.categories.root') }}</option>
-                        <option v-for="p in parentOptions.filter((o) => o.id !== editing?.id)" :key="p.id" :value="p.id">{{ p.name }}</option>
-                    </select>
+                    <AdminSelect
+                        v-model="form.parent_id"
+                        :empty-label="t('admin.categories.root')"
+                        :options="parentOptions.filter((o) => o.id !== editing?.id).map((p) => ({ value: p.id, label: p.name }))"
+                    />
                 </Field>
             </div>
             <Field :label="t('admin.common.description')" :error="form.errors.description">

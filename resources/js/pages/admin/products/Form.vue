@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AdminDateInput from '@/components/admin/AdminDateInput.vue';
+import AdminSelect from '@/components/admin/AdminSelect.vue';
 import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import type { Option } from '@/components/admin/types';
@@ -286,22 +288,25 @@ function deleteImage(image: ProductImage): void {
                         <input v-model="form.slug" type="text" :class="inputClass" dir="ltr" />
                     </Field>
                     <Field :label="t('admin.common.category')" required :error="form.errors.category_id">
-                        <select v-model="form.category_id" :class="inputClass">
-                            <option value="" disabled>{{ t('admin.common.choose') }}</option>
-                            <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.parent_id ? '— ' : '' }}{{ c.name }}</option>
-                        </select>
+                        <AdminSelect
+                            v-model="form.category_id"
+                            :placeholder="t('admin.common.choose')"
+                            :options="categories.map((c) => ({ value: c.id, label: (c.parent_id ? '— ' : '') + c.name }))"
+                        />
                     </Field>
                     <Field :label="t('admin.common.brand')" :error="form.errors.brand_id">
-                        <select v-model="form.brand_id" :class="inputClass">
-                            <option value="">{{ t('admin.common.none') }}</option>
-                            <option v-for="b in brands" :key="b.id" :value="b.id">{{ b.name }}</option>
-                        </select>
+                        <AdminSelect
+                            v-model="form.brand_id"
+                            :empty-label="t('admin.common.none')"
+                            :options="brands.map((b) => ({ value: b.id, label: b.name }))"
+                        />
                     </Field>
                     <Field :label="t('admin.common.supplier')" :error="form.errors.supplier_id">
-                        <select v-model="form.supplier_id" :class="inputClass">
-                            <option value="">{{ t('admin.common.none') }}</option>
-                            <option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.company_name }}</option>
-                        </select>
+                        <AdminSelect
+                            v-model="form.supplier_id"
+                            :empty-label="t('admin.common.none')"
+                            :options="suppliers.map((s) => ({ value: s.id, label: s.company_name }))"
+                        />
                     </Field>
                 </div>
 
@@ -335,10 +340,10 @@ function deleteImage(image: ProductImage): void {
                         <input v-model.number="form.sale_price" type="number" step="0.01" min="0" :class="inputClass" />
                     </Field>
                     <Field :label="t('admin.products.sale_starts')" :error="form.errors.sale_starts_at">
-                        <input v-model="form.sale_starts_at" type="datetime-local" :class="inputClass" />
+                        <AdminDateInput v-model="form.sale_starts_at" with-time />
                     </Field>
                     <Field :label="t('admin.products.sale_ends')" :error="form.errors.sale_ends_at">
-                        <input v-model="form.sale_ends_at" type="datetime-local" :class="inputClass" />
+                        <AdminDateInput v-model="form.sale_ends_at" with-time />
                     </Field>
                     <Field :label="t('admin.common.tax_rate')" :error="form.errors.tax_rate">
                         <input v-model.number="form.tax_rate" type="number" step="0.01" min="0" max="100" :class="inputClass" />
@@ -510,9 +515,7 @@ function deleteImage(image: ProductImage): void {
             <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.status') }}</h2>
                 <Field :label="t('admin.common.status')" required :error="form.errors.status">
-                    <select v-model="form.status" :class="inputClass">
-                        <option v-for="s in statuses" :key="s.value" :value="s.value">{{ s.label }}</option>
-                    </select>
+                    <AdminSelect v-model="form.status" :options="statuses" />
                 </Field>
                 <label class="mt-4 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                     <input v-model="form.is_featured" type="checkbox" :class="checkboxClass" />{{ t('admin.products.featured_product') }}</label

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AdminDateInput from '@/components/admin/AdminDateInput.vue';
+import AdminSelect from '@/components/admin/AdminSelect.vue';
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import DataTable, { type Column } from '@/components/admin/DataTable.vue';
 import Field from '@/components/admin/Field.vue';
@@ -177,9 +179,7 @@ function destroy(): void {
                     <input v-model="form.code" type="text" class="uppercase" :class="inputClass" dir="ltr" />
                 </Field>
                 <Field :label="t('admin.common.type')" required :error="form.errors.type">
-                    <select v-model="form.type" :class="inputClass">
-                        <option v-for="t in types" :key="t.value" :value="t.value">{{ t.label }}</option>
-                    </select>
+                    <AdminSelect v-model="form.type" :options="types" />
                 </Field>
             </div>
             <div class="grid grid-cols-2 gap-3">
@@ -204,12 +204,15 @@ function destroy(): void {
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.coupons.applies_to')" :error="form.errors.applies_to">
-                    <select v-model="form.applies_to" :class="inputClass">
-                        <option value="all">{{ t('admin.coupons.entire_store') }}</option>
-                        <option value="products">{{ t('admin.coupons.specific_products') }}</option>
-                        <option value="categories">{{ t('admin.coupons.specific_categories') }}</option>
-                        <option value="brands">{{ t('admin.coupons.specific_brands') }}</option>
-                    </select>
+                    <AdminSelect
+                        v-model="form.applies_to"
+                        :options="[
+                            { value: 'all', label: t('admin.coupons.entire_store') },
+                            { value: 'products', label: t('admin.coupons.specific_products') },
+                            { value: 'categories', label: t('admin.coupons.specific_categories') },
+                            { value: 'brands', label: t('admin.coupons.specific_brands') },
+                        ]"
+                    />
                 </Field>
                 <Field
                     v-if="form.applies_to !== 'all'"
@@ -222,10 +225,10 @@ function destroy(): void {
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.coupons.starts_at')" :error="form.errors.starts_at">
-                    <input v-model="form.starts_at" type="datetime-local" :class="inputClass" />
+                    <AdminDateInput v-model="form.starts_at" with-time />
                 </Field>
                 <Field :label="t('admin.coupons.expires_at')" :error="form.errors.expires_at">
-                    <input v-model="form.expires_at" type="datetime-local" :class="inputClass" />
+                    <AdminDateInput v-model="form.expires_at" with-time />
                 </Field>
             </div>
             <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">

@@ -372,7 +372,11 @@
             "expected_date": "Expected date",
             "rma": "RMA",
             "move_to": "Move to",
-            "low_stock_threshold": "Low-stock threshold"
+            "low_stock_threshold": "Low-stock threshold",
+            "pick_date": "Pick a date",
+            "clear": "Clear",
+            "time": "Time",
+            "done": "Done"
         },
         "dashboard": {
             "title": "Dashboard",

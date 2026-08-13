@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AdminDateInput from '@/components/admin/AdminDateInput.vue';
+import AdminSelect from '@/components/admin/AdminSelect.vue';
 import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
@@ -70,6 +72,22 @@ const form = useForm({
         ...item,
     })) as ItemRow[],
 });
+
+/**
+ * Every purchasable line as a flat list — "Product (SKU)" for simple products,
+ * "Product — Variant (SKU)" for each variant. The old <optgroup> headings only
+ * repeated the product name that each option already carries.
+ */
+const productOptions = computed(() =>
+    props.products.flatMap((product) =>
+        product.variants.length === 0
+            ? [{ value: String(product.id), label: `${product.name} (${product.sku})` }]
+            : product.variants.map((variant) => ({
+                  value: `${product.id}:${variant.id}`,
+                  label: `${product.name} — ${variant.name} (${variant.sku})`,
+              })),
+    ),
+);
 
 function addItem(): void {
     form.items.push({
@@ -147,19 +165,21 @@ function submit(): void {
                 <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.purchase_orders.details') }}</h2>
                 <div class="grid gap-4 sm:grid-cols-3">
                     <Field :label="t('admin.common.supplier')" required :error="form.errors.supplier_id">
-                        <select v-model="form.supplier_id" :class="inputClass">
-                            <option value="" disabled>{{ t('admin.common.choose') }}</option>
-                            <option v-for="s in suppliers" :key="s.id" :value="s.id">{{ s.company_name }}</option>
-                        </select>
+                        <AdminSelect
+                            v-model="form.supplier_id"
+                            :placeholder="t('admin.common.choose')"
+                            :options="suppliers.map((s) => ({ value: s.id, label: s.company_name }))"
+                        />
                     </Field>
                     <Field :label="t('admin.common.destination_warehouse')" required :error="form.errors.warehouse_id">
-                        <select v-model="form.warehouse_id" :class="inputClass">
-                            <option value="" disabled>{{ t('admin.common.choose') }}</option>
-                            <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
-                        </select>
+                        <AdminSelect
+                            v-model="form.warehouse_id"
+                            :placeholder="t('admin.common.choose')"
+                            :options="warehouses.map((w) => ({ value: w.id, label: w.name }))"
+                        />
                     </Field>
                     <Field :label="t('admin.purchase_orders.expected_date')" :error="form.errors.expected_at">
-                        <input v-model="form.expected_at" type="date" :class="inputClass" />
+                        <AdminDateInput v-model="form.expected_at" />
                     </Field>
                 </div>
                 <Field class="mt-4" :label="t('admin.common.notes')" :error="form.errors.notes">
@@ -178,23 +198,12 @@ function submit(): void {
 
                 <div v-for="(item, index) in form.items" :key="item.key" class="mb-3 grid items-end gap-3 sm:grid-cols-[1fr_100px_130px_110px_36px]">
                     <Field :label="t('admin.common.product')">
-                        <select
-                            :value="selectionValue(item)"
-                            :class="inputClass"
-                            @change="applySelection(item, ($event.target as HTMLSelectElement).value)"
-                        >
-                            <option value="" disabled>{{ t('admin.common.choose') }}</option>
-                            <template v-for="product in products" :key="product.id">
-                                <option v-if="product.variants.length === 0" :value="String(product.id)">
-                                    {{ product.name }} ({{ product.sku }})
-                                </option>
-                                <optgroup v-else :label="product.name">
-                                    <option v-for="variant in product.variants" :key="variant.id" :value="`${product.id}:${variant.id}`">
-                                        {{ product.name }} — {{ variant.name }} ({{ variant.sku }})
-                                    </option>
-                                </optgroup>
-                            </template>
-                        </select>
+                        <AdminSelect
+                            :model-value="selectionValue(item)"
+                            :placeholder="t('admin.common.choose')"
+                            :options="productOptions"
+                            @update:model-value="applySelection(item, String($event))"
+                        />
                     </Field>
                     <Field :label="t('admin.common.qty')">
                         <input v-model.number="item.quantity" type="number" min="1" :class="inputClass" />

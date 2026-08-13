@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdminSelect from '@/components/admin/AdminSelect.vue';
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import DataTable, { type Column } from '@/components/admin/DataTable.vue';
 import Field from '@/components/admin/Field.vue';
@@ -171,10 +172,13 @@ function destroy(): void {
             </Field>
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.common.status')" required :error="form.errors.status">
-                    <select v-model="form.status" :class="inputClass">
-                        <option value="active">{{ t('admin.common.active') }}</option>
-                        <option value="inactive">{{ t('admin.common.inactive') }}</option>
-                    </select>
+                    <AdminSelect
+                        v-model="form.status"
+                        :options="[
+                            { value: 'active', label: t('admin.common.active') },
+                            { value: 'inactive', label: t('admin.common.inactive') },
+                        ]"
+                    />
                 </Field>
             </div>
             <Field :label="t('admin.common.notes')" :error="form.errors.notes">

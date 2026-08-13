@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdminSelect from '@/components/admin/AdminSelect.vue';
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import Field from '@/components/admin/Field.vue';
 import FormModal from '@/components/admin/FormModal.vue';
@@ -300,11 +301,14 @@ function destroyAttribute(): void {
                     <input v-model="attributeForm.unit" type="text" :class="inputClass" />
                 </Field>
                 <Field :label="t('admin.common.type')" :error="attributeForm.errors.type">
-                    <select v-model="attributeForm.type" :class="inputClass">
-                        <option value="text">{{ t('admin.specifications.text') }}</option>
-                        <option value="number">{{ t('admin.specifications.number') }}</option>
-                        <option value="boolean">{{ t('admin.specifications.boolean') }}</option>
-                    </select>
+                    <AdminSelect
+                        v-model="attributeForm.type"
+                        :options="[
+                            { value: 'text', label: t('admin.specifications.text') },
+                            { value: 'number', label: t('admin.specifications.number') },
+                            { value: 'boolean', label: t('admin.specifications.boolean') },
+                        ]"
+                    />
                 </Field>
                 <Field :label="t('admin.common.position')" :error="attributeForm.errors.position">
                     <input v-model.number="attributeForm.position" type="number" min="0" :class="inputClass" />

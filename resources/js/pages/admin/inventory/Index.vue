@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdminSelect from '@/components/admin/AdminSelect.vue';
 import DataTable, { type Column } from '@/components/admin/DataTable.vue';
 import Field from '@/components/admin/Field.vue';
 import FilterBar from '@/components/admin/FilterBar.vue';
@@ -204,9 +205,7 @@ function submitTransfer(): void {
                     <input v-model.number="adjustForm.quantity_change" type="number" :class="inputClass" />
                 </Field>
                 <Field :label="t('admin.common.type')" required :error="adjustForm.errors.type">
-                    <select v-model="adjustForm.type" :class="inputClass">
-                        <option v-for="t in movementTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
-                    </select>
+                    <AdminSelect v-model="adjustForm.type" :options="movementTypes" />
                 </Field>
             </div>
             <Field :label="t('admin.common.reason')" required :error="adjustForm.errors.reason">
@@ -224,18 +223,18 @@ function submitTransfer(): void {
         <form class="grid gap-4" @submit.prevent="submitTransfer">
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.inventory.from_warehouse')" required :error="transferForm.errors.from_warehouse_id">
-                    <select v-model.number="transferForm.from_warehouse_id" :class="inputClass">
-                        <option :value="0" disabled>{{ t('admin.common.choose') }}</option>
-                        <option v-for="w in warehouses" :key="w.id" :value="w.id">{{ w.name }}</option>
-                    </select>
+                    <AdminSelect
+                        v-model="transferForm.from_warehouse_id"
+                        :placeholder="t('admin.common.choose')"
+                        :options="warehouses.map((w) => ({ value: w.id, label: w.name }))"
+                    />
                 </Field>
                 <Field :label="t('admin.inventory.to_warehouse')" required :error="transferForm.errors.to_warehouse_id">
-                    <select v-model.number="transferForm.to_warehouse_id" :class="inputClass">
-                        <option :value="0" disabled>{{ t('admin.common.choose') }}</option>
-                        <option v-for="w in warehouses.filter((w) => w.id !== transferForm.from_warehouse_id)" :key="w.id" :value="w.id">
-                            {{ w.name }}
-                        </option>
-                    </select>
+                    <AdminSelect
+                        v-model="transferForm.to_warehouse_id"
+                        :placeholder="t('admin.common.choose')"
+                        :options="warehouses.filter((w) => w.id !== transferForm.from_warehouse_id).map((w) => ({ value: w.id, label: w.name }))"
+                    />
                 </Field>
             </div>
 

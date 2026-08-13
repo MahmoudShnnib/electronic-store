@@ -3,8 +3,9 @@ import { router } from '@inertiajs/vue3';
 import { Search } from 'lucide-vue-next';
 import { onBeforeUnmount, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import AdminSelect from './AdminSelect.vue';
 import type { Option } from './types';
-import { inputClass, searchInputClass } from './ui';
+import { searchInputClass } from './ui';
 
 const { t } = useI18n();
 
@@ -73,12 +74,15 @@ onBeforeUnmount(() => {
 
         <!-- `!w-auto`: inputClass carries w-full, which wins on source order and
              would stretch each filter across the whole bar. -->
-        <select v-for="select in selects ?? []" :key="select.key" v-model="state[select.key]" :class="inputClass" class="!w-auto" @change="apply">
-            <option value="">{{ select.label }}</option>
-            <option v-for="option in select.options" :key="option.value" :value="option.value">
-                {{ option.label }}
-            </option>
-        </select>
+        <AdminSelect
+            v-for="select in selects ?? []"
+            :key="select.key"
+            v-model="state[select.key]"
+            class="!w-auto"
+            :empty-label="select.label"
+            :options="select.options"
+            @update:model-value="apply"
+        />
 
         <slot />
     </div>
