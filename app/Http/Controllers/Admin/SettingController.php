@@ -48,6 +48,6 @@ final class SettingController extends Controller implements HasMiddleware
 
         activity()->event('settings_updated')->withProperties(['keys' => array_keys($validated['settings'])])->log('Settings updated');
 
-        return back()->with('success', 'Settings saved.');
+        return back()->with('success', __('Settings saved.'));
     }
 }

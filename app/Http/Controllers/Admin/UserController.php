@@ -75,7 +75,7 @@ final class UserController extends Controller implements HasMiddleware
 
         activity()->performedOn($user)->event('staff_created')->log("Staff account created: {$user->email}");
 
-        return back()->with('success', 'Staff user created.');
+        return back()->with('success', __('Staff user created.'));
     }
 
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
@@ -88,7 +88,7 @@ final class UserController extends Controller implements HasMiddleware
         }
 
         if ($user->id === $request->user()->id && ! ($validated['is_active'] ?? true)) {
-            return back()->with('error', 'You cannot deactivate your own account.');
+            return back()->with('error', __('You cannot deactivate your own account.'));
         }
 
         $user->update([
@@ -101,6 +101,6 @@ final class UserController extends Controller implements HasMiddleware
 
         activity()->performedOn($user)->event('staff_updated')->log("Staff account updated: {$user->email}");
 
-        return back()->with('success', 'User updated.');
+        return back()->with('success', __('User updated.'));
     }
 }

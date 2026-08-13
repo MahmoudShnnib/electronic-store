@@ -36,6 +36,6 @@ final class TransferStockController extends Controller implements HasMiddleware
             return back()->withErrors(['items' => $e->getMessage()]);
         }
 
-        return back()->with('success', 'Stock transferred.');
+        return back()->with('success', __('Stock transferred.'));
     }
 }

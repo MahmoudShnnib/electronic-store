@@ -41,6 +41,6 @@ final class AdjustStockController extends Controller implements HasMiddleware
             return back()->withErrors(['quantity_change' => $e->getMessage()]);
         }
 
-        return back()->with('success', 'Stock adjusted.');
+        return back()->with('success', __('Stock adjusted.'));
     }
 }

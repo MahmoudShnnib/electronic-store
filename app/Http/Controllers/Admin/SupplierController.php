@@ -43,25 +43,25 @@ final class SupplierController extends Controller implements HasMiddleware
     {
         Supplier::create($this->validated($request));
 
-        return back()->with('success', 'Supplier created.');
+        return back()->with('success', __('Supplier created.'));
     }
 
     public function update(SupplierRequest $request, Supplier $supplier): RedirectResponse
     {
         $supplier->update($this->validated($request));
 
-        return back()->with('success', 'Supplier updated.');
+        return back()->with('success', __('Supplier updated.'));
     }
 
     public function destroy(Supplier $supplier): RedirectResponse
     {
         if ($supplier->purchaseOrders()->exists()) {
-            return back()->with('error', 'This supplier has purchase orders; deactivate it instead.');
+            return back()->with('error', __('This supplier has purchase orders; deactivate it instead.'));
         }
 
         $supplier->delete();
 
-        return back()->with('success', 'Supplier deleted.');
+        return back()->with('success', __('Supplier deleted.'));
     }
 
     /**

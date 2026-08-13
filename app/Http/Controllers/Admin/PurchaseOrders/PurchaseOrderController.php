@@ -26,7 +26,7 @@ final class PurchaseOrderController extends Controller implements HasMiddleware
     {
         return [
             new Middleware('can:purchase_orders.view', only: ['index', 'show']),
-            new Middleware('can:purchase_orders.manage', only: ['create', 'store', 'update', 'destroy']),
+            new Middleware('can:purchase_orders.manage', only: ['create', 'store', 'edit', 'update', 'destroy']),
         ];
     }
 
@@ -56,25 +56,36 @@ final class PurchaseOrderController extends Controller implements HasMiddleware
         return Inertia::render('admin/purchase-orders/Show', $this->query->showProps($purchaseOrder));
     }
 
+    public function edit(PurchaseOrder $purchaseOrder): Response|RedirectResponse
+    {
+        if (! $purchaseOrder->status->isEditable()) {
+            return redirect()
+                ->route('admin.purchase-orders.show', $purchaseOrder)
+                ->with('error', __('Only draft purchase orders can be edited.'));
+        }
+
+        return Inertia::render('admin/purchase-orders/Form', $this->query->editProps($purchaseOrder));
+    }
+
     public function update(PurchaseOrderRequest $request, PurchaseOrder $purchaseOrder, SavePurchaseOrder $savePurchaseOrder): RedirectResponse
     {
         if (! $purchaseOrder->status->isEditable()) {
-            return back()->with('error', 'Only draft purchase orders can be edited.');
+            return back()->with('error', __('Only draft purchase orders can be edited.'));
         }
 
         $savePurchaseOrder->handle($purchaseOrder, $request->validated(), $request->user()->id);
 
-        return back()->with('success', 'Purchase order updated.');
+        return back()->with('success', __('Purchase order updated.'));
     }
 
     public function destroy(PurchaseOrder $purchaseOrder): RedirectResponse
     {
         if (! $purchaseOrder->status->isEditable()) {
-            return back()->with('error', 'Only draft purchase orders can be deleted.');
+            return back()->with('error', __('Only draft purchase orders can be deleted.'));
         }
 
         $purchaseOrder->delete();
 
-        return redirect()->route('admin.purchase-orders.index')->with('success', 'Purchase order deleted.');
+        return redirect()->route('admin.purchase-orders.index')->with('success', __('Purchase order deleted.'));
     }
 }

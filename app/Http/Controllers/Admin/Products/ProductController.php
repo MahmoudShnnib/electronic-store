@@ -75,7 +75,7 @@ final class ProductController extends Controller
             $request->user()->id,
         );
 
-        return back()->with('success', 'Product updated.');
+        return back()->with('success', __('Product updated.'));
     }
 
     public function destroy(Product $product): RedirectResponse
@@ -84,6 +84,6 @@ final class ProductController extends Controller
 
         $product->delete();
 
-        return redirect()->route('admin.products.index')->with('success', 'Product moved to trash.');
+        return redirect()->route('admin.products.index')->with('success', __('Product moved to trash.'));
     }
 }

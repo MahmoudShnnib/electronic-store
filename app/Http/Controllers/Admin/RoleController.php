@@ -50,7 +50,7 @@ final class RoleController extends Controller implements HasMiddleware
 
         activity()->event('role_created')->withProperties($validated)->log("Role created: {$validated['name']}");
 
-        return back()->with('success', 'Role created.');
+        return back()->with('success', __('Role created.'));
     }
 
     public function update(UpdateRoleRequest $request, Role $role): RedirectResponse
@@ -63,7 +63,7 @@ final class RoleController extends Controller implements HasMiddleware
 
         activity()->event('role_updated')->withProperties($validated)->log("Role permissions updated: {$role->name}");
 
-        return back()->with('success', 'Role updated.');
+        return back()->with('success', __('Role updated.'));
     }
 
     public function destroy(Role $role): RedirectResponse
@@ -71,13 +71,13 @@ final class RoleController extends Controller implements HasMiddleware
         abort_if(in_array($role->name, self::PROTECTED_ROLES, true), 403, 'This role cannot be deleted.');
 
         if ($role->users()->exists()) {
-            return back()->with('error', 'Reassign users before deleting this role.');
+            return back()->with('error', __('Reassign users before deleting this role.'));
         }
 
         $role->delete();
 
         activity()->event('role_deleted')->log("Role deleted: {$role->name}");
 
-        return back()->with('success', 'Role deleted.');
+        return back()->with('success', __('Role deleted.'));
     }
 }

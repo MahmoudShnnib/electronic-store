@@ -707,7 +707,9 @@
             "privacy": "Privacy policy",
             "terms": "Terms & conditions",
             "return_policy": "Return policy",
-            "contact_page": "Contact page text"
+            "contact_page": "Contact page text",
+            "return_window": "Return window (days)",
+            "return_window_hint": "How many days after delivery a customer can request a return."
         },
         "specifications": {
             "title": "Specifications",

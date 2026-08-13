@@ -46,7 +46,7 @@ final class WarehouseController extends Controller implements HasMiddleware
 
         $this->ensureSingleDefault($warehouse);
 
-        return back()->with('success', 'Warehouse created.');
+        return back()->with('success', __('Warehouse created.'));
     }
 
     public function update(WarehouseRequest $request, Warehouse $warehouse): RedirectResponse
@@ -55,22 +55,24 @@ final class WarehouseController extends Controller implements HasMiddleware
 
         $this->ensureSingleDefault($warehouse);
 
-        return back()->with('success', 'Warehouse updated.');
+        return back()->with('success', __('Warehouse updated.'));
     }
 
     public function destroy(Warehouse $warehouse): RedirectResponse
     {
         if ($warehouse->is_default) {
-            return back()->with('error', 'Cannot delete the default warehouse.');
+            return back()->with('error', __('Cannot delete the default warehouse.'));
         }
 
-        if ($warehouse->stockLevels()->where('quantity', '>', 0)->exists()) {
-            return back()->with('error', 'Transfer remaining stock out before deleting this warehouse.');
+        if ($warehouse->stockLevels()
+            ->where(fn ($q) => $q->where('quantity', '>', 0)->orWhere('reserved', '>', 0)->orWhere('incoming', '>', 0))
+            ->exists()) {
+            return back()->with('error', __('Transfer remaining stock out before deleting this warehouse.'));
         }
 
         $warehouse->delete();
 
-        return back()->with('success', 'Warehouse deleted.');
+        return back()->with('success', __('Warehouse deleted.'));
     }
 
     private function ensureSingleDefault(Warehouse $warehouse): void

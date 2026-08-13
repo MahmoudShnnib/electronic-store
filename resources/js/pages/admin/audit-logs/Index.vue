@@ -21,7 +21,15 @@ interface LogRow {
     subject_id: number | null;
     causer: string;
     properties: Record<string, unknown>;
+    changes: { field: string; old: unknown; new: unknown }[];
     created_at: string;
+}
+
+function display(value: unknown): string {
+    if (value === null || value === undefined || value === '') return '—';
+    if (typeof value === 'object') return JSON.stringify(value);
+
+    return String(value);
 }
 
 defineProps<{
@@ -88,7 +96,23 @@ function pretty(properties: Record<string, unknown>): string {
                     </tr>
                     <tr v-if="expanded.has(log.id)">
                         <td colspan="6" class="bg-gray-50 px-6 py-3 dark:bg-gray-950/50">
-                            <pre class="max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs text-gray-100">{{ pretty(log.properties) }}</pre>
+                            <table v-if="log.changes.length > 0" class="w-full max-w-2xl text-xs">
+                                <thead>
+                                    <tr class="text-start text-gray-400">
+                                        <th class="py-1 pe-4 text-start font-medium">{{ t('admin.audit.description') }}</th>
+                                        <th class="py-1 pe-4 text-start font-medium">{{ t('admin.audit.before') }}</th>
+                                        <th class="py-1 text-start font-medium">{{ t('admin.audit.after') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="change in log.changes" :key="change.field" class="border-t border-gray-200 dark:border-gray-800">
+                                        <td class="py-1.5 pe-4 font-medium text-gray-600 dark:text-gray-300">{{ change.field }}</td>
+                                        <td class="py-1.5 pe-4 text-gray-500 line-through decoration-red-400/60">{{ display(change.old) }}</td>
+                                        <td class="py-1.5 text-gray-800 dark:text-gray-100">{{ display(change.new) }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <pre v-else class="max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs text-gray-100">{{ pretty(log.properties) }}</pre>
                         </td>
                     </tr>
                 </template>

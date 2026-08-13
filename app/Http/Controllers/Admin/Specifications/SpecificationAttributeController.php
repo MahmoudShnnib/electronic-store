@@ -22,20 +22,20 @@ final class SpecificationAttributeController extends Controller implements HasMi
     {
         SpecificationAttribute::create($request->validated());
 
-        return back()->with('success', 'Attribute created.');
+        return back()->with('success', __('Attribute created.'));
     }
 
     public function update(SpecificationAttributeRequest $request, SpecificationAttribute $attribute): RedirectResponse
     {
         $attribute->update($request->validated());
 
-        return back()->with('success', 'Attribute updated.');
+        return back()->with('success', __('Attribute updated.'));
     }
 
     public function destroy(SpecificationAttribute $attribute): RedirectResponse
     {
         $attribute->delete();
 
-        return back()->with('success', 'Attribute deleted.');
+        return back()->with('success', __('Attribute deleted.'));
     }
 }

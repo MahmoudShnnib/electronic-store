@@ -38,6 +38,7 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
         Route::resource('suppliers', Admin\SupplierController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::resource('purchase-orders', Admin\PurchaseOrders\PurchaseOrderController::class)->except(['edit', 'update'])
             ->parameters(['purchase-orders' => 'purchaseOrder']);
+        Route::get('purchase-orders/{purchaseOrder}/edit', [Admin\PurchaseOrders\PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit');
         Route::patch('purchase-orders/{purchaseOrder}', [Admin\PurchaseOrders\PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
         Route::post('purchase-orders/{purchaseOrder}/send', Admin\PurchaseOrders\SendPurchaseOrderController::class)->name('purchase-orders.send');
         Route::post('purchase-orders/{purchaseOrder}/receive', Admin\PurchaseOrders\ReceivePurchaseOrderController::class)->name('purchase-orders.receive');

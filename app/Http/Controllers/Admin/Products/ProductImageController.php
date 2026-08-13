@@ -23,7 +23,7 @@ final class ProductImageController extends Controller
 
         $storeImages->handle($product, $request->file('images'));
 
-        return back()->with('success', 'Images uploaded.');
+        return back()->with('success', __('Images uploaded.'));
     }
 
     public function destroy(Product $product, ProductImage $image, StoreProductImages $storeImages): RedirectResponse
@@ -34,6 +34,6 @@ final class ProductImageController extends Controller
 
         $storeImages->delete($image);
 
-        return back()->with('success', 'Image removed.');
+        return back()->with('success', __('Image removed.'));
     }
 }

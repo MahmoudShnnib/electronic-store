@@ -27,8 +27,21 @@ interface ProductOption {
     variants: VariantOption[];
 }
 
+interface PurchaseOrderPayload {
+    id: number;
+    po_number: string;
+    supplier_id: number;
+    warehouse_id: number;
+    discount: number;
+    tax: number;
+    shipping: number;
+    expected_at: string | null;
+    notes: string | null;
+    items: { product_id: number; product_variant_id: number | null; quantity: number; unit_cost: number }[];
+}
+
 const props = defineProps<{
-    purchaseOrder: null;
+    purchaseOrder: PurchaseOrderPayload | null;
     suppliers: { id: number; company_name: string }[];
     warehouses: { id: number; name: string }[];
     products: ProductOption[];
@@ -42,15 +55,20 @@ interface ItemRow {
     unit_cost: number;
 }
 
+const isEditing = props.purchaseOrder !== null;
+
 const form = useForm({
-    supplier_id: '' as number | '',
-    warehouse_id: '' as number | '',
-    discount: 0,
-    tax: 0,
-    shipping: 0,
-    expected_at: '',
-    notes: '',
-    items: [] as ItemRow[],
+    supplier_id: (props.purchaseOrder?.supplier_id ?? '') as number | '',
+    warehouse_id: (props.purchaseOrder?.warehouse_id ?? '') as number | '',
+    discount: props.purchaseOrder?.discount ?? 0,
+    tax: props.purchaseOrder?.tax ?? 0,
+    shipping: props.purchaseOrder?.shipping ?? 0,
+    expected_at: props.purchaseOrder?.expected_at ?? '',
+    notes: props.purchaseOrder?.notes ?? '',
+    items: (props.purchaseOrder?.items ?? []).map((item, index) => ({
+        key: `existing-${index}`,
+        ...item,
+    })) as ItemRow[],
 });
 
 function addItem(): void {
@@ -100,18 +118,24 @@ const subtotal = computed(() => form.items.reduce((sum, item) => sum + item.quan
 const total = computed(() => Math.max(0, subtotal.value - (form.discount || 0)) + (form.tax || 0) + (form.shipping || 0));
 
 function submit(): void {
-    form.transform((data) => ({
+    const transformed = form.transform((data) => ({
         ...data,
         expected_at: data.expected_at === '' ? null : data.expected_at,
         items: data.items.map(({ key: _key, ...item }) => item),
-    })).post(route('admin.purchase-orders.store'));
+    }));
+
+    if (isEditing && props.purchaseOrder) {
+        transformed.patch(route('admin.purchase-orders.update', props.purchaseOrder.id));
+    } else {
+        transformed.post(route('admin.purchase-orders.store'));
+    }
 }
 </script>
 
 <template>
-    <Head :title="t('admin.purchase_orders.new')" />
+    <Head :title="isEditing ? `${t('admin.common.edit')} ${props.purchaseOrder?.po_number}` : t('admin.purchase_orders.new')" />
 
-    <PageHeader :title="t('admin.purchase_orders.new')">
+    <PageHeader :title="isEditing ? `${t('admin.common.edit')} ${props.purchaseOrder?.po_number}` : t('admin.purchase_orders.new')">
         <template #actions>
             <Link :href="route('admin.purchase-orders.index')" :class="btnSecondary">{{ t('admin.common.back_to_list') }}</Link>
         </template>
@@ -218,7 +242,7 @@ function submit(): void {
             </section>
 
             <button type="submit" :disabled="form.processing || form.items.length === 0" :class="btnPrimary" class="w-full justify-center">
-                {{ form.processing ? 'Saving…' : 'Create purchase order' }}
+                {{ form.processing ? t('admin.common.saving') : isEditing ? t('admin.common.save') : t('admin.purchase_orders.new') }}
             </button>
         </div>
     </form>

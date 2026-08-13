@@ -32,6 +32,7 @@ const form = useForm({
     page_privacy: String(props.settings['page.privacy-policy'] ?? ''),
     page_terms: String(props.settings['page.terms'] ?? ''),
     page_returns: String(props.settings['page.return-policy'] ?? ''),
+    return_window_days: Number(props.settings['return_window_days'] ?? 14),
 });
 
 function submit(): void {
@@ -46,6 +47,7 @@ function submit(): void {
             'page.privacy-policy': data.page_privacy,
             'page.terms': data.page_terms,
             'page.return-policy': data.page_returns,
+            return_window_days: data.return_window_days,
         },
     })).post(route('admin.settings.update'), { preserveScroll: true });
 }
@@ -99,6 +101,9 @@ function submit(): void {
                 </Field>
                 <Field :label="t('admin.settings.terms')">
                     <textarea v-model="form.page_terms" rows="4" :class="inputClass" />
+                </Field>
+                <Field :label="t('admin.settings.return_window')" :hint="t('admin.settings.return_window_hint')" :error="form.errors['settings.return_window_days']">
+                    <input v-model.number="form.return_window_days" type="number" min="0" max="365" :class="inputClass" />
                 </Field>
                 <Field :label="t('admin.settings.return_policy')">
                     <textarea v-model="form.page_returns" rows="4" :class="inputClass" />

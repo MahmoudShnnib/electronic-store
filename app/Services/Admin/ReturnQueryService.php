@@ -26,7 +26,8 @@ final class ReturnQueryService
     {
         $returns = ProductReturn::query()
             ->with(['order:id,number', 'user:id,name'])
-            ->withCount('items')
+            // Units being returned, not line count.
+            ->withSum('items as items_count', 'quantity')
             ->when($request->filled('q'), fn ($q) => $q->whereRaw('rma_number ILIKE ?', ['%'.$request->query('q').'%']))
             ->when($request->filled('status'), fn ($q) => $q->where('status', (string) $request->query('status')))
             ->latest()
@@ -40,7 +41,7 @@ final class ReturnQueryService
                 'status' => $r->status->value,
                 'status_label' => $r->status->label(),
                 'reason' => $r->reason,
-                'items_count' => $r->items_count,
+                'items_count' => (int) $r->items_count,
                 'created_at' => $r->created_at->toDateTimeString(),
             ]);
 

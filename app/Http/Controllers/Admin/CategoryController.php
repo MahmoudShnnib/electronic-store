@@ -57,25 +57,25 @@ final class CategoryController extends Controller implements HasMiddleware
     {
         Category::create($this->validated($request));
 
-        return back()->with('success', 'Category created.');
+        return back()->with('success', __('Category created.'));
     }
 
     public function update(CategoryRequest $request, Category $category): RedirectResponse
     {
         $category->update($this->validated($request, $category));
 
-        return back()->with('success', 'Category updated.');
+        return back()->with('success', __('Category updated.'));
     }
 
     public function destroy(Category $category): RedirectResponse
     {
         if ($category->products()->exists() || $category->children()->exists()) {
-            return back()->with('error', 'Cannot delete a category that has products or subcategories.');
+            return back()->with('error', __('Cannot delete a category that has products or subcategories.'));
         }
 
         $category->delete();
 
-        return back()->with('success', 'Category deleted.');
+        return back()->with('success', __('Category deleted.'));
     }
 
     /**

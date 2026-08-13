@@ -29,6 +29,8 @@ final class ModerateReviewController extends Controller implements HasMiddleware
             'moderated_at' => now(),
         ]);
 
-        return back()->with('success', 'Review '.$validated['status'].'.');
+        return back()->with('success', $validated['status'] === 'approved'
+            ? __('Review approved.')
+            : __('Review rejected.'));
     }
 }

@@ -707,7 +707,9 @@
             "privacy": "سياسة الخصوصية",
             "terms": "الشروط والأحكام",
             "return_policy": "سياسة الإرجاع",
-            "contact_page": "نص صفحة التواصل"
+            "contact_page": "نص صفحة التواصل",
+            "return_window": "مدة الإرجاع (بالأيام)",
+            "return_window_hint": "عدد الأيام المسموح فيها بطلب الإرجاع بعد التسليم."
         },
         "specifications": {
             "title": "المواصفات",

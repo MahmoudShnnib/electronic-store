@@ -20,6 +20,6 @@ final class RestoreProductController extends Controller
 
         $product->restore();
 
-        return back()->with('success', 'Product restored.');
+        return back()->with('success', __('Product restored.'));
     }
 }

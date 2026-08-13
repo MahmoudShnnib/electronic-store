@@ -65,21 +65,21 @@ final class CouponController extends Controller implements HasMiddleware
     {
         Coupon::create($this->validated($request));
 
-        return back()->with('success', 'Coupon created.');
+        return back()->with('success', __('Coupon created.'));
     }
 
     public function update(CouponRequest $request, Coupon $coupon): RedirectResponse
     {
         $coupon->update($this->validated($request));
 
-        return back()->with('success', 'Coupon updated.');
+        return back()->with('success', __('Coupon updated.'));
     }
 
     public function destroy(Coupon $coupon): RedirectResponse
     {
         $coupon->delete();
 
-        return back()->with('success', 'Coupon deleted.');
+        return back()->with('success', __('Coupon deleted.'));
     }
 
     /**

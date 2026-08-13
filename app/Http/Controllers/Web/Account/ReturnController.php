@@ -12,6 +12,7 @@ use App\Models\ProductReturn;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -72,14 +73,22 @@ final class ReturnController extends Controller
             $paths[] = $file->store('returns', 'public');
         }
 
-        $return = $requestReturn->handle(
-            $order,
-            $request->user(),
-            $validated['items'],
-            $validated['reason'],
-            $validated['customer_note'] ?? null,
-            $paths,
-        );
+        try {
+            $return = $requestReturn->handle(
+                $order,
+                $request->user(),
+                $validated['items'],
+                $validated['reason'],
+                $validated['customer_note'] ?? null,
+                $paths,
+            );
+        } catch (\Throwable $e) {
+            // The photos were written before the action's checks ran; a failed
+            // request must not leave them on the disk forever.
+            Storage::disk('public')->delete($paths);
+
+            throw $e;
+        }
 
         return redirect()
             ->route('account.returns.index')

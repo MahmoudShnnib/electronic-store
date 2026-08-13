@@ -8,6 +8,7 @@ use App\Enums\MovementType;
 use App\Models\InventoryMovement;
 use App\Models\StockLevel;
 use App\Models\Warehouse;
+use App\Services\Reports\ReportDateRange;
 use Illuminate\Http\Request;
 
 /**
@@ -46,7 +47,7 @@ final class InventoryQueryService
                 'variant_id' => $s->product_variant_id,
                 'name' => $s->variant !== null ? "{$s->product->name} — {$s->variant->name}" : $s->product->name,
                 'sku' => $s->variant?->sku ?? $s->product->sku,
-                'warehouse' => $s->warehouse->name,
+                'warehouse' => $s->warehouse?->name ?? '—',
                 'warehouse_id' => $s->warehouse_id,
                 'quantity' => $s->quantity,
                 'reserved' => $s->reserved,
@@ -73,6 +74,8 @@ final class InventoryQueryService
      */
     public function movementsProps(Request $request): array
     {
+        ReportDateRange::validate($request);
+
         $movements = InventoryMovement::query()
             ->with(['product:id,name,sku', 'variant:id,name', 'warehouse:id,name', 'user:id,name'])
             ->when($request->filled('product_id'), fn ($q) => $q->where('product_id', (int) $request->query('product_id')))
@@ -88,7 +91,8 @@ final class InventoryQueryService
                 'id' => $m->id,
                 'name' => $m->variant !== null ? "{$m->product->name} — {$m->variant->name}" : $m->product->name,
                 'sku' => $m->product->sku,
-                'warehouse' => $m->warehouse->name,
+                // Warehouses can be deleted after movements referenced them.
+                'warehouse' => $m->warehouse?->name ?? '—',
                 'type' => $m->type->value,
                 'type_label' => $m->type->label(),
                 'before' => $m->quantity_before,

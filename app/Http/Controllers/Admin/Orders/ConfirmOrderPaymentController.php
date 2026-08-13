@@ -31,6 +31,6 @@ final class ConfirmOrderPaymentController extends Controller implements HasMiddl
             $request->user()->id,
         );
 
-        return back()->with('success', 'Payment recorded.');
+        return back()->with('success', __('Payment recorded.'));
     }
 }

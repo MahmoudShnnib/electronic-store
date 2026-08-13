@@ -24,6 +24,6 @@ final class UpdateOrderNoteController extends Controller implements HasMiddlewar
 
         $order->update(['internal_note' => $validated['internal_note'] ?? null]);
 
-        return back()->with('success', 'Note saved.');
+        return back()->with('success', __('Note saved.'));
     }
 }

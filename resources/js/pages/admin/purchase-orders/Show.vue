@@ -93,6 +93,9 @@ function cancel(): void {
     >
         <template #actions>
             <Link :href="route('admin.purchase-orders.index')" :class="btnSecondary">{{ t('admin.common.back') }}</Link>
+            <Link v-if="purchaseOrder.is_editable" :href="route('admin.purchase-orders.edit', purchaseOrder.id)" :class="btnSecondary">
+                {{ t('admin.common.edit') }}
+            </Link>
             <button v-if="purchaseOrder.is_editable" type="button" :class="btnPrimary" @click="send">
                 {{ t('admin.purchase_orders.send_to_supplier') }}
             </button>

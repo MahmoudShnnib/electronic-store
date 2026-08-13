@@ -28,7 +28,8 @@ final class PurchaseOrderQueryService
     {
         $orders = PurchaseOrder::query()
             ->with(['supplier:id,company_name', 'warehouse:id,name'])
-            ->withCount('items')
+            // Units ordered, not line count.
+            ->withSum('items as items_count', 'quantity_ordered')
             ->when($request->filled('q'), fn ($q) => $q->whereRaw('po_number ILIKE ?', ['%'.$request->query('q').'%']))
             ->when($request->filled('status'), fn ($q) => $q->where('status', (string) $request->query('status')))
             ->when($request->filled('supplier_id'), fn ($q) => $q->where('supplier_id', (int) $request->query('supplier_id')))
@@ -43,7 +44,7 @@ final class PurchaseOrderQueryService
                 'status' => $po->status->value,
                 'status_label' => $po->status->label(),
                 'total_formatted' => Money::format($po->total_cents),
-                'items_count' => $po->items_count,
+                'items_count' => (int) $po->items_count,
                 'expected_at' => $po->expected_at?->toDateString(),
                 'created_at' => $po->created_at->toDateString(),
             ]);
@@ -65,6 +66,39 @@ final class PurchaseOrderQueryService
     {
         return [
             'purchaseOrder' => null,
+            'suppliers' => Supplier::query()->active()->orderBy('company_name')->get(['id', 'company_name']),
+            'warehouses' => Warehouse::query()->active()->get(['id', 'name']),
+            'products' => $this->productOptions(),
+        ];
+    }
+
+    /**
+     * Props for admin/purchase-orders/Form when editing a draft PO.
+     *
+     * @return array<string, mixed>
+     */
+    public function editProps(PurchaseOrder $purchaseOrder): array
+    {
+        $purchaseOrder->load('items');
+
+        return [
+            'purchaseOrder' => [
+                'id' => $purchaseOrder->id,
+                'po_number' => $purchaseOrder->po_number,
+                'supplier_id' => $purchaseOrder->supplier_id,
+                'warehouse_id' => $purchaseOrder->warehouse_id,
+                'discount' => Money::toDecimal($purchaseOrder->discount_cents),
+                'tax' => Money::toDecimal($purchaseOrder->tax_cents),
+                'shipping' => Money::toDecimal($purchaseOrder->shipping_cents),
+                'expected_at' => $purchaseOrder->expected_at?->toDateString(),
+                'notes' => $purchaseOrder->notes,
+                'items' => $purchaseOrder->items->map(fn ($item) => [
+                    'product_id' => $item->product_id,
+                    'product_variant_id' => $item->product_variant_id,
+                    'quantity' => $item->quantity_ordered,
+                    'unit_cost' => Money::toDecimal($item->unit_cost_cents),
+                ]),
+            ],
             'suppliers' => Supplier::query()->active()->orderBy('company_name')->get(['id', 'company_name']),
             'warehouses' => Warehouse::query()->active()->get(['id', 'name']),
             'products' => $this->productOptions(),

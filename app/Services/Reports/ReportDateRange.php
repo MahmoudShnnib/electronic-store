@@ -18,9 +18,24 @@ final class ReportDateRange
      */
     public static function fromRequest(Request $request): array
     {
+        self::validate($request);
+
         $from = $request->filled('from') ? $request->date('from')->toImmutable()->startOfDay() : now()->toImmutable()->subDays(29)->startOfDay();
         $to = $request->filled('to') ? $request->date('to')->toImmutable()->endOfDay() : now()->toImmutable()->endOfDay();
 
         return [$from, $to];
+    }
+
+    /**
+     * Guards every screen that takes ?from/?to straight from the URL: a
+     * malformed date becomes a validation error instead of a 500, and a
+     * backwards range is rejected instead of rendering as "zero results".
+     */
+    public static function validate(Request $request): void
+    {
+        $request->validate([
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ]);
     }
 }

@@ -8,6 +8,7 @@ use App\Enums\OrderStatus;
 use App\Enums\ReturnStatus;
 use App\Models\Order;
 use App\Models\ProductReturn;
+use App\Models\Setting;
 use App\Models\User;
 use App\Support\ReferenceNumber;
 use Illuminate\Support\Facades\DB;
@@ -35,7 +36,8 @@ final class RequestReturn
             throw ValidationException::withMessages(['order' => __('Only delivered orders can be returned.')]);
         }
 
-        $windowDays = (int) config('store.return_window_days');
+        // Admin-editable via Settings; the env value is only the default.
+        $windowDays = (int) (Setting::get('return_window_days') ?? config('store.return_window_days'));
         $deliveredAt = $order->delivered_at ?? $order->completed_at;
 
         if ($deliveredAt !== null && $deliveredAt->addDays($windowDays)->isPast()) {

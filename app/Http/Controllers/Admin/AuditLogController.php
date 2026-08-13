@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\Reports\ReportDateRange;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Inertia\Inertia;
@@ -23,6 +24,8 @@ final class AuditLogController extends Controller implements HasMiddleware
 
     public function index(Request $request): Response
     {
+        ReportDateRange::validate($request);
+
         $logs = Activity::query()
             ->with('causer')
             ->when($request->filled('q'), fn ($q) => $q->whereRaw('description ILIKE ?', ['%'.$request->query('q').'%']))
@@ -42,6 +45,10 @@ final class AuditLogController extends Controller implements HasMiddleware
                 'subject_id' => $a->subject_id,
                 'causer' => $a->causer?->name ?? __('admin.system'),
                 'properties' => $a->properties,
+                // Spatie records model updates as old/attributes pairs; shape
+                // them into per-field before → after rows the page can render
+                // as a readable diff instead of raw JSON.
+                'changes' => self::changes($a),
                 'created_at' => $a->created_at->toDateTimeString(),
             ]);
 
@@ -54,5 +61,27 @@ final class AuditLogController extends Controller implements HasMiddleware
                 ->map(fn ($t) => ['value' => $t, 'label' => class_basename($t)]),
             'filters' => (object) $request->only(['q', 'event', 'causer_id', 'subject_type', 'from', 'to']),
         ]);
+    }
+
+    /**
+     * @return list<array{field: string, old: mixed, new: mixed}>
+     */
+    private static function changes(Activity $a): array
+    {
+        $new = $a->properties['attributes'] ?? null;
+        $old = $a->properties['old'] ?? [];
+
+        if (! is_array($new)) {
+            return [];
+        }
+
+        return collect($new)
+            ->map(fn ($value, string $field) => [
+                'field' => $field,
+                'old' => $old[$field] ?? null,
+                'new' => $value,
+            ])
+            ->values()
+            ->all();
     }
 }

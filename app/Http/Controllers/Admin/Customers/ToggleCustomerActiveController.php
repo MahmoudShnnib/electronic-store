@@ -29,6 +29,6 @@ final class ToggleCustomerActiveController extends Controller implements HasMidd
             ->event($customer->is_active ? 'account_activated' : 'account_deactivated')
             ->log(($customer->is_active ? 'Activated' : 'Deactivated')." account {$customer->email}");
 
-        return back()->with('success', $customer->is_active ? 'Account activated.' : 'Account deactivated.');
+        return back()->with('success', $customer->is_active ? __('Account activated.') : __('Account deactivated.'));
     }
 }

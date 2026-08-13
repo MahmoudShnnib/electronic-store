@@ -31,6 +31,6 @@ final class ReceiveReturnController extends Controller implements HasMiddleware
             $request->user()->id,
         );
 
-        return back()->with('success', 'Return items received.');
+        return back()->with('success', __('Return items received.'));
     }
 }

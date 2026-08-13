@@ -31,6 +31,6 @@ final class ReviewReturnController extends Controller implements HasMiddleware
             $request->user()->id,
         );
 
-        return back()->with('success', 'Return updated.');
+        return back()->with('success', __('Return updated.'));
     }
 }

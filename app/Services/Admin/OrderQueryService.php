@@ -8,6 +8,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\Setting;
+use App\Services\Reports\ReportDateRange;
 use App\Support\Money;
 use Illuminate\Http\Request;
 
@@ -24,8 +25,11 @@ final class OrderQueryService
      */
     public function indexProps(Request $request): array
     {
+        ReportDateRange::validate($request);
+
         $orders = Order::query()
-            ->withCount('items')
+            // Units, not line count: 3 × one product should read as 3.
+            ->withSum('items as items_count', 'quantity')
             ->when($request->filled('q'), fn ($q) => $q->search((string) $request->query('q')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', (string) $request->query('status')))
             ->when($request->filled('payment_status'), fn ($q) => $q->where('payment_status', (string) $request->query('payment_status')))
@@ -44,7 +48,7 @@ final class OrderQueryService
                 'payment_status' => $o->payment_status->value,
                 'payment_status_label' => $o->payment_status->label(),
                 'payment_method' => $o->payment_method->label(),
-                'items_count' => $o->items_count,
+                'items_count' => (int) $o->items_count,
                 'total_formatted' => Money::format($o->total_cents, $o->currency),
                 'created_at' => $o->created_at->toDateTimeString(),
             ]);
@@ -181,7 +185,8 @@ final class OrderQueryService
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
             ],
             'store' => [
-                'name' => config('app.name'),
+                // The dashboard's store name; app.name is only the fallback.
+                'name' => Setting::get('store_name') ?: config('app.name'),
                 'details' => Setting::get('invoice_details'),
             ],
         ];

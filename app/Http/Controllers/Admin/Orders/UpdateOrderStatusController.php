@@ -31,6 +31,6 @@ final class UpdateOrderStatusController extends Controller implements HasMiddlew
             $request->user()->id,
         );
 
-        return back()->with('success', 'Order status updated.');
+        return back()->with('success', __('Order status updated.'));
     }
 }

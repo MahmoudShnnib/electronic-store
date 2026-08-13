@@ -22,20 +22,20 @@ final class SpecificationGroupController extends Controller implements HasMiddle
     {
         SpecificationGroup::create($request->validated());
 
-        return back()->with('success', 'Specification group created.');
+        return back()->with('success', __('Specification group created.'));
     }
 
     public function update(SpecificationGroupRequest $request, SpecificationGroup $group): RedirectResponse
     {
         $group->update($request->validated());
 
-        return back()->with('success', 'Specification group updated.');
+        return back()->with('success', __('Specification group updated.'));
     }
 
     public function destroy(SpecificationGroup $group): RedirectResponse
     {
         $group->delete();
 
-        return back()->with('success', 'Specification group deleted.');
+        return back()->with('success', __('Specification group deleted.'));
     }
 }

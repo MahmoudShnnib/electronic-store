@@ -27,6 +27,6 @@ final class SendPurchaseOrderController extends Controller implements HasMiddlew
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Purchase order sent to supplier.');
+        return back()->with('success', __('Purchase order sent to supplier.'));
     }
 }

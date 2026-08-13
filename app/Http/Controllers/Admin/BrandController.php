@@ -53,25 +53,33 @@ final class BrandController extends Controller implements HasMiddleware
     {
         Brand::create($this->validated($request));
 
-        return back()->with('success', 'Brand created.');
+        return back()->with('success', __('Brand created.'));
     }
 
     public function update(BrandRequest $request, Brand $brand): RedirectResponse
     {
+        $previous = $brand->logo_path;
+
         $brand->update($this->validated($request));
 
-        return back()->with('success', 'Brand updated.');
+        // Replacing the logo deletes the old file so the disk does not
+        // accumulate orphans.
+        if ($previous !== null && $brand->logo_path !== $previous) {
+            Storage::disk('public')->delete($previous);
+        }
+
+        return back()->with('success', __('Brand updated.'));
     }
 
     public function destroy(Brand $brand): RedirectResponse
     {
         if ($brand->products()->exists()) {
-            return back()->with('error', 'Cannot delete a brand that has products.');
+            return back()->with('error', __('Cannot delete a brand that has products.'));
         }
 
         $brand->delete();
 
-        return back()->with('success', 'Brand deleted.');
+        return back()->with('success', __('Brand deleted.'));
     }
 
     /**

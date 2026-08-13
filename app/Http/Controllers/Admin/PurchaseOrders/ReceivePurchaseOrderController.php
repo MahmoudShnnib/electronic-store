@@ -35,6 +35,6 @@ final class ReceivePurchaseOrderController extends Controller implements HasMidd
             throw ValidationException::withMessages(['quantities' => $e->getMessage()]);
         }
 
-        return back()->with('success', 'Stock received.');
+        return back()->with('success', __('Stock received.'));
     }
 }

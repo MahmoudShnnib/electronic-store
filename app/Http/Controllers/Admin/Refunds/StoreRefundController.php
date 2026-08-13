@@ -36,6 +36,6 @@ final class StoreRefundController extends Controller implements HasMiddleware
             $request->user()->id,
         );
 
-        return back()->with('success', 'Refund issued.');
+        return back()->with('success', __('Refund issued.'));
     }
 }

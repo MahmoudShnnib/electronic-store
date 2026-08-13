@@ -46,6 +46,6 @@ final class BulkProductActionController extends Controller
             });
         }
 
-        return back()->with('success', 'Bulk action applied.');
+        return back()->with('success', __('Bulk action applied.'));
     }
 }
