@@ -150,9 +150,13 @@ app/
 ├── DTOs/           # readonly data objects for action inputs
 ├── Enums/          # OrderStatus, PaymentStatus, MovementType, ProductStatus, …
 ├── Http/Controllers/{Web,Admin,Api/V1}/
+│                   # one controller = one responsibility: feature folders
+│                   # (Admin/Products, Admin/Orders, Api/V1/Auth, …), thin CRUD
+│                   # controllers, single-action __invoke for workflow verbs
 ├── Http/{Requests,Resources/V1,Middleware}/
 ├── Models/  ├── Policies/  ├── Notifications/
-├── Services/       # Payments gateway abstraction, Reports, Settings
+├── Services/       # Admin/* + Storefront/* query/page prop builders,
+│                   # Payments gateway abstraction, Reports, Settings
 └── Support/        # Money, OrderNumber, helpers
 resources/js/
 ├── pages/{storefront,admin,auth,account}/
