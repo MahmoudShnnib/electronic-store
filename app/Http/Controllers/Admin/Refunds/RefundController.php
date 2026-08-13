@@ -2,22 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Admin\Refunds;
 
-use App\Actions\Returns\CreateRefund;
-use App\Enums\RefundMethod;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\Refunds\StoreRefundRequest;
-use App\Models\Order;
-use App\Models\ProductReturn;
 use App\Models\Refund;
 use App\Support\Money;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/** Lists issued refunds. Creating one lives in StoreRefundController. */
 final class RefundController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
@@ -53,22 +48,5 @@ final class RefundController extends Controller implements HasMiddleware
             'refunds' => $refunds,
             'filters' => (object) $request->only(['q']),
         ]);
-    }
-
-    public function store(StoreRefundRequest $request, Order $order, CreateRefund $createRefund): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        $createRefund->handle(
-            $order,
-            Money::fromDecimal($validated['amount']),
-            RefundMethod::from($validated['method']),
-            isset($validated['return_id']) ? ProductReturn::query()->find($validated['return_id']) : null,
-            $validated['reference'] ?? null,
-            $validated['reason'] ?? null,
-            $request->user()->id,
-        );
-
-        return back()->with('success', 'Refund issued.');
     }
 }

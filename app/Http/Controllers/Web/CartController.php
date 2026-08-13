@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web;
 
 use App\Actions\Cart\AddToCart;
-use App\Actions\Cart\ApplyCoupon;
 use App\Actions\Cart\CalculateCartTotals;
 use App\Actions\Cart\ResolveCart;
 use App\Actions\Cart\UpdateCartItem;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cart\AddToCartRequest;
-use App\Http\Requests\Cart\ApplyCouponRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Http\Resources\CartPayload;
 use App\Models\Cart;
@@ -24,6 +22,7 @@ use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Response;
 
+/** The cart and its line items. Coupons live in CartCouponController. */
 final class CartController extends Controller
 {
     public function __construct(
@@ -72,22 +71,6 @@ final class CartController extends Controller
         $item->delete();
 
         return back()->with('success', __('Removed from cart.'));
-    }
-
-    public function applyCoupon(ApplyCouponRequest $request, ApplyCoupon $applyCoupon): RedirectResponse
-    {
-        $cart = $this->resolveCart->handle($request);
-
-        $applyCoupon->handle($cart, $request->validated('code'), $request->user()?->id);
-
-        return back()->with('success', __('Coupon applied.'));
-    }
-
-    public function removeCoupon(Request $request, ApplyCoupon $applyCoupon): RedirectResponse
-    {
-        $applyCoupon->remove($this->resolveCart->handle($request));
-
-        return back();
     }
 
     /** IDOR guard: the item must belong to the requester's own cart. */

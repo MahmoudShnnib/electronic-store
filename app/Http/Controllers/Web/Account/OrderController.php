@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Web\Account;
 
-use App\Actions\Orders\CancelOrder;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Support\Money;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/** A customer's own orders: list and detail. Cancelling lives in CancelOrderController. */
 final class OrderController extends Controller
 {
     public function index(Request $request): Response
@@ -83,14 +82,5 @@ final class OrderController extends Controller
                 ]),
             ],
         ]);
-    }
-
-    public function cancel(Request $request, Order $order, CancelOrder $cancelOrder): RedirectResponse
-    {
-        Gate::authorize('cancel', $order);
-
-        $cancelOrder->handle($order, 'Cancelled by customer.', $request->user()->id);
-
-        return back()->with('success', __('Your order has been cancelled.'));
     }
 }

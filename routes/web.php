@@ -20,8 +20,8 @@ Route::get('/cart', [Web\CartController::class, 'show'])->name('cart.show');
 Route::post('/cart/items', [Web\CartController::class, 'add'])->name('cart.add');
 Route::patch('/cart/items/{item}', [Web\CartController::class, 'update'])->name('cart.update');
 Route::delete('/cart/items/{item}', [Web\CartController::class, 'remove'])->name('cart.remove');
-Route::post('/cart/coupon', [Web\CartController::class, 'applyCoupon'])->name('cart.coupon.apply');
-Route::delete('/cart/coupon', [Web\CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
+Route::post('/cart/coupon', [Web\CartCouponController::class, 'store'])->name('cart.coupon.apply');
+Route::delete('/cart/coupon', [Web\CartCouponController::class, 'destroy'])->name('cart.coupon.remove');
 
 Route::get('/checkout', [Web\CheckoutController::class, 'show'])->name('checkout.show');
 Route::post('/checkout', [Web\CheckoutController::class, 'store'])
@@ -46,14 +46,14 @@ Route::get('/pages/{page}', [Web\StaticPageController::class, 'show'])->name('pa
 
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('/wishlist', [Web\WishlistController::class, 'index'])->name('wishlist.index');
-    Route::post('/wishlist/{product}', [Web\WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::post('/wishlist/{product}', Web\ToggleWishlistController::class)->name('wishlist.toggle');
 
     Route::post('/products/{product:slug}/reviews', [Web\ReviewController::class, 'store'])->name('reviews.store');
 
     Route::prefix('account')->name('account.')->group(function (): void {
         Route::get('/orders', [Web\Account\OrderController::class, 'index'])->name('orders.index');
         Route::get('/orders/{order}', [Web\Account\OrderController::class, 'show'])->name('orders.show');
-        Route::post('/orders/{order}/cancel', [Web\Account\OrderController::class, 'cancel'])->name('orders.cancel');
+        Route::post('/orders/{order}/cancel', Web\Account\CancelOrderController::class)->name('orders.cancel');
 
         Route::get('/addresses', [Web\Account\AddressController::class, 'index'])->name('addresses.index');
         Route::post('/addresses', [Web\Account\AddressController::class, 'store'])->name('addresses.store');

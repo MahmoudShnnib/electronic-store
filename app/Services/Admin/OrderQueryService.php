@@ -2,37 +2,27 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Admin;
+namespace App\Services\Admin;
 
-use App\Actions\Orders\UpdateOrderStatus;
-use App\Actions\Payments\ConfirmPayment;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\Orders\ConfirmPaymentRequest;
-use App\Http\Requests\Admin\Orders\UpdateOrderNoteRequest;
-use App\Http\Requests\Admin\Orders\UpdateOrderStatusRequest;
 use App\Models\Order;
 use App\Models\Setting;
 use App\Support\Money;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controllers\HasMiddleware;
-use Illuminate\Routing\Controllers\Middleware;
-use Inertia\Inertia;
-use Inertia\Response;
 
-final class OrderController extends Controller implements HasMiddleware
+/**
+ * Builds the Inertia props for the admin order screens (list, detail, invoice).
+ * Controllers stay thin — authorize, delegate here, render.
+ */
+final class OrderQueryService
 {
-    public static function middleware(): array
-    {
-        return [
-            new Middleware('can:orders.view', only: ['index', 'show', 'invoice']),
-            new Middleware('can:orders.manage', only: ['updateStatus', 'updateNote', 'confirmPayment']),
-        ];
-    }
-
-    public function index(Request $request): Response
+    /**
+     * Props for admin/orders/Index: a filtered order list.
+     *
+     * @return array<string, mixed>
+     */
+    public function indexProps(Request $request): array
     {
         $orders = Order::query()
             ->withCount('items')
@@ -59,15 +49,21 @@ final class OrderController extends Controller implements HasMiddleware
                 'created_at' => $o->created_at->toDateTimeString(),
             ]);
 
-        return Inertia::render('admin/orders/Index', [
+        return [
             'orders' => $orders,
             'statuses' => array_map(fn (OrderStatus $s) => ['value' => $s->value, 'label' => $s->label()], OrderStatus::cases()),
             'paymentStatuses' => array_map(fn (PaymentStatus $s) => ['value' => $s->value, 'label' => $s->label()], PaymentStatus::cases()),
             'filters' => (object) $request->only(['q', 'status', 'payment_status', 'from', 'to']),
-        ]);
+        ];
     }
 
-    public function show(Order $order): Response
+    /**
+     * Props for admin/orders/Show: the full order detail with items, timeline,
+     * payments, refunds and linked returns.
+     *
+     * @return array<string, mixed>
+     */
+    public function showProps(Order $order): array
     {
         $order->load([
             'items', 'statusHistories.user:id,name', 'payments.confirmer:id,name',
@@ -77,7 +73,7 @@ final class OrderController extends Controller implements HasMiddleware
         $paidCents = (int) $order->payments->where('status', 'confirmed')->sum('amount_cents');
         $refundedCents = (int) $order->refunds->where('status', 'completed')->sum('amount_cents');
 
-        return Inertia::render('admin/orders/Show', [
+        return [
             'order' => [
                 'id' => $order->id,
                 'number' => $order->number,
@@ -150,51 +146,19 @@ final class OrderController extends Controller implements HasMiddleware
                     'status_label' => $r->status->label(),
                 ]),
             ],
-        ]);
+        ];
     }
 
-    public function updateStatus(UpdateOrderStatusRequest $request, Order $order, UpdateOrderStatus $updateOrderStatus): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        $updateOrderStatus->handle(
-            $order,
-            OrderStatus::from($validated['status']),
-            $validated['comment'] ?? null,
-            $request->user()->id,
-        );
-
-        return back()->with('success', 'Order status updated.');
-    }
-
-    public function updateNote(UpdateOrderNoteRequest $request, Order $order): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        $order->update(['internal_note' => $validated['internal_note'] ?? null]);
-
-        return back()->with('success', 'Note saved.');
-    }
-
-    public function confirmPayment(ConfirmPaymentRequest $request, Order $order, ConfirmPayment $confirmPayment): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        $confirmPayment->handle(
-            $order,
-            Money::fromDecimal($validated['amount']),
-            $validated['reference'] ?? null,
-            $request->user()->id,
-        );
-
-        return back()->with('success', 'Payment recorded.');
-    }
-
-    public function invoice(Order $order): Response
+    /**
+     * Props for admin/orders/Invoice: the printable invoice.
+     *
+     * @return array<string, mixed>
+     */
+    public function invoiceProps(Order $order): array
     {
         $order->load('items');
 
-        return Inertia::render('admin/orders/Invoice', [
+        return [
             'order' => [
                 'number' => $order->number,
                 'created_at' => $order->created_at->toDateString(),
@@ -220,6 +184,6 @@ final class OrderController extends Controller implements HasMiddleware
                 'name' => config('app.name'),
                 'details' => Setting::get('invoice_details'),
             ],
-        ]);
+        ];
     }
 }

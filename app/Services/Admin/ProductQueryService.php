@@ -2,37 +2,34 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Admin;
+namespace App\Services\Admin;
 
-use App\Actions\Catalog\SaveProduct;
-use App\Actions\Catalog\StoreProductImages;
 use App\Enums\ProductStatus;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\ProductRequest;
-use App\Http\Requests\Admin\Products\BulkProductActionRequest;
-use App\Http\Requests\Admin\Products\UploadProductImagesRequest;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
-use App\Models\ProductImage;
 use App\Models\SpecificationGroup;
 use App\Models\Supplier;
 use App\Support\Money;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Inertia;
-use Inertia\Response;
 
-final class ProductController extends Controller
+/**
+ * Builds the Inertia props for the admin product screens.
+ *
+ * Controllers stay thin — authorize, delegate here, render. This service owns
+ * the queries and the exact shape the Vue pages receive, so the payload is
+ * unchanged when controllers are reorganized.
+ */
+final class ProductQueryService
 {
-    use AuthorizesRequests;
-
-    public function index(Request $request): Response
+    /**
+     * Props for admin/products/Index: a filtered, sortable product list.
+     *
+     * @return array<string, mixed>
+     */
+    public function indexProps(Request $request): array
     {
-        $this->authorize('viewAny', Product::class);
-
         $products = Product::query()
             ->with(['category:id,name', 'brand:id,name', 'images'])
             ->withSum('stockLevels as stock_quantity', 'quantity')
@@ -66,12 +63,12 @@ final class ProductController extends Controller
                 'deleted_at' => $p->deleted_at?->toDateTimeString(),
             ]);
 
-        return Inertia::render('admin/products/Index', [
+        return [
             'products' => $products,
             // Cast so an empty filter set serializes as {} — as a JS array, a
             // `sort` key would resolve to Array.prototype.sort in the client.
             'filters' => (object) $request->only(['q', 'status', 'category_id', 'brand_id', 'sort', 'dir', 'trashed']),
-            'statuses' => array_map(fn (ProductStatus $s) => ['value' => $s->value, 'label' => $s->label()], ProductStatus::cases()),
+            'statuses' => self::statusOptions(),
             'categories' => Category::query()->orderBy('name')->get(['id', 'name']),
             'brands' => Brand::query()->orderBy('name')->get(['id', 'name']),
             'can' => [
@@ -79,124 +76,15 @@ final class ProductController extends Controller
                 'update' => $request->user()->can('products.update'),
                 'delete' => $request->user()->can('products.delete'),
             ],
-        ]);
-    }
-
-    public function create(Request $request): Response
-    {
-        $this->authorize('create', Product::class);
-
-        return Inertia::render('admin/products/Form', $this->formProps(null));
-    }
-
-    public function store(ProductRequest $request, SaveProduct $saveProduct): RedirectResponse
-    {
-        $this->authorize('create', Product::class);
-
-        $product = $saveProduct->handle(
-            null,
-            $request->productAttributes(),
-            $request->variantPayload(),
-            $request->specificationPayload(),
-            $request->user()->id,
-        );
-
-        return redirect()
-            ->route('admin.products.edit', $product)
-            ->with('success', "Product “{$product->name}” created.");
-    }
-
-    public function edit(Request $request, Product $product): Response
-    {
-        $this->authorize('update', $product);
-
-        return Inertia::render('admin/products/Form', $this->formProps($product));
-    }
-
-    public function update(ProductRequest $request, Product $product, SaveProduct $saveProduct): RedirectResponse
-    {
-        $this->authorize('update', $product);
-
-        $saveProduct->handle(
-            $product,
-            $request->productAttributes(),
-            $request->variantPayload(),
-            $request->specificationPayload(),
-            $request->user()->id,
-        );
-
-        return back()->with('success', 'Product updated.');
-    }
-
-    public function destroy(Request $request, Product $product): RedirectResponse
-    {
-        $this->authorize('delete', $product);
-
-        $product->delete();
-
-        return redirect()->route('admin.products.index')->with('success', 'Product moved to trash.');
-    }
-
-    public function restore(Request $request, Product $product): RedirectResponse
-    {
-        $this->authorize('restore', $product);
-
-        $product->restore();
-
-        return back()->with('success', 'Product restored.');
-    }
-
-    public function bulk(BulkProductActionRequest $request): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        $products = Product::query()->whereIn('id', $validated['ids'])->get();
-
-        foreach ($products as $product) {
-            if ($validated['action'] === 'delete') {
-                $this->authorize('delete', $product);
-                $product->delete();
-
-                continue;
-            }
-
-            $this->authorize('update', $product);
-
-            $product->update(match ($validated['action']) {
-                'activate' => ['status' => ProductStatus::Active],
-                'deactivate' => ['status' => ProductStatus::Inactive],
-                'feature' => ['is_featured' => true],
-                'unfeature' => ['is_featured' => false],
-            });
-        }
-
-        return back()->with('success', 'Bulk action applied.');
-    }
-
-    public function storeImages(UploadProductImagesRequest $request, Product $product, StoreProductImages $storeImages): RedirectResponse
-    {
-        $this->authorize('update', $product);
-
-        $storeImages->handle($product, $request->file('images'));
-
-        return back()->with('success', 'Images uploaded.');
-    }
-
-    public function destroyImage(Request $request, Product $product, ProductImage $image, StoreProductImages $storeImages): RedirectResponse
-    {
-        $this->authorize('update', $product);
-
-        abort_unless($image->product_id === $product->id, 404);
-
-        $storeImages->delete($image);
-
-        return back()->with('success', 'Image removed.');
+        ];
     }
 
     /**
+     * Props for admin/products/Form, shared by create (null) and edit.
+     *
      * @return array<string, mixed>
      */
-    private function formProps(?Product $product): array
+    public function formProps(?Product $product): array
     {
         $product?->load(['images', 'variants', 'specificationValues']);
 
@@ -271,7 +159,18 @@ final class ProductController extends Controller
                         'type' => $a->type,
                     ]),
                 ]),
-            'statuses' => array_map(fn (ProductStatus $s) => ['value' => $s->value, 'label' => $s->label()], ProductStatus::cases()),
+            'statuses' => self::statusOptions(),
         ];
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    public static function statusOptions(): array
+    {
+        return array_map(
+            fn (ProductStatus $s) => ['value' => $s->value, 'label' => $s->label()],
+            ProductStatus::cases(),
+        );
     }
 }

@@ -2,39 +2,27 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Admin;
+namespace App\Services\Admin;
 
-use App\Actions\Inventory\AdjustStock;
-use App\Actions\Inventory\InsufficientStockException;
-use App\Actions\Inventory\TransferStock;
 use App\Enums\MovementType;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\Inventory\AdjustStockRequest;
-use App\Http\Requests\Admin\Inventory\TransferStockRequest;
 use App\Models\InventoryMovement;
-use App\Models\Product;
-use App\Models\ProductVariant;
 use App\Models\StockLevel;
 use App\Models\Warehouse;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controllers\HasMiddleware;
-use Illuminate\Routing\Controllers\Middleware;
-use Inertia\Inertia;
-use Inertia\Response;
 
-final class InventoryController extends Controller implements HasMiddleware
+/**
+ * Builds the Inertia props for the admin inventory screens.
+ * Controllers stay thin — authorize, delegate here, render.
+ */
+final class InventoryQueryService
 {
-    public static function middleware(): array
-    {
-        return [
-            new Middleware('can:inventory.view', only: ['index', 'movements']),
-            new Middleware('can:inventory.adjust', only: ['adjust']),
-            new Middleware('can:inventory.transfer', only: ['transfer']),
-        ];
-    }
-
-    public function index(Request $request): Response
+    /**
+     * Props for admin/inventory/Index: stock levels per warehouse with
+     * low/out-of-stock filters.
+     *
+     * @return array<string, mixed>
+     */
+    public function indexProps(Request $request): array
     {
         $levels = StockLevel::query()
             ->with(['product:id,name,sku,low_stock_threshold', 'variant:id,name,sku,low_stock_threshold', 'warehouse:id,name,code'])
@@ -67,7 +55,7 @@ final class InventoryController extends Controller implements HasMiddleware
                 'low_stock' => $s->quantity <= ($s->variant?->low_stock_threshold ?? $s->product->low_stock_threshold),
             ]);
 
-        return Inertia::render('admin/inventory/Index', [
+        return [
             'levels' => $levels,
             'warehouses' => Warehouse::query()->active()->get(['id', 'name', 'code']),
             'filters' => (object) $request->only(['q', 'warehouse_id', 'filter']),
@@ -75,10 +63,15 @@ final class InventoryController extends Controller implements HasMiddleware
                 fn (MovementType $t) => ['value' => $t->value, 'label' => $t->label()],
                 [MovementType::ManualIncrease, MovementType::ManualDecrease, MovementType::Damaged, MovementType::Correction, MovementType::Initial],
             ),
-        ]);
+        ];
     }
 
-    public function movements(Request $request): Response
+    /**
+     * Props for admin/inventory/Movements: the filtered movement ledger.
+     *
+     * @return array<string, mixed>
+     */
+    public function movementsProps(Request $request): array
     {
         $movements = InventoryMovement::query()
             ->with(['product:id,name,sku', 'variant:id,name', 'warehouse:id,name', 'user:id,name'])
@@ -106,51 +99,11 @@ final class InventoryController extends Controller implements HasMiddleware
                 'created_at' => $m->created_at->toDateTimeString(),
             ]);
 
-        return Inertia::render('admin/inventory/Movements', [
+        return [
             'movements' => $movements,
             'warehouses' => Warehouse::query()->get(['id', 'name']),
             'types' => array_map(fn (MovementType $t) => ['value' => $t->value, 'label' => $t->label()], MovementType::cases()),
             'filters' => (object) $request->only(['product_id', 'warehouse_id', 'type', 'from', 'to']),
-        ]);
-    }
-
-    public function adjust(AdjustStockRequest $request, AdjustStock $adjustStock): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        try {
-            $adjustStock->handle(
-                Warehouse::query()->findOrFail($validated['warehouse_id']),
-                Product::query()->findOrFail($validated['product_id']),
-                isset($validated['product_variant_id']) ? ProductVariant::query()->find($validated['product_variant_id']) : null,
-                (int) $validated['quantity_change'],
-                MovementType::from($validated['type']),
-                $validated['reason'],
-                $request->user()->id,
-            );
-        } catch (InsufficientStockException $e) {
-            return back()->withErrors(['quantity_change' => $e->getMessage()]);
-        }
-
-        return back()->with('success', 'Stock adjusted.');
-    }
-
-    public function transfer(TransferStockRequest $request, TransferStock $transferStock): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        try {
-            $transferStock->handle(
-                Warehouse::query()->findOrFail($validated['from_warehouse_id']),
-                Warehouse::query()->findOrFail($validated['to_warehouse_id']),
-                $validated['items'],
-                $validated['notes'] ?? null,
-                $request->user()->id,
-            );
-        } catch (InsufficientStockException $e) {
-            return back()->withErrors(['items' => $e->getMessage()]);
-        }
-
-        return back()->with('success', 'Stock transferred.');
+        ];
     }
 }

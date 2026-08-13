@@ -2,26 +2,25 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Admin\Customers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Money;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
-use Illuminate\Routing\Controllers\Middleware;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * Read-only customer screens: list and detail.
+ * Activation lives in ToggleCustomerActiveController.
+ */
 final class CustomerController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
     {
-        return [
-            new Middleware('can:customers.view', only: ['index', 'show']),
-            new Middleware('can:customers.manage', only: ['toggleActive']),
-        ];
+        return ['can:customers.view'];
     }
 
     public function index(Request $request): Response
@@ -58,7 +57,7 @@ final class CustomerController extends Controller implements HasMiddleware
         ]);
     }
 
-    public function show(Request $request, User $customer): Response
+    public function show(User $customer): Response
     {
         abort_unless($customer->hasRole('customer'), 404);
 
@@ -83,19 +82,5 @@ final class CustomerController extends Controller implements HasMiddleware
                 'reviews_count' => $customer->reviews()->count(),
             ],
         ]);
-    }
-
-    public function toggleActive(Request $request, User $customer): RedirectResponse
-    {
-        abort_if($customer->id === $request->user()->id, 403);
-
-        $customer->update(['is_active' => ! $customer->is_active]);
-
-        activity()
-            ->performedOn($customer)
-            ->event($customer->is_active ? 'account_activated' : 'account_deactivated')
-            ->log(($customer->is_active ? 'Activated' : 'Deactivated')." account {$customer->email}");
-
-        return back()->with('success', $customer->is_active ? 'Account activated.' : 'Account deactivated.');
     }
 }

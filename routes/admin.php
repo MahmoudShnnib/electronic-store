@@ -10,70 +10,71 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
         Route::get('/', Admin\DashboardController::class)->name('dashboard');
 
         // Catalog
-        Route::resource('products', Admin\ProductController::class)->except(['show']);
-        Route::post('products/{product}/restore', [Admin\ProductController::class, 'restore'])
+        Route::resource('products', Admin\Products\ProductController::class)->except(['show']);
+        Route::post('products/{product}/restore', Admin\Products\RestoreProductController::class)
             ->withTrashed()->name('products.restore');
-        Route::post('products/bulk', [Admin\ProductController::class, 'bulk'])->name('products.bulk');
-        Route::post('products/{product}/images', [Admin\ProductController::class, 'storeImages'])->name('products.images.store');
-        Route::delete('products/{product}/images/{image}', [Admin\ProductController::class, 'destroyImage'])->name('products.images.destroy');
+        Route::post('products/bulk', Admin\Products\BulkProductActionController::class)->name('products.bulk');
+        Route::post('products/{product}/images', [Admin\Products\ProductImageController::class, 'store'])->name('products.images.store');
+        Route::delete('products/{product}/images/{image}', [Admin\Products\ProductImageController::class, 'destroy'])->name('products.images.destroy');
 
         Route::resource('categories', Admin\CategoryController::class)->only(['index', 'store', 'update', 'destroy']);
         Route::resource('brands', Admin\BrandController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::resource('specifications', Admin\SpecificationController::class)
-            ->only(['index', 'store', 'update', 'destroy'])
-            ->parameters(['specifications' => 'attribute']);
-        Route::post('specification-groups', [Admin\SpecificationController::class, 'storeGroup'])->name('specification-groups.store');
-        Route::patch('specification-groups/{group}', [Admin\SpecificationController::class, 'updateGroup'])->name('specification-groups.update');
-        Route::delete('specification-groups/{group}', [Admin\SpecificationController::class, 'destroyGroup'])->name('specification-groups.destroy');
+        Route::get('specifications', Admin\Specifications\SpecificationController::class)->name('specifications.index');
+        Route::post('specifications', [Admin\Specifications\SpecificationAttributeController::class, 'store'])->name('specifications.store');
+        Route::match(['put', 'patch'], 'specifications/{attribute}', [Admin\Specifications\SpecificationAttributeController::class, 'update'])->name('specifications.update');
+        Route::delete('specifications/{attribute}', [Admin\Specifications\SpecificationAttributeController::class, 'destroy'])->name('specifications.destroy');
+        Route::post('specification-groups', [Admin\Specifications\SpecificationGroupController::class, 'store'])->name('specification-groups.store');
+        Route::patch('specification-groups/{group}', [Admin\Specifications\SpecificationGroupController::class, 'update'])->name('specification-groups.update');
+        Route::delete('specification-groups/{group}', [Admin\Specifications\SpecificationGroupController::class, 'destroy'])->name('specification-groups.destroy');
 
         // Inventory
         Route::resource('warehouses', Admin\WarehouseController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::get('inventory', [Admin\InventoryController::class, 'index'])->name('inventory.index');
-        Route::get('inventory/movements', [Admin\InventoryController::class, 'movements'])->name('inventory.movements');
-        Route::post('inventory/adjust', [Admin\InventoryController::class, 'adjust'])->name('inventory.adjust');
-        Route::post('inventory/transfer', [Admin\InventoryController::class, 'transfer'])->name('inventory.transfer');
+        Route::get('inventory', [Admin\Inventory\InventoryController::class, 'index'])->name('inventory.index');
+        Route::get('inventory/movements', [Admin\Inventory\InventoryController::class, 'movements'])->name('inventory.movements');
+        Route::post('inventory/adjust', Admin\Inventory\AdjustStockController::class)->name('inventory.adjust');
+        Route::post('inventory/transfer', Admin\Inventory\TransferStockController::class)->name('inventory.transfer');
 
         // Purchasing
         Route::resource('suppliers', Admin\SupplierController::class)->only(['index', 'store', 'update', 'destroy']);
-        Route::resource('purchase-orders', Admin\PurchaseOrderController::class)->except(['edit', 'update'])
+        Route::resource('purchase-orders', Admin\PurchaseOrders\PurchaseOrderController::class)->except(['edit', 'update'])
             ->parameters(['purchase-orders' => 'purchaseOrder']);
-        Route::patch('purchase-orders/{purchaseOrder}', [Admin\PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
-        Route::post('purchase-orders/{purchaseOrder}/send', [Admin\PurchaseOrderController::class, 'send'])->name('purchase-orders.send');
-        Route::post('purchase-orders/{purchaseOrder}/receive', [Admin\PurchaseOrderController::class, 'receive'])->name('purchase-orders.receive');
-        Route::post('purchase-orders/{purchaseOrder}/cancel', [Admin\PurchaseOrderController::class, 'cancel'])->name('purchase-orders.cancel');
+        Route::patch('purchase-orders/{purchaseOrder}', [Admin\PurchaseOrders\PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
+        Route::post('purchase-orders/{purchaseOrder}/send', Admin\PurchaseOrders\SendPurchaseOrderController::class)->name('purchase-orders.send');
+        Route::post('purchase-orders/{purchaseOrder}/receive', Admin\PurchaseOrders\ReceivePurchaseOrderController::class)->name('purchase-orders.receive');
+        Route::post('purchase-orders/{purchaseOrder}/cancel', Admin\PurchaseOrders\CancelPurchaseOrderController::class)->name('purchase-orders.cancel');
 
         // Orders
-        Route::get('orders', [Admin\OrderController::class, 'index'])->name('orders.index');
-        Route::get('orders/{order}', [Admin\OrderController::class, 'show'])->name('orders.show');
-        Route::post('orders/{order}/status', [Admin\OrderController::class, 'updateStatus'])->name('orders.status');
-        Route::post('orders/{order}/note', [Admin\OrderController::class, 'updateNote'])->name('orders.note');
-        Route::post('orders/{order}/payments', [Admin\OrderController::class, 'confirmPayment'])->name('orders.payments.store');
-        Route::get('orders/{order}/invoice', [Admin\OrderController::class, 'invoice'])->name('orders.invoice');
+        Route::get('orders', [Admin\Orders\OrderController::class, 'index'])->name('orders.index');
+        Route::get('orders/{order}', [Admin\Orders\OrderController::class, 'show'])->name('orders.show');
+        Route::post('orders/{order}/status', Admin\Orders\UpdateOrderStatusController::class)->name('orders.status');
+        Route::post('orders/{order}/note', Admin\Orders\UpdateOrderNoteController::class)->name('orders.note');
+        Route::post('orders/{order}/payments', Admin\Orders\ConfirmOrderPaymentController::class)->name('orders.payments.store');
+        Route::get('orders/{order}/invoice', Admin\Orders\OrderInvoiceController::class)->name('orders.invoice');
 
         // Returns & refunds
-        Route::get('returns', [Admin\ReturnController::class, 'index'])->name('returns.index');
-        Route::get('returns/{productReturn}', [Admin\ReturnController::class, 'show'])->name('returns.show');
-        Route::post('returns/{productReturn}/review', [Admin\ReturnController::class, 'review'])->name('returns.review');
-        Route::post('returns/{productReturn}/receive', [Admin\ReturnController::class, 'receive'])->name('returns.receive');
-        Route::get('refunds', [Admin\RefundController::class, 'index'])->name('refunds.index');
-        Route::post('orders/{order}/refunds', [Admin\RefundController::class, 'store'])->name('refunds.store');
+        Route::get('returns', [Admin\Returns\ReturnController::class, 'index'])->name('returns.index');
+        Route::get('returns/{productReturn}', [Admin\Returns\ReturnController::class, 'show'])->name('returns.show');
+        Route::post('returns/{productReturn}/review', Admin\Returns\ReviewReturnController::class)->name('returns.review');
+        Route::post('returns/{productReturn}/receive', Admin\Returns\ReceiveReturnController::class)->name('returns.receive');
+        Route::get('refunds', [Admin\Refunds\RefundController::class, 'index'])->name('refunds.index');
+        Route::post('orders/{order}/refunds', Admin\Refunds\StoreRefundController::class)->name('refunds.store');
 
         // Customers & engagement
-        Route::get('customers', [Admin\CustomerController::class, 'index'])->name('customers.index');
-        Route::get('customers/{customer}', [Admin\CustomerController::class, 'show'])->name('customers.show');
-        Route::post('customers/{customer}/toggle-active', [Admin\CustomerController::class, 'toggleActive'])->name('customers.toggle-active');
+        Route::get('customers', [Admin\Customers\CustomerController::class, 'index'])->name('customers.index');
+        Route::get('customers/{customer}', [Admin\Customers\CustomerController::class, 'show'])->name('customers.show');
+        Route::post('customers/{customer}/toggle-active', Admin\Customers\ToggleCustomerActiveController::class)->name('customers.toggle-active');
 
-        Route::get('reviews', [Admin\ReviewController::class, 'index'])->name('reviews.index');
-        Route::post('reviews/{review}/moderate', [Admin\ReviewController::class, 'moderate'])->name('reviews.moderate');
+        Route::get('reviews', [Admin\Reviews\ReviewController::class, 'index'])->name('reviews.index');
+        Route::post('reviews/{review}/moderate', Admin\Reviews\ModerateReviewController::class)->name('reviews.moderate');
 
         Route::resource('coupons', Admin\CouponController::class)->only(['index', 'store', 'update', 'destroy']);
 
         // Reports
-        Route::get('reports', [Admin\ReportController::class, 'index'])->name('reports.index');
-        Route::get('reports/sales', [Admin\ReportController::class, 'sales'])->name('reports.sales');
-        Route::get('reports/invoices', [Admin\ReportController::class, 'invoices'])->name('reports.invoices');
-        Route::get('reports/inventory', [Admin\ReportController::class, 'inventory'])->name('reports.inventory');
-        Route::get('reports/export/{report}', [Admin\ReportController::class, 'export'])->name('reports.export');
+        Route::get('reports', Admin\Reports\SalesReportController::class)->name('reports.index');
+        Route::get('reports/sales', Admin\Reports\SalesReportController::class)->name('reports.sales');
+        Route::get('reports/invoices', Admin\Reports\InvoiceReportController::class)->name('reports.invoices');
+        Route::get('reports/inventory', Admin\Reports\InventoryReportController::class)->name('reports.inventory');
+        Route::get('reports/export/{report}', Admin\Reports\ExportReportController::class)->name('reports.export');
 
         // Platform
         Route::resource('users', Admin\UserController::class)->only(['index', 'store', 'update']);

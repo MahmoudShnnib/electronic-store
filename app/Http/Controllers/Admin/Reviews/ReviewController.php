@@ -2,18 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Admin\Reviews;
 
 use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\Reviews\ModerateReviewRequest;
 use App\Models\Review;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/** Lists customer reviews. Approving/rejecting lives in ModerateReviewController. */
 final class ReviewController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
@@ -47,18 +46,5 @@ final class ReviewController extends Controller implements HasMiddleware
             'statuses' => array_map(fn (ReviewStatus $s) => ['value' => $s->value, 'label' => $s->label()], ReviewStatus::cases()),
             'filters' => (object) $request->only(['status', 'rating']),
         ]);
-    }
-
-    public function moderate(ModerateReviewRequest $request, Review $review): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        $review->update([
-            'status' => ReviewStatus::from($validated['status']),
-            'moderated_by' => $request->user()->id,
-            'moderated_at' => now(),
-        ]);
-
-        return back()->with('success', 'Review '.$validated['status'].'.');
     }
 }

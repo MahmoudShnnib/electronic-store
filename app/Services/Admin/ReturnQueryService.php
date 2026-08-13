@@ -2,32 +2,27 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers\Admin;
+namespace App\Services\Admin;
 
-use App\Actions\Returns\ReceiveReturnItems;
-use App\Actions\Returns\ReviewReturn;
 use App\Enums\ReturnStatus;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\Returns\ReceiveReturnRequest;
-use App\Http\Requests\Admin\Returns\ReviewReturnRequest;
 use App\Models\ProductReturn;
 use App\Models\Warehouse;
 use App\Support\Money;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Support\Facades\Storage;
-use Inertia\Inertia;
-use Inertia\Response;
 
-final class ReturnController extends Controller implements HasMiddleware
+/**
+ * Builds the Inertia props for the admin return (RMA) screens.
+ * Controllers stay thin — authorize, delegate here, render.
+ */
+final class ReturnQueryService
 {
-    public static function middleware(): array
-    {
-        return ['can:returns.manage'];
-    }
-
-    public function index(Request $request): Response
+    /**
+     * Props for admin/returns/Index: a filtered RMA list.
+     *
+     * @return array<string, mixed>
+     */
+    public function indexProps(Request $request): array
     {
         $returns = ProductReturn::query()
             ->with(['order:id,number', 'user:id,name'])
@@ -49,14 +44,20 @@ final class ReturnController extends Controller implements HasMiddleware
                 'created_at' => $r->created_at->toDateTimeString(),
             ]);
 
-        return Inertia::render('admin/returns/Index', [
+        return [
             'returns' => $returns,
             'statuses' => array_map(fn (ReturnStatus $s) => ['value' => $s->value, 'label' => $s->label()], ReturnStatus::cases()),
             'filters' => (object) $request->only(['q', 'status']),
-        ]);
+        ];
     }
 
-    public function show(ProductReturn $productReturn): Response
+    /**
+     * Props for admin/returns/Show: the RMA detail with items, evidence photos
+     * and the refund summary.
+     *
+     * @return array<string, mixed>
+     */
+    public function showProps(ProductReturn $productReturn): array
     {
         $productReturn->load([
             'order:id,number,total_cents,currency,payment_status',
@@ -66,7 +67,7 @@ final class ReturnController extends Controller implements HasMiddleware
             'refunds',
         ]);
 
-        return Inertia::render('admin/returns/Show', [
+        return [
             'productReturn' => [
                 'id' => $productReturn->id,
                 'rma_number' => $productReturn->rma_number,
@@ -113,34 +114,6 @@ final class ReturnController extends Controller implements HasMiddleware
                 ),
             ],
             'warehouses' => Warehouse::query()->active()->get(['id', 'name']),
-        ]);
-    }
-
-    public function review(ReviewReturnRequest $request, ProductReturn $productReturn, ReviewReturn $reviewReturn): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        $reviewReturn->handle(
-            $productReturn,
-            ReturnStatus::from($validated['status']),
-            $validated['admin_note'] ?? null,
-            $request->user()->id,
-        );
-
-        return back()->with('success', 'Return updated.');
-    }
-
-    public function receive(ReceiveReturnRequest $request, ProductReturn $productReturn, ReceiveReturnItems $receiveReturnItems): RedirectResponse
-    {
-        $validated = $request->validated();
-
-        $receiveReturnItems->handle(
-            $productReturn,
-            $validated['conditions'],
-            Warehouse::query()->findOrFail($validated['warehouse_id']),
-            $request->user()->id,
-        );
-
-        return back()->with('success', 'Return items received.');
+        ];
     }
 }

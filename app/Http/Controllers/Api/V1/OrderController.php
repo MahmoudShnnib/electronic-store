@@ -4,15 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Actions\Orders\CancelOrder;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\OrderResource;
 use App\Models\Order;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
 
+/** A customer's own orders: list and detail. Cancelling lives in CancelOrderController. */
 final class OrderController extends Controller
 {
     /**
@@ -36,17 +35,5 @@ final class OrderController extends Controller
         Gate::authorize('view', $order);
 
         return new OrderResource($order->load(['items', 'statusHistories']));
-    }
-
-    /**
-     * Cancel an order that has not shipped yet.
-     */
-    public function cancel(Request $request, Order $order, CancelOrder $cancelOrder): JsonResponse
-    {
-        Gate::authorize('cancel', $order);
-
-        $order = $cancelOrder->handle($order, 'Cancelled by customer.', $request->user()->id);
-
-        return response()->json(['data' => new OrderResource($order)]);
     }
 }
