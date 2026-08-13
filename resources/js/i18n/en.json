@@ -182,6 +182,8 @@
     "auth": {
         "login_title": "Log in to your account",
         "login_description": "Enter your email and password below to log in",
+        "or": "or",
+        "continue_with_google": "Continue with Google",
         "register_title": "Create an account",
         "register_description": "Enter your details below to create your account",
         "name": "Name",

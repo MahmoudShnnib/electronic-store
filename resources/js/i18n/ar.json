@@ -180,6 +180,8 @@
         "no_results": "لا توجد نتائج"
     },
     "auth": {
+        "or": "أو",
+        "continue_with_google": "المتابعة عبر Google",
         "login_title": "تسجيل الدخول إلى حسابك",
         "login_description": "أدخل بريدك الإلكتروني وكلمة المرور لتسجيل الدخول",
         "register_title": "إنشاء حساب جديد",

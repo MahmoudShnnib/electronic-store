@@ -29,6 +29,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'last_login_at',
     ];
 
+    // google_id is intentionally NOT fillable — it is only ever written via
+    // forceFill in LoginWithGoogle, never from request input.
+
     protected $hidden = [
         'password',
         'remember_token',
