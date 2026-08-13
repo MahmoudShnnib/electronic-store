@@ -144,6 +144,29 @@ final class DemoCatalogSeeder extends Seeder
             }
         }
 
+        // Which categories each attribute applies to — the product form only
+        // shows an attribute for products in these categories (or children of
+        // them). Model and Warranty carry no scope: they apply everywhere.
+        $scopes = [
+            'Operating system' => ['Smartphones', 'Laptops', 'Computers', 'Consoles'],
+            'Processor' => ['Smartphones', 'Laptops', 'Computers', 'Consoles'],
+            'RAM' => ['Smartphones', 'Laptops', 'Computers', 'Consoles', 'Memory'],
+            'Storage' => ['Smartphones', 'Laptops', 'Computers', 'Consoles', 'Storage'],
+            'Graphics card' => ['Laptops', 'Computers', 'Consoles', 'Graphics Cards'],
+            'Screen size' => ['Smartphones', 'Laptops', 'Monitors'],
+            'Resolution' => ['Smartphones', 'Laptops', 'Monitors', 'Printers'],
+            'Refresh rate' => ['Smartphones', 'Laptops', 'Monitors'],
+            'Battery capacity' => ['Smartphones', 'Laptops', 'Controllers', 'Keyboards', 'Mice', 'Headsets'],
+            'Network support' => ['Smartphones', 'Laptops', 'Computers', 'Consoles', 'Networking', 'Printers'],
+            'Ports' => ['Laptops', 'Computers', 'Monitors', 'Consoles', 'Networking', 'Printers'],
+        ];
+
+        foreach ($scopes as $attributeName => $categoryNames) {
+            $attributes[$attributeName]->categories()->sync(
+                Category::query()->whereIn('name', $categoryNames)->pluck('id'),
+            );
+        }
+
         $adjust = app(AdjustStock::class);
         $adminId = User::query()->where('email', 'admin@store.test')->value('id');
 
