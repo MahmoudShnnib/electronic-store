@@ -580,7 +580,8 @@
             "attr_key_hint": "color",
             "attr_value_hint": "Black",
             "variant_n": "Variant {n}",
-            "bulk_action": "Bulk action ({count})"
+            "bulk_action": "Bulk action ({count})",
+            "pick_category_for_specs": "Pick a category to see its specifications."
         },
         "purchase_orders": {
             "title": "Purchase orders",
@@ -731,7 +732,10 @@
             "unit_hint": "e.g. GB, Hz",
             "delete_group_message": "Delete “{name}” and all its attributes? Product values under it will be removed.",
             "delete_attribute_message": "Delete “{name}”? Its values on products will be removed.",
-            "uses_n": "{count} uses"
+            "uses_n": "{count} uses",
+            "categories_label": "Applies to categories",
+            "categories_hint": "Leave empty to show this attribute for every category.",
+            "all_categories": "All categories"
         },
         "suppliers": {
             "title": "Suppliers",

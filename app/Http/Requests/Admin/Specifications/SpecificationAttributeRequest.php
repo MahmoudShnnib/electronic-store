@@ -27,6 +27,9 @@ final class SpecificationAttributeRequest extends FormRequest
             'type' => ['required', 'in:text,number,boolean'],
             'is_filterable' => ['boolean'],
             'position' => ['nullable', 'integer', 'min:0'],
+            // Empty = universal: the attribute shows for every category.
+            'categories' => ['nullable', 'array'],
+            'categories.*' => ['integer', 'exists:categories,id'],
         ];
 
         if ($this->route('attribute') === null) {

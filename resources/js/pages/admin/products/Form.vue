@@ -6,7 +6,7 @@ import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { Plus, Trash2, Upload } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
@@ -80,7 +80,7 @@ const props = defineProps<{
     specificationGroups: {
         id: number;
         name: string;
-        attributes: { id: number; name: string; unit: string | null; type: string }[];
+        attributes: { id: number; name: string; unit: string | null; type: string; category_ids: number[] }[];
     }[];
     statuses: Option[];
 }>();
@@ -120,6 +120,30 @@ const form = useForm({
     specifications: (props.product?.specifications ?? {}) as Record<number, SpecValue>,
 });
 
+/**
+ * Only the attributes that belong to the selected category (or its parent
+ * category), plus universal attributes that have no categories at all.
+ * Groups left with nothing to show disappear entirely.
+ */
+const visibleGroups = computed(() => {
+    const categoryId = form.category_id === '' ? null : Number(form.category_id);
+    const parentId = categoryId !== null ? (props.categories.find((c) => c.id === categoryId)?.parent_id ?? null) : null;
+
+    return props.specificationGroups
+        .map((group) => ({
+            ...group,
+            attributes: group.attributes.filter(
+                (attribute) =>
+                    attribute.category_ids.length === 0 ||
+                    (categoryId !== null &&
+                        (attribute.category_ids.includes(categoryId) || (parentId !== null && attribute.category_ids.includes(parentId)))),
+            ),
+        }))
+        .filter((group) => group.attributes.length > 0);
+});
+
+const visibleAttributeIds = computed(() => new Set(visibleGroups.value.flatMap((group) => group.attributes.map((a) => a.id))));
+
 function submit(): void {
     // Normalize empty selects to null.
     form.transform((data) => ({
@@ -131,6 +155,11 @@ function submit(): void {
         // Always send the array — an empty list means "delete every variant";
         // null would mean "leave variants untouched" and removals never save.
         variants: data.variants,
+        // Drop values for attributes the selected category doesn't have, so
+        // switching category cleans up specs that no longer belong.
+        specifications: Object.fromEntries(
+            Object.entries(data.specifications).filter(([attributeId]) => visibleAttributeIds.value.has(Number(attributeId))),
+        ),
     }));
 
     if (isEdit) {
@@ -414,7 +443,8 @@ function deleteImage(image: ProductImage): void {
             <!-- Specifications -->
             <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.nav.specifications') }}</h2>
-                <div v-for="group in specificationGroups" :key="group.id" class="mb-5">
+                <p v-if="form.category_id === ''" class="mb-3 text-sm text-gray-400">{{ t('admin.products.pick_category_for_specs') }}</p>
+                <div v-for="group in visibleGroups" :key="group.id" class="mb-5">
                     <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{{ group.name }}</p>
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div v-for="attribute in group.attributes" :key="attribute.id" class="grid grid-cols-2 gap-2">
@@ -431,7 +461,9 @@ function deleteImage(image: ProductImage): void {
                         </div>
                     </div>
                 </div>
-                <p v-if="specificationGroups.length === 0" class="text-sm text-gray-400">{{ t('admin.products.no_specs_hint') }}</p>
+                <p v-if="form.category_id !== '' && visibleGroups.length === 0" class="text-sm text-gray-400">
+                    {{ t('admin.products.no_specs_hint') }}
+                </p>
             </section>
 
             <!-- Images (edit only) -->

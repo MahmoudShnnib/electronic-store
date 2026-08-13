@@ -20,14 +20,20 @@ final class SpecificationAttributeController extends Controller implements HasMi
 
     public function store(SpecificationAttributeRequest $request): RedirectResponse
     {
-        SpecificationAttribute::create($request->validated());
+        $validated = $request->validated();
+
+        $attribute = SpecificationAttribute::create(collect($validated)->except('categories')->all());
+        $attribute->categories()->sync($validated['categories'] ?? []);
 
         return back()->with('success', __('Attribute created.'));
     }
 
     public function update(SpecificationAttributeRequest $request, SpecificationAttribute $attribute): RedirectResponse
     {
-        $attribute->update($request->validated());
+        $validated = $request->validated();
+
+        $attribute->update(collect($validated)->except('categories')->all());
+        $attribute->categories()->sync($validated['categories'] ?? []);
 
         return back()->with('success', __('Attribute updated.'));
     }

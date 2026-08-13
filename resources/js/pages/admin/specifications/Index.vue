@@ -23,6 +23,7 @@ interface Attribute {
     is_filterable: boolean;
     position: number;
     values_count: number;
+    category_ids: number[];
 }
 
 interface Group {
@@ -33,9 +34,18 @@ interface Group {
     attributes: Attribute[];
 }
 
-defineProps<{
+const props = defineProps<{
     groups: Group[];
+    categories: { id: number; name: string; name_ar: string | null; parent_id: number | null }[];
 }>();
+
+/** "PC, Mobile" chip text for the attributes table; empty scope = all. */
+function categoryNames(ids: number[]): string {
+    return props.categories
+        .filter((c) => ids.includes(c.id))
+        .map((c) => c.name)
+        .join('، ');
+}
 
 // -- Group modal --------------------------------------------------------------
 
@@ -94,6 +104,7 @@ const attributeForm = useForm({
     type: 'text',
     is_filterable: false,
     position: 0,
+    categories: [] as number[],
 });
 
 function openAttributeCreate(group: Group): void {
@@ -114,6 +125,7 @@ function openAttributeEdit(group: Group, attribute: Attribute): void {
     attributeForm.type = attribute.type;
     attributeForm.is_filterable = attribute.is_filterable;
     attributeForm.position = attribute.position;
+    attributeForm.categories = [...attribute.category_ids];
     attributeModal.value = true;
 }
 
@@ -198,6 +210,16 @@ function destroyAttribute(): void {
                             class="ms-1 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] uppercase text-blue-600 dark:bg-blue-950 dark:text-blue-300"
                             >{{ t('admin.specifications.filter') }}</span
                         >
+                        <span
+                            class="ms-1 rounded px-1.5 py-0.5 text-[10px]"
+                            :class="
+                                attribute.category_ids.length === 0
+                                    ? 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
+                                    : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300'
+                            "
+                        >
+                            {{ attribute.category_ids.length === 0 ? t('admin.specifications.all_categories') : categoryNames(attribute.category_ids) }}
+                        </span>
                     </div>
                     <div class="flex items-center gap-1">
                         <span class="text-xs text-gray-400">{{ t('admin.specifications.uses_n', { count: attribute.values_count }) }}</span>
@@ -291,6 +313,14 @@ function destroyAttribute(): void {
                     t('admin.specifications.filterable')
                 }}</label
             >
+            <Field :label="t('admin.specifications.categories_label')" :hint="t('admin.specifications.categories_hint')">
+                <div class="grid max-h-44 grid-cols-2 gap-1 overflow-y-auto rounded-md border border-gray-200 p-2 dark:border-gray-700">
+                    <label v-for="category in categories" :key="category.id" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input v-model="attributeForm.categories" type="checkbox" :value="category.id" class="rounded border-gray-300" />
+                        <span :class="{ 'ps-3 text-gray-500': category.parent_id !== null }">{{ category.name }}</span>
+                    </label>
+                </div>
+            </Field>
             <div class="flex justify-end gap-3">
                 <button type="button" :class="btnSecondary" @click="attributeModal = false">{{ t('admin.common.cancel') }}</button>
                 <button type="submit" :disabled="attributeForm.processing" :class="btnPrimary">{{ t('admin.common.save') }}</button>

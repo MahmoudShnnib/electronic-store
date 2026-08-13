@@ -580,7 +580,8 @@
             "attr_key_hint": "اللون",
             "attr_value_hint": "أسود",
             "variant_n": "المتغيّر {n}",
-            "bulk_action": "إجراء جماعي ({count})"
+            "bulk_action": "إجراء جماعي ({count})",
+            "pick_category_for_specs": "اختر فئة لعرض مواصفاتها."
         },
         "purchase_orders": {
             "title": "أوامر الشراء",
@@ -731,7 +732,10 @@
             "unit_hint": "مثال: جيجابايت، هرتز",
             "delete_group_message": "حذف «{name}» وجميع خصائصها؟ ستُحذف قيم المنتجات المرتبطة بها.",
             "delete_attribute_message": "حذف «{name}»؟ ستُحذف قيمها على المنتجات.",
-            "uses_n": "{count} استخدام"
+            "uses_n": "{count} استخدام",
+            "categories_label": "ينطبق على الفئات",
+            "categories_hint": "اتركه فارغاً لعرض هذه الخاصية لكل الفئات.",
+            "all_categories": "كل الفئات"
         },
         "suppliers": {
             "title": "الموردون",

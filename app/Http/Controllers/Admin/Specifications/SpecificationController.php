@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin\Specifications;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\SpecificationGroup;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Inertia\Inertia;
@@ -25,7 +26,7 @@ final class SpecificationController extends Controller implements HasMiddleware
     {
         return Inertia::render('admin/specifications/Index', [
             'groups' => SpecificationGroup::query()
-                ->with(['attributes' => fn ($q) => $q->withCount('values')])
+                ->with(['attributes' => fn ($q) => $q->withCount('values')->with('categories:id')])
                 ->orderBy('position')
                 ->get()
                 ->map(fn (SpecificationGroup $g) => [
@@ -42,8 +43,13 @@ final class SpecificationController extends Controller implements HasMiddleware
                         'is_filterable' => $a->is_filterable,
                         'position' => $a->position,
                         'values_count' => $a->values_count,
+                        // Empty = shows for every category.
+                        'category_ids' => $a->categories->pluck('id'),
                     ]),
                 ]),
+            'categories' => Category::query()
+                ->orderBy('position')
+                ->get(['id', 'name', 'name_ar', 'parent_id']),
         ]);
     }
 }

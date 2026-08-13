@@ -146,7 +146,7 @@ final class ProductQueryService
             'brands' => Brand::query()->orderBy('name')->get(['id', 'name']),
             'suppliers' => Supplier::query()->orderBy('company_name')->get(['id', 'company_name']),
             'specificationGroups' => SpecificationGroup::query()
-                ->with('attributes')
+                ->with('attributes.categories:id')
                 ->orderBy('position')
                 ->get()
                 ->map(fn (SpecificationGroup $g) => [
@@ -157,6 +157,10 @@ final class ProductQueryService
                         'name' => $a->name,
                         'unit' => $a->unit,
                         'type' => $a->type,
+                        // The form shows an attribute only when this is empty
+                        // (universal) or contains the selected category (or its
+                        // parent).
+                        'category_ids' => $a->categories->pluck('id'),
                     ]),
                 ]),
             'statuses' => self::statusOptions(),
