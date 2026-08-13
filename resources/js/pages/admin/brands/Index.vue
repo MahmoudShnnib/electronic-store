@@ -8,7 +8,7 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
+import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
@@ -159,13 +159,18 @@ function destroy(): void {
                 </Field>
             </div>
             <Field :label="t('admin.common.logo')" :error="form.errors.logo">
-                <input type="file" accept="image/*" class="text-sm" @change="form.logo = ($event.target as HTMLInputElement).files?.[0] ?? null" />
+                <input
+                    type="file"
+                    accept="image/*"
+                    class="block w-full text-sm text-gray-600 dark:text-gray-300"
+                    @change="form.logo = ($event.target as HTMLInputElement).files?.[0] ?? null"
+                />
             </Field>
             <Field :label="t('admin.common.description')" :error="form.errors.description">
                 <textarea v-model="form.description" rows="3" :class="inputClass" />
             </Field>
             <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input v-model="form.is_active" type="checkbox" class="rounded border-gray-300" />{{ t('admin.common.active') }}</label
+                <input v-model="form.is_active" type="checkbox" :class="checkboxClass" />{{ t('admin.common.active') }}</label
             >
             <div class="flex justify-end gap-3">
                 <button type="button" :class="btnSecondary" @click="modalOpen = false">{{ t('admin.common.cancel') }}</button>

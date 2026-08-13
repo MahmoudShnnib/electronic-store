@@ -3,7 +3,7 @@ import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import Field from '@/components/admin/Field.vue';
 import FormModal from '@/components/admin/FormModal.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
+import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
@@ -218,7 +218,9 @@ function destroyAttribute(): void {
                                     : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300'
                             "
                         >
-                            {{ attribute.category_ids.length === 0 ? t('admin.specifications.all_categories') : categoryNames(attribute.category_ids) }}
+                            {{
+                                attribute.category_ids.length === 0 ? t('admin.specifications.all_categories') : categoryNames(attribute.category_ids)
+                            }}
                         </span>
                     </div>
                     <div class="flex items-center gap-1">
@@ -309,14 +311,14 @@ function destroyAttribute(): void {
                 </Field>
             </div>
             <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input v-model="attributeForm.is_filterable" type="checkbox" class="rounded border-gray-300" />{{
+                <input v-model="attributeForm.is_filterable" type="checkbox" :class="checkboxClass" />{{
                     t('admin.specifications.filterable')
                 }}</label
             >
             <Field :label="t('admin.specifications.categories_label')" :hint="t('admin.specifications.categories_hint')">
                 <div class="grid max-h-44 grid-cols-2 gap-1 overflow-y-auto rounded-md border border-gray-200 p-2 dark:border-gray-700">
                     <label v-for="category in categories" :key="category.id" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input v-model="attributeForm.categories" type="checkbox" :value="category.id" class="rounded border-gray-300" />
+                        <input v-model="attributeForm.categories" type="checkbox" :value="category.id" :class="checkboxClass" />
                         <span :class="{ 'ps-3 text-gray-500': category.parent_id !== null }">{{ category.name }}</span>
                     </label>
                 </div>

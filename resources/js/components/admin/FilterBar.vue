@@ -4,6 +4,7 @@ import { Search } from 'lucide-vue-next';
 import { onBeforeUnmount, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { Option } from './types';
+import { inputClass, searchInputClass } from './ui';
 
 const { t } = useI18n();
 
@@ -66,17 +67,13 @@ onBeforeUnmount(() => {
                 v-model="state[searchKey]"
                 type="search"
                 :placeholder="searchPlaceholder ?? t('admin.common.search_default')"
-                class="w-full rounded-md border border-gray-300 bg-white py-2 pe-3 ps-9 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                :class="searchInputClass"
             />
         </div>
 
-        <select
-            v-for="select in selects ?? []"
-            :key="select.key"
-            v-model="state[select.key]"
-            class="rounded-md border border-gray-300 bg-white py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-            @change="apply"
-        >
+        <!-- `!w-auto`: inputClass carries w-full, which wins on source order and
+             would stretch each filter across the whole bar. -->
+        <select v-for="select in selects ?? []" :key="select.key" v-model="state[select.key]" :class="inputClass" class="!w-auto" @change="apply">
             <option value="">{{ select.label }}</option>
             <option v-for="option in select.options" :key="option.value" :value="option.value">
                 {{ option.label }}

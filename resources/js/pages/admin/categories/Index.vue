@@ -8,7 +8,7 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
+import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Image as ImageIcon, Pencil, Plus, Trash2 } from 'lucide-vue-next';
@@ -231,11 +231,11 @@ function destroy(): void {
                         <input
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
-                            class="block w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-1.5 file:text-sm dark:text-gray-300 dark:file:bg-neutral-800"
+                            class="block w-full text-sm text-gray-600 dark:text-gray-300"
                             @change="pickImage"
                         />
                         <label v-if="currentImage" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                            <input v-model="form.remove_image" type="checkbox" class="rounded border-gray-300" />
+                            <input v-model="form.remove_image" type="checkbox" :class="checkboxClass" />
                             {{ t('admin.categories.remove_image') }}
                         </label>
                         <p class="text-xs text-gray-500">{{ t('admin.categories.image_hint') }}</p>
@@ -247,7 +247,7 @@ function destroy(): void {
                     <input v-model.number="form.position" type="number" min="0" :class="inputClass" />
                 </Field>
                 <label class="mt-6 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input v-model="form.is_active" type="checkbox" class="rounded border-gray-300" />{{ t('admin.common.active') }}</label
+                    <input v-model="form.is_active" type="checkbox" :class="checkboxClass" />{{ t('admin.common.active') }}</label
                 >
             </div>
             <div class="flex justify-end gap-3">

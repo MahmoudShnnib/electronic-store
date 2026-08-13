@@ -8,7 +8,7 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
+import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
@@ -229,7 +229,7 @@ function destroy(): void {
                 </Field>
             </div>
             <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input v-model="form.is_active" type="checkbox" class="rounded border-gray-300" />{{ t('admin.common.active') }}</label
+                <input v-model="form.is_active" type="checkbox" :class="checkboxClass" />{{ t('admin.common.active') }}</label
             >
             <div class="flex justify-end gap-3">
                 <button type="button" :class="btnSecondary" @click="modalOpen = false">{{ t('admin.common.cancel') }}</button>

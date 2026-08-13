@@ -3,7 +3,7 @@ import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import Field from '@/components/admin/Field.vue';
 import FormModal from '@/components/admin/FormModal.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
+import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-vue-next';
@@ -163,7 +163,7 @@ function destroy(): void {
                         >
                             <input
                                 type="checkbox"
-                                class="rounded border-gray-300"
+                                :class="checkboxClass"
                                 :checked="form.permissions.includes(permission)"
                                 @change="togglePermission(permission)"
                             />

@@ -7,7 +7,7 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
+import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { Pencil, Plus } from 'lucide-vue-next';
@@ -144,13 +144,13 @@ function submit(): void {
             <Field :label="t('admin.common.roles')" required :error="form.errors.roles">
                 <div class="mt-1 grid grid-cols-2 gap-2">
                     <label v-for="role in roles" :key="role" class="flex items-center gap-2 text-sm capitalize text-gray-700 dark:text-gray-300">
-                        <input type="checkbox" class="rounded border-gray-300" :checked="form.roles.includes(role)" @change="toggleRole(role)" />
+                        <input type="checkbox" :class="checkboxClass" :checked="form.roles.includes(role)" @change="toggleRole(role)" />
                         {{ role.replaceAll('_', ' ') }}
                     </label>
                 </div>
             </Field>
             <label v-if="editing" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input v-model="form.is_active" type="checkbox" class="rounded border-gray-300" />{{ t('admin.users.account_active') }}</label
+                <input v-model="form.is_active" type="checkbox" :class="checkboxClass" />{{ t('admin.users.account_active') }}</label
             >
             <div class="flex justify-end gap-3">
                 <button type="button" :class="btnSecondary" @click="modalOpen = false">{{ t('admin.common.cancel') }}</button>

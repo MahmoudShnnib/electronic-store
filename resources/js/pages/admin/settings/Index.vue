@@ -102,7 +102,11 @@ function submit(): void {
                 <Field :label="t('admin.settings.terms')">
                     <textarea v-model="form.page_terms" rows="4" :class="inputClass" />
                 </Field>
-                <Field :label="t('admin.settings.return_window')" :hint="t('admin.settings.return_window_hint')" :error="form.errors['settings.return_window_days']">
+                <Field
+                    :label="t('admin.settings.return_window')"
+                    :hint="t('admin.settings.return_window_hint')"
+                    :error="form.errors['settings.return_window_days']"
+                >
                     <input v-model.number="form.return_window_days" type="number" min="0" max="365" :class="inputClass" />
                 </Field>
                 <Field :label="t('admin.settings.return_policy')">

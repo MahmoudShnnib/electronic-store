@@ -6,7 +6,7 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
+import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Plus, RotateCcw, Trash2 } from 'lucide-vue-next';
@@ -139,10 +139,10 @@ function restore(product: ProductRow): void {
 
     <DataTable :columns="columns" :rows="products.data" :sort="String(filters.sort ?? '')" :dir="String(filters.dir ?? '')" @sort="sortBy">
         <template #select>
-            <input type="checkbox" class="rounded border-gray-300" :checked="allSelected" @change="toggleAll" />
+            <input type="checkbox" :class="checkboxClass" :checked="allSelected" @change="toggleAll" />
         </template>
         <template #row-select="{ row }">
-            <input type="checkbox" class="rounded border-gray-300" :checked="selected.includes(row.id)" @change="toggleRow(row.id)" />
+            <input type="checkbox" :class="checkboxClass" :checked="selected.includes(row.id)" @change="toggleRow(row.id)" />
         </template>
 
         <template #cell-name="{ row }">

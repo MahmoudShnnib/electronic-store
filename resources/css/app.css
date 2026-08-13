@@ -93,6 +93,145 @@ html[lang='ar'] body {
     }
 }
 
+/*
+ * Native form-control chrome.
+ *
+ * Browsers paint number spinners, date pickers, native <select> menus,
+ * scrollbars and autofill from the page's `color-scheme` — not from our CSS.
+ * Without it every one of those renders in its light-theme variant on top of
+ * the dark dashboard (the white spinner box, the pale calendar popup). Setting
+ * color-scheme fixes them all at once; the rules below then replace the parts
+ * that still look like stock browser UI.
+ */
+@layer base {
+    :root {
+        color-scheme: light;
+    }
+
+    .dark {
+        color-scheme: dark;
+    }
+
+    /* Spinners are visual noise on money/quantity fields and can never be
+       themed properly. Hidden — arrow keys and scroll still step the value. */
+    input[type='number']::-webkit-outer-spin-button,
+    input[type='number']::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type='number'] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+
+    /* Date/time pickers: keep the browser's own (now dark) icon, but calm it
+       down and make it read as interactive. */
+    input[type='date']::-webkit-calendar-picker-indicator,
+    input[type='datetime-local']::-webkit-calendar-picker-indicator,
+    input[type='time']::-webkit-calendar-picker-indicator,
+    input[type='month']::-webkit-calendar-picker-indicator {
+        cursor: pointer;
+        padding: 0.15rem;
+        border-radius: 0.25rem;
+        opacity: 0.45;
+        transition: opacity 0.15s ease;
+    }
+
+    input[type='date']:hover::-webkit-calendar-picker-indicator,
+    input[type='datetime-local']:hover::-webkit-calendar-picker-indicator,
+    input[type='time']:hover::-webkit-calendar-picker-indicator,
+    input[type='month']:hover::-webkit-calendar-picker-indicator {
+        opacity: 1;
+    }
+
+    /* An unfilled date field shows mm/dd/yyyy at full strength, which reads as
+       real content. Mute it to placeholder weight. */
+    input[type='date']:not(:focus):invalid::-webkit-datetime-edit,
+    input[type='datetime-local']:not(:focus):invalid::-webkit-datetime-edit {
+        opacity: 0.45;
+    }
+
+    /* Replace the stock dropdown arrow with one that matches our type colour. */
+    select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20' stroke='%239ca3af' stroke-width='1.6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-size: 1.1rem 1.1rem;
+        background-position: right 0.7rem center;
+    }
+
+    html[dir='rtl'] select {
+        background-position: left 0.7rem center;
+    }
+
+    /* Room for the arrow. `select[class]` rather than `select`: Tailwind's
+       utilities layer ships after base, so a plain element selector loses to
+       the px-3 on every field and the text would run under the chevron. */
+    select[class] {
+        padding-inline-end: 2.25rem;
+    }
+
+    html[dir='rtl'] select[class] {
+        padding-inline-end: 0.75rem;
+        padding-inline-start: 2.25rem;
+    }
+
+    /* Multi-line and native-menu selects have no arrow to make room for. */
+    select[multiple],
+    select[size]:not([size='1']) {
+        background-image: none;
+    }
+
+    select[multiple][class],
+    select[size]:not([size='1'])[class] {
+        padding-inline-end: 0.75rem;
+        padding-inline-start: 0.75rem;
+    }
+
+    /* Checkboxes and radios follow the brand instead of the OS accent. */
+    input[type='checkbox'],
+    input[type='radio'] {
+        accent-color: theme('colors.blue.600');
+    }
+
+    /* The file input's button is the last stock-looking control left. */
+    input[type='file'] {
+        cursor: pointer;
+    }
+
+    input[type='file']::file-selector-button {
+        margin-inline-end: 0.75rem;
+        cursor: pointer;
+        border: 1px solid theme('colors.gray.300');
+        border-radius: 0.375rem;
+        background-color: theme('colors.white');
+        padding: 0.35rem 0.85rem;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: theme('colors.gray.700');
+        transition:
+            background-color 0.15s ease,
+            border-color 0.15s ease;
+    }
+
+    input[type='file']::file-selector-button:hover {
+        background-color: theme('colors.gray.50');
+    }
+
+    .dark input[type='file']::file-selector-button {
+        border-color: theme('colors.gray.700');
+        background-color: theme('colors.gray.900');
+        color: theme('colors.gray.300');
+    }
+
+    .dark input[type='file']::file-selector-button:hover {
+        background-color: theme('colors.gray.800');
+    }
+}
+
 @layer base {
     * {
         @apply border-border;

@@ -112,7 +112,9 @@ function pretty(properties: Record<string, unknown>): string {
                                     </tr>
                                 </tbody>
                             </table>
-                            <pre v-else class="max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs text-gray-100">{{ pretty(log.properties) }}</pre>
+                            <pre v-else class="max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs text-gray-100">{{
+                                pretty(log.properties)
+                            }}</pre>
                         </td>
                     </tr>
                 </template>

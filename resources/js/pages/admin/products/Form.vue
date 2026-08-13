@@ -2,7 +2,7 @@
 import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import type { Option } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
+import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { Plus, Trash2, Upload } from 'lucide-vue-next';
@@ -393,7 +393,7 @@ function deleteImage(image: ProductImage): void {
                             <input v-model.number="variant.low_stock_threshold" type="number" min="0" :class="inputClass" />
                         </Field>
                         <label class="mt-6 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                            <input v-model="variant.is_active" type="checkbox" class="rounded border-gray-300" />{{ t('admin.common.active') }}</label
+                            <input v-model="variant.is_active" type="checkbox" :class="checkboxClass" />{{ t('admin.common.active') }}</label
                         >
                     </div>
 
@@ -412,7 +412,8 @@ function deleteImage(image: ProductImage): void {
                                 :value="attributeDrafts[index]?.key ?? ''"
                                 type="text"
                                 :placeholder="t('admin.products.attr_key_hint')"
-                                class="w-24 rounded border border-gray-300 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900"
+                                :class="inputClass"
+                                class="!w-24 !px-2 !py-1 text-xs"
                                 @input="
                                     attributeDrafts[index] = {
                                         key: ($event.target as HTMLInputElement).value,
@@ -424,7 +425,8 @@ function deleteImage(image: ProductImage): void {
                                 :value="attributeDrafts[index]?.value ?? ''"
                                 type="text"
                                 :placeholder="t('admin.products.attr_value_hint')"
-                                class="w-24 rounded border border-gray-300 px-2 py-1 text-xs dark:border-gray-700 dark:bg-gray-900"
+                                :class="inputClass"
+                                class="!w-28 !px-2 !py-1 text-xs"
                                 @input="
                                     attributeDrafts[index] = {
                                         key: attributeDrafts[index]?.key ?? '',
@@ -513,9 +515,7 @@ function deleteImage(image: ProductImage): void {
                     </select>
                 </Field>
                 <label class="mt-4 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input v-model="form.is_featured" type="checkbox" class="rounded border-gray-300" />{{
-                        t('admin.products.featured_product')
-                    }}</label
+                    <input v-model="form.is_featured" type="checkbox" :class="checkboxClass" />{{ t('admin.products.featured_product') }}</label
                 >
                 <Field class="mt-4" :label="t('admin.common.low_stock_threshold')" :error="form.errors.low_stock_threshold">
                     <input v-model.number="form.low_stock_threshold" type="number" min="0" :class="inputClass" />
