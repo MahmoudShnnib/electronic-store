@@ -76,10 +76,8 @@ final class PlaceOrder
             }
         }
 
-        $warehouse = Warehouse::default();
-
         try {
-            $order = DB::transaction(function () use ($cart, $data, $user, $totals, $warehouse, $placedVia): Order {
+            $order = DB::transaction(function () use ($cart, $data, $user, $totals, $placedVia): Order {
                 $order = $this->createOrderRow($data, $user, $totals, $placedVia);
 
                 // Deterministic lock order prevents deadlocks between
@@ -88,6 +86,10 @@ final class PlaceOrder
                     ->sortBy(fn (CartLine $l) => [$l->product->id, $l->variant?->id ?? 0]);
 
                 foreach ($lines as $line) {
+                    // The storefront advertises stock summed across warehouses,
+                    // so fulfilment must look beyond the default one too.
+                    $warehouse = $this->warehouseFor($line);
+
                     // Throws InsufficientStockException when quantity would go
                     // negative — which aborts and rolls back the whole order.
                     $this->recordMovement->handle(
@@ -146,6 +148,36 @@ final class PlaceOrder
         }
 
         return $order;
+    }
+
+    /**
+     * The warehouse a line ships from: the default warehouse when it can cover
+     * the whole line, otherwise the active warehouse holding the most stock of
+     * that product/variant. When nothing suffices, the default is returned so
+     * RecordMovement raises the usual insufficient-stock error.
+     *
+     * One line always ships from one warehouse — a single line larger than any
+     * individual warehouse's stock still fails even if warehouses combined
+     * could cover it.
+     */
+    private function warehouseFor(CartLine $line): Warehouse
+    {
+        $default = Warehouse::default();
+
+        $stocked = \App\Models\StockLevel::query()
+            ->where('product_id', $line->product->id)
+            ->where('product_variant_id', $line->variant?->id)
+            ->where('quantity', '>=', $line->quantity)
+            ->whereHas('warehouse', fn ($q) => $q->where('is_active', true))
+            ->orderByDesc('quantity')
+            ->with('warehouse')
+            ->get();
+
+        if ($stocked->contains('warehouse_id', $default->id)) {
+            return $default;
+        }
+
+        return $stocked->first()?->warehouse ?? $default;
     }
 
     private function createOrderRow(CheckoutData $data, ?User $user, CartTotals $totals, string $placedVia): Order

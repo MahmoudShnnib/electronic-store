@@ -18,6 +18,18 @@ enum MovementType: string
     case TransferOut = 'transfer_out';
     case TransferIn = 'transfer_in';
     case Correction = 'correction';
+    case PurchaseIncoming = 'purchase_incoming';
+    case PurchaseCancelled = 'purchase_cancelled';
+
+    /**
+     * Whether an admin-entered quantity for this type must be applied as a
+     * decrease. Prevents "decrease by 5" typed as a positive number from
+     * silently adding stock.
+     */
+    public function isDecrease(): bool
+    {
+        return in_array($this, [self::ManualDecrease, self::Damaged, self::SupplierReturn], true);
+    }
 
     public function label(): string
     {

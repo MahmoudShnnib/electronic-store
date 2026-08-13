@@ -101,6 +101,7 @@ final class SaveProduct
      */
     private function syncVariants(Product $product, array $variants, ?int $userId): void
     {
+        $hadVariants = $product->variants()->exists();
         $keptIds = [];
 
         foreach ($variants as $position => $data) {
@@ -132,6 +133,51 @@ final class SaveProduct
         $product->variants()->whereNotIn('id', $keptIds)->delete();
 
         $product->update(['has_variants' => $keptIds !== []]);
+
+        // Stock recorded before the product had variants lives on product-level
+        // rows the storefront can no longer sell from (availability is read
+        // per-variant). Move it onto the first variant, through the ledger.
+        if (! $hadVariants && $keptIds !== []) {
+            $this->migrateProductStockToVariant($product, $keptIds[0], $userId);
+        }
+    }
+
+    private function migrateProductStockToVariant(Product $product, int $variantId, ?int $userId): void
+    {
+        $variant = $product->variants()->find($variantId);
+
+        if ($variant === null) {
+            return;
+        }
+
+        $recordMovement = app(\App\Actions\Inventory\RecordMovement::class);
+
+        $levels = $product->stockLevels()
+            ->whereNull('product_variant_id')
+            ->where('quantity', '>', 0)
+            ->with('warehouse')
+            ->get();
+
+        foreach ($levels as $level) {
+            $recordMovement->handle(
+                type: \App\Enums\MovementType::Correction,
+                warehouse: $level->warehouse,
+                product: $product,
+                quantityChange: -$level->quantity,
+                reason: "Moved to variant \"{$variant->name}\" when variants were added",
+                userId: $userId,
+            );
+
+            $recordMovement->handle(
+                type: \App\Enums\MovementType::Correction,
+                warehouse: $level->warehouse,
+                product: $product,
+                variant: $variant,
+                quantityChange: $level->quantity,
+                reason: 'Moved from product-level stock when variants were added',
+                userId: $userId,
+            );
+        }
     }
 
     /**

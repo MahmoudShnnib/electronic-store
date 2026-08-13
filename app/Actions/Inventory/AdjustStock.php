@@ -43,6 +43,14 @@ final class AdjustStock
             throw new InvalidArgumentException("Movement type {$type->value} is not a manual adjustment.");
         }
 
+        // The movement type decides the direction; the admin only types an
+        // amount. Only a correction may carry an explicit sign of its own.
+        if ($type->isDecrease()) {
+            $quantityChange = -abs($quantityChange);
+        } elseif ($type !== MovementType::Correction) {
+            $quantityChange = abs($quantityChange);
+        }
+
         return DB::transaction(fn (): InventoryMovement => $this->recordMovement->handle(
             type: $type,
             warehouse: $warehouse,

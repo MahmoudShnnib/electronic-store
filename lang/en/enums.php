@@ -31,6 +31,8 @@ return [
         'transfer_out' => 'Transfer out',
         'transfer_in' => 'Transfer in',
         'correction' => 'Correction',
+        'purchase_incoming' => 'PO sent — incoming booked',
+        'purchase_cancelled' => 'PO cancelled — incoming released',
     ],
 
     'order_status' => [

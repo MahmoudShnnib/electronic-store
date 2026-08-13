@@ -4,18 +4,22 @@ declare(strict_types=1);
 
 namespace App\Actions\Purchasing;
 
+use App\Actions\Inventory\RecordMovement;
+use App\Enums\MovementType;
 use App\Enums\PurchaseOrderStatus;
 use App\Models\PurchaseOrder;
-use App\Models\StockLevel;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
 /**
  * Marks a draft PO as sent to the supplier and flags the ordered quantities
- * as incoming stock on the destination warehouse.
+ * as incoming stock on the destination warehouse — through the movement
+ * ledger, so every incoming change is explained in the history.
  */
 final class SendPurchaseOrder
 {
+    public function __construct(private readonly RecordMovement $recordMovement) {}
+
     public function handle(PurchaseOrder $po): PurchaseOrder
     {
         if ($po->status !== PurchaseOrderStatus::Draft) {
@@ -28,14 +32,23 @@ final class SendPurchaseOrder
 
         return DB::transaction(function () use ($po): PurchaseOrder {
             foreach ($po->items as $item) {
-                StockLevel::query()->firstOrCreate([
-                    'warehouse_id' => $po->warehouse_id,
-                    'product_id' => $item->product_id,
-                    'product_variant_id' => $item->product_variant_id,
-                ])->increment('incoming', $item->quantity_ordered);
+                $this->recordMovement->handle(
+                    type: MovementType::PurchaseIncoming,
+                    warehouse: $po->warehouse,
+                    product: $item->product,
+                    variant: $item->variant,
+                    incomingChange: $item->quantity_ordered,
+                    reference: $po,
+                    reason: "PO {$po->po_number} sent to supplier",
+                );
             }
 
             $po->update(['status' => PurchaseOrderStatus::Sent]);
+
+            activity()
+                ->performedOn($po)
+                ->event('po_sent')
+                ->log("PO {$po->po_number} sent to supplier");
 
             return $po;
         });

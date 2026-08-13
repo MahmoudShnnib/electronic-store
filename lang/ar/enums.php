@@ -30,6 +30,8 @@ return [
         'transfer_out' => 'تحويل صادر',
         'transfer_in' => 'تحويل وارد',
         'correction' => 'تصحيح',
+        'purchase_incoming' => 'إرسال أمر شراء — حجز وارد',
+        'purchase_cancelled' => 'إلغاء أمر شراء — تحرير وارد',
     ],
 
     'order_status' => [

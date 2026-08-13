@@ -55,11 +55,15 @@ final class OrderItem extends Model
         return $this->hasMany(ReturnItem::class);
     }
 
-    /** Quantity already covered by return requests that are not rejected/closed. */
+    /**
+     * Quantity already covered by return requests. Only a rejected request
+     * frees its quantities for another attempt — a closed return is a
+     * *finished* one (received/refunded), so its items stay counted.
+     */
     public function returnedQuantity(): int
     {
         return (int) $this->returnItems()
-            ->whereHas('productReturn', fn ($q) => $q->whereNotIn('status', ['rejected', 'closed']))
+            ->whereHas('productReturn', fn ($q) => $q->where('status', '!=', 'rejected'))
             ->sum('quantity');
     }
 }

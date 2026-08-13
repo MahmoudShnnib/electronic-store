@@ -116,6 +116,9 @@ it('issues a partial then full refund and rolls up payment status', function ():
     $user = customer();
     $order = deliveredOrder($user, $product, 2);
 
+    // Refunds can only give back collected money, so pay the order first.
+    $order->payments()->create(['amount_cents' => $order->total_cents, 'method' => 'cash', 'status' => 'confirmed']);
+
     $manager = staff('order_manager');
 
     app(CreateRefund::class)->handle($order, 50_00, RefundMethod::Cash, createdBy: $manager->id);
@@ -125,10 +128,11 @@ it('issues a partial then full refund and rolls up payment status', function ():
     expect($order->refresh()->payment_status)->toBe(PaymentStatus::Refunded);
 });
 
-it('refuses refunds exceeding the order total', function (): void {
+it('refuses refunds exceeding the amount paid', function (): void {
     $product = Product::factory()->create(['price_cents' => 100_00]);
     giveStock($product, 10);
     $order = deliveredOrder(customer(), $product, 1);
+    $order->payments()->create(['amount_cents' => $order->total_cents, 'method' => 'cash', 'status' => 'confirmed']);
 
     app(CreateRefund::class)->handle($order, $order->total_cents + 1, RefundMethod::Cash);
 })->throws(ValidationException::class);

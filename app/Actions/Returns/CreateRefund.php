@@ -42,9 +42,21 @@ final class CreateRefund
 
             $alreadyRefunded = (int) $order->refunds()->where('status', 'completed')->sum('amount_cents');
 
-            if ($alreadyRefunded + $amountCents > $order->total_cents) {
+            // A refund can only give back money that was actually collected —
+            // never the order total. An unpaid COD order has nothing to refund.
+            $paid = (int) $order->payments()->where('status', 'confirmed')->sum('amount_cents');
+
+            if ($paid === 0) {
                 throw ValidationException::withMessages([
-                    'amount' => __('Refund would exceed the order total.'),
+                    'amount' => __('No payment has been collected for this order yet.'),
+                ]);
+            }
+
+            if ($alreadyRefunded + $amountCents > $paid) {
+                throw ValidationException::withMessages([
+                    'amount' => __('Refund would exceed the amount actually paid (:paid).', [
+                        'paid' => \App\Support\Money::format($paid, $order->currency),
+                    ]),
                 ]);
             }
 
@@ -62,7 +74,7 @@ final class CreateRefund
             $totalRefunded = $alreadyRefunded + $amountCents;
 
             $order->update([
-                'payment_status' => $totalRefunded >= $order->total_cents
+                'payment_status' => $totalRefunded >= $paid
                     ? PaymentStatus::Refunded
                     : PaymentStatus::PartiallyRefunded,
             ]);
