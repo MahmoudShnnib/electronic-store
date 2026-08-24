@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Actions\Returns;
 
-use App\Enums\OrderStatus;
 use App\Enums\ReturnStatus;
 use App\Models\Order;
 use App\Models\ProductReturn;
@@ -32,17 +31,15 @@ final class RequestReturn
             throw ValidationException::withMessages(['order' => __('This order does not belong to you.')]);
         }
 
-        if (! in_array($order->status, [OrderStatus::Delivered, OrderStatus::Completed], true)) {
+        if (! $order->status->allowsReturn()) {
             throw ValidationException::withMessages(['order' => __('Only delivered orders can be returned.')]);
         }
 
-        // Admin-editable via Settings; the env value is only the default.
-        $windowDays = (int) (Setting::get('return_window_days') ?? config('store.return_window_days'));
-        $deliveredAt = $order->delivered_at ?? $order->completed_at;
-
-        if ($deliveredAt !== null && $deliveredAt->addDays($windowDays)->isPast()) {
+        if (! $order->returnWindowIsOpen()) {
             throw ValidationException::withMessages([
-                'order' => __('The :days-day return window for this order has closed.', ['days' => $windowDays]),
+                'order' => __('The :days-day return window for this order has closed.', [
+                    'days' => (int) (Setting::get('return_window_days') ?? config('store.return_window_days')),
+                ]),
             ]);
         }
 

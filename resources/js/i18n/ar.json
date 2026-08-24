@@ -112,6 +112,8 @@
         "city": "المدينة",
         "select_city": "اختر المدينة",
         "search_city": "ابحث عن مدينة...",
+        "city_required": "اختر المدينة.",
+        "phone_hint": "رقم هاتف ليبي، مثل 0912345678",
         "area": "العنوان تحديدا",
         "notes": "ملاحظات التوصيل",
         "saved_addresses": "استخدم عنواناً محفوظاً",
@@ -151,6 +153,8 @@
         "return_reason": "السبب",
         "return_details": "أخبرنا المزيد (اختياري)",
         "return_photos": "صور (اختياري)",
+        "return_photos_type": "يُقبل فقط JPG أو PNG أو WebP.",
+        "return_photos_max": "يمكنك إرفاق {max} صور كحد أقصى.",
         "submit_return": "إرسال طلب الإرجاع",
         "returnable": "{count} قابل للإرجاع"
     },
@@ -246,6 +250,7 @@
             "switch_language": "تغيير اللغة"
         },
         "common": {
+            "id": "المعرّف",
             "save": "حفظ",
             "saving": "جارٍ الحفظ…",
             "cancel": "إلغاء",
@@ -376,7 +381,12 @@
             "pick_date": "اختر تاريخاً",
             "clear": "مسح",
             "time": "الوقت",
-            "done": "تم"
+            "done": "تم",
+            "fix_errors": "يرجى تصحيح الحقول التالية:",
+            "pending": "قيد الانتظار",
+            "approved": "مقبول",
+            "rejected": "مرفوض",
+            "resellable": "قابل لإعادة البيع"
         },
         "dashboard": {
             "title": "لوحة التحكم",
@@ -411,7 +421,55 @@
             "subject": "العنصر",
             "empty": "لا توجد قيود مطابقة للفلاتر.",
             "before": "قبل",
-            "after": "بعد"
+            "after": "بعد",
+            "events": {
+                "created": "إنشاء",
+                "deleted": "حذف",
+                "order_cancelled": "إلغاء طلب",
+                "order_status_changed": "تغيير حالة الطلب",
+                "payment_confirmed": "تأكيد الدفع",
+                "po_cancelled": "إلغاء أمر شراء",
+                "po_received": "استلام أمر شراء",
+                "po_sent": "إرسال أمر شراء",
+                "refund_created": "إصدار استرداد",
+                "reservation_shortfall": "نقص في المخزون المحجوز",
+                "restored": "استعادة",
+                "return_received": "استلام مرتجع",
+                "return_reviewed": "مراجعة مرتجع",
+                "role_created": "إنشاء دور",
+                "role_deleted": "حذف دور",
+                "role_updated": "تعديل دور",
+                "settings_updated": "تحديث الإعدادات",
+                "staff_created": "إنشاء حساب موظف",
+                "staff_updated": "تعديل حساب موظف",
+                "updated": "تعديل"
+            },
+            "fields": {
+                "barcode": "الباركود",
+                "brand_id": "العلامة التجارية",
+                "category_id": "الفئة",
+                "cost_price_cents": "سعر التكلفة",
+                "email": "البريد الإلكتروني",
+                "is_active": "مفعّل",
+                "is_featured": "مميز",
+                "low_stock_threshold": "حد المخزون المنخفض",
+                "name": "الاسم",
+                "name_ar": "الاسم (عربي)",
+                "phone": "رقم الهاتف",
+                "position": "الترتيب",
+                "price_cents": "السعر",
+                "published_at": "تاريخ النشر",
+                "quantity": "الكمية",
+                "sale_ends_at": "نهاية التخفيض",
+                "sale_price_cents": "سعر التخفيض",
+                "sale_starts_at": "بداية التخفيض",
+                "sku": "رمز المنتج",
+                "slug": "الرابط",
+                "status": "الحالة",
+                "supplier_id": "المورّد",
+                "tax_rate": "نسبة الضريبة",
+                "warranty_months": "الضمان (أشهر)"
+            }
         },
         "brands": {
             "title": "العلامات التجارية",
@@ -460,7 +518,9 @@
             "valid": "ساري",
             "expired": "منتهٍ/بلغ الحد",
             "disabled": "معطّل",
-            "delete_message": "حذف الكوبون «{code}»؟"
+            "delete_message": "حذف الكوبون «{code}»؟",
+            "history": "عرض عمليات الاستخدام",
+            "history_title": "عمليات استخدام {code}"
         },
         "customers": {
             "title": "العملاء",

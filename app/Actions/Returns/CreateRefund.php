@@ -10,6 +10,7 @@ use App\Enums\ReturnStatus;
 use App\Models\Order;
 use App\Models\ProductReturn;
 use App\Models\Refund;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -55,7 +56,7 @@ final class CreateRefund
             if ($alreadyRefunded + $amountCents > $paid) {
                 throw ValidationException::withMessages([
                     'amount' => __('Refund would exceed the amount actually paid (:paid).', [
-                        'paid' => \App\Support\Money::format($paid, $order->currency),
+                        'paid' => Money::format($paid, $order->currency),
                     ]),
                 ]);
             }

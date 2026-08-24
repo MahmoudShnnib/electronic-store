@@ -6,6 +6,7 @@ namespace App\Actions\Cart;
 
 use App\Models\Cart;
 use App\Models\Coupon;
+use App\Support\Money;
 use Illuminate\Validation\ValidationException;
 
 final class ApplyCoupon
@@ -33,7 +34,7 @@ final class ApplyCoupon
             if ($subtotal < $coupon->min_order_cents) {
                 throw ValidationException::withMessages([
                     'coupon' => __('This coupon requires a minimum order of :min.', [
-                        'min' => \App\Support\Money::format((int) $coupon->min_order_cents),
+                        'min' => Money::format((int) $coupon->min_order_cents),
                     ]),
                 ]);
             }

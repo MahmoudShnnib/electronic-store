@@ -34,6 +34,7 @@ const props = defineProps<{
         customer_note: string | null;
         created_at: string;
         cancellable: boolean;
+        returnable: boolean;
         items: {
             id: number;
             name: string;
@@ -77,7 +78,7 @@ function formatAddress(address: AddressSnapshot): string {
 
             <div class="flex flex-wrap gap-2">
                 <Link
-                    v-if="['delivered', 'completed'].includes(order.status)"
+                    v-if="order.returnable"
                     :href="route('account.returns.create', order.id)"
                     class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium transition hover:bg-muted"
                 >

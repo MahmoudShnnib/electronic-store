@@ -18,7 +18,7 @@ final class CalculateCartTotals
 {
     public function handle(Cart $cart, ?int $userId = null): CartTotals
     {
-        $cart->loadMissing(['items.product.images', 'items.variant', 'coupon']);
+        $cart->loadMissing(['items.product.images', 'items.variant.product', 'coupon']);
 
         $lines = [];
         $subtotal = 0;
@@ -103,6 +103,10 @@ final class CalculateCartTotals
     {
         if ($coupon === null) {
             return [0, null, null];
+        }
+
+        if ($coupon->trashed()) {
+            return [0, $coupon, __('This coupon is no longer available.')];
         }
 
         if (! $coupon->isCurrentlyValid()) {

@@ -45,6 +45,12 @@ enum OrderStatus: string
         return $this->canTransitionTo(self::Cancelled);
     }
 
+    /** Only a delivered order can be returned. */
+    public function allowsReturn(): bool
+    {
+        return in_array($this, [self::Delivered, self::Completed], true);
+    }
+
     /** Statuses where stock is still reserved (not yet shipped, not released). */
     public function holdsReservation(): bool
     {

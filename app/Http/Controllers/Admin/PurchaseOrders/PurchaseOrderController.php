@@ -48,7 +48,7 @@ final class PurchaseOrderController extends Controller implements HasMiddleware
 
         return redirect()
             ->route('admin.purchase-orders.show', $po)
-            ->with('success', "Purchase order {$po->po_number} created.");
+            ->with('success', __('Purchase order :number created.', ['number' => $po->po_number]));
     }
 
     public function show(PurchaseOrder $purchaseOrder): Response

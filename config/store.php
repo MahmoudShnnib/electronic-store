@@ -12,6 +12,16 @@ return [
 
     'currency' => env('STORE_CURRENCY', 'LYD'),
 
+    // Shown after the amount: `1,234.000 LYD`. Keyed by locale, falling back to
+    // the ISO code. ICU is not used for placement — it puts the code first in
+    // English, which is not how prices are read here.
+    'currency_symbols' => [
+        'ar' => 'د.ل.',
+    ],
+
+    // The store ships to one country; it is never a checkout input.
+    'country' => env('STORE_COUNTRY', 'LY'),
+
     // Payment methods offered at checkout. Bank transfer stays implemented but
     // hidden until it is added here.
     'payment_methods' => ['cod'],

@@ -39,7 +39,7 @@ final class ProductQueryService
             ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', (int) $request->query('category_id')))
             ->when($request->filled('brand_id'), fn ($q) => $q->where('brand_id', (int) $request->query('brand_id')))
             ->when(
-                in_array($request->query('sort'), ['name', 'sku', 'price_cents', 'created_at', 'stock_quantity'], true),
+                in_array($request->query('sort'), ['id', 'name', 'sku', 'price_cents', 'created_at', 'stock_quantity'], true),
                 fn ($q) => $q->orderBy((string) $request->query('sort'), $request->query('dir') === 'desc' ? 'desc' : 'asc'),
                 fn ($q) => $q->latest(),
             )

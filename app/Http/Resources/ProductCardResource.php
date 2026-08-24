@@ -46,7 +46,7 @@ final class ProductCardResource extends JsonResource
                 : null,
             'image' => $image !== null ? Storage::disk('public')->url($image->path) : null,
             'status' => $this->status->value,
-            'in_stock' => $this->status->isPurchasable(),
+            'in_stock' => $this->status->isPurchasable() && $this->availableQuantity() > 0,
             'has_variants' => (bool) $this->has_variants,
             'is_featured' => $this->is_featured,
             'rating_avg' => isset($this->rating_avg) ? round((float) $this->rating_avg, 1) : null,

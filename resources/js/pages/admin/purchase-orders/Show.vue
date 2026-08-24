@@ -184,7 +184,9 @@ function cancel(): void {
                     </div>
                     <div class="flex justify-between">
                         <dt>{{ t('admin.common.discount') }}</dt>
-                        <dd>−{{ purchaseOrder.discount_formatted }}</dd>
+                        <dd>
+                            <bdi dir="ltr">−{{ purchaseOrder.discount_formatted }}</bdi>
+                        </dd>
                     </div>
                     <div class="flex justify-between">
                         <dt>{{ t('admin.common.tax') }}</dt>

@@ -35,9 +35,17 @@ final class ReceivePurchaseOrder
             throw new InvalidArgumentException('Nothing to receive.');
         }
 
+        // Route-bound models arrive with nothing loaded and preventLazyLoading is on
+        // outside production, so every relation this action touches must be explicit.
+        $po->loadMissing(['warehouse', 'items']);
+
         return DB::transaction(function () use ($po, $quantities, $userId): PurchaseOrder {
             $warehouse = $po->warehouse;
-            $items = $po->items()->whereIn('id', array_keys($quantities))->lockForUpdate()->get();
+            $items = $po->items()
+                ->whereIn('id', array_keys($quantities))
+                ->with(['product', 'variant'])
+                ->lockForUpdate()
+                ->get();
 
             foreach ($quantities as $itemId => $quantity) {
                 $item = $items->firstWhere('id', $itemId);

@@ -112,6 +112,8 @@
         "city": "City",
         "select_city": "Select a city",
         "search_city": "Search for a city…",
+        "city_required": "Choose a city.",
+        "phone_hint": "Libyan mobile number, e.g. 0912345678",
         "area": "Exact address",
         "notes": "Delivery notes",
         "saved_addresses": "Use a saved address",
@@ -151,6 +153,8 @@
         "return_reason": "Reason",
         "return_details": "Tell us more (optional)",
         "return_photos": "Photos (optional)",
+        "return_photos_type": "Only JPG, PNG or WebP images are accepted.",
+        "return_photos_max": "You can attach at most {max} photos.",
         "submit_return": "Submit return request",
         "returnable": "{count} returnable"
     },
@@ -246,6 +250,7 @@
             "switch_language": "Switch language"
         },
         "common": {
+            "id": "ID",
             "save": "Save",
             "saving": "Saving…",
             "cancel": "Cancel",
@@ -376,7 +381,12 @@
             "pick_date": "Pick a date",
             "clear": "Clear",
             "time": "Time",
-            "done": "Done"
+            "done": "Done",
+            "fix_errors": "Please fix the highlighted fields:",
+            "pending": "Pending",
+            "approved": "Approved",
+            "rejected": "Rejected",
+            "resellable": "Resellable"
         },
         "dashboard": {
             "title": "Dashboard",
@@ -411,7 +421,55 @@
             "subject": "Subject",
             "empty": "No audit entries match the filters.",
             "before": "Before",
-            "after": "After"
+            "after": "After",
+            "events": {
+                "created": "Created",
+                "deleted": "Deleted",
+                "order_cancelled": "Order cancelled",
+                "order_status_changed": "Order status changed",
+                "payment_confirmed": "Payment confirmed",
+                "po_cancelled": "Purchase order cancelled",
+                "po_received": "Purchase order received",
+                "po_sent": "Purchase order sent",
+                "refund_created": "Refund issued",
+                "reservation_shortfall": "Reserved stock shortfall",
+                "restored": "Restored",
+                "return_received": "Return received",
+                "return_reviewed": "Return reviewed",
+                "role_created": "Role created",
+                "role_deleted": "Role deleted",
+                "role_updated": "Role updated",
+                "settings_updated": "Settings updated",
+                "staff_created": "Staff account created",
+                "staff_updated": "Staff account updated",
+                "updated": "Updated"
+            },
+            "fields": {
+                "barcode": "Barcode",
+                "brand_id": "Brand",
+                "category_id": "Category",
+                "cost_price_cents": "Cost price",
+                "email": "Email",
+                "is_active": "Active",
+                "is_featured": "Featured",
+                "low_stock_threshold": "Low stock threshold",
+                "name": "Name",
+                "name_ar": "Name (AR)",
+                "phone": "Phone",
+                "position": "Position",
+                "price_cents": "Price",
+                "published_at": "Published",
+                "quantity": "Quantity",
+                "sale_ends_at": "Sale ends",
+                "sale_price_cents": "Sale price",
+                "sale_starts_at": "Sale starts",
+                "sku": "SKU",
+                "slug": "Slug",
+                "status": "Status",
+                "supplier_id": "Supplier",
+                "tax_rate": "Tax rate",
+                "warranty_months": "Warranty (months)"
+            }
         },
         "brands": {
             "title": "Brands",
@@ -460,7 +518,9 @@
             "valid": "Valid",
             "expired": "Expired/limit",
             "disabled": "Disabled",
-            "delete_message": "Delete coupon “{code}”?"
+            "delete_message": "Delete coupon “{code}”?",
+            "history": "View redemptions",
+            "history_title": "Redemptions for {code}"
         },
         "customers": {
             "title": "Customers",

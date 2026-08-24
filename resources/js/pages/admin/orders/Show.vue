@@ -111,10 +111,21 @@ function submitNote(): void {
     noteForm.post(route('admin.orders.note', props.order.id), { preserveScroll: true });
 }
 
-function formatAddress(address: Address): string {
-    return [address.name, address.phone, [address.area, address.city, address.country].filter(Boolean).join(', '), address.notes]
-        .filter(Boolean)
-        .join(' · ');
+/**
+ * One labelled row per field. Joining the whole address into a single
+ * ` · `-separated string made a mistyped city indistinguishable from an area
+ * or a delivery note, which is exactly what an order screen has to show.
+ */
+function addressRows(address: Address): { label: string; value: string }[] {
+    return [
+        { label: t('admin.common.name'), value: address.name },
+        { label: t('admin.common.phone'), value: address.phone },
+        { label: t('checkout.city'), value: address.city },
+        { label: t('checkout.area'), value: address.area },
+        { label: t('admin.common.notes'), value: address.notes },
+    ]
+        .filter((row): row is { label: string; value: string } => Boolean(row.value))
+        .map((row) => ({ label: row.label, value: String(row.value) }));
 }
 </script>
 
@@ -168,7 +179,9 @@ function formatAddress(address: Address): string {
                             <td class="px-3 py-1.5 text-end text-gray-500">
                                 {{ t('admin.common.discount') }}<span v-if="order.coupon_code" class="ms-1 text-xs">({{ order.coupon_code }})</span>
                             </td>
-                            <td class="px-3 py-1.5 text-end">−{{ order.discount_formatted }}</td>
+                            <td class="px-3 py-1.5 text-end">
+                                <bdi dir="ltr">−{{ order.discount_formatted }}</bdi>
+                            </td>
                         </tr>
                         <tr>
                             <td colspan="5" />
@@ -190,9 +203,26 @@ function formatAddress(address: Address): string {
             <div class="grid gap-6 md:grid-cols-2">
                 <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                     <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.customer') }}</h2>
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ order.customer.name }}</p>
-                    <p class="text-sm text-gray-500">{{ order.customer.email }}</p>
-                    <p class="text-sm text-gray-500">{{ order.customer.phone }}</p>
+                    <!-- Labelled rows: three bare lines made a mistyped city or a
+                         swapped phone/email impossible to spot. -->
+                    <dl class="space-y-1 text-sm">
+                        <div class="flex gap-2">
+                            <dt class="w-24 shrink-0 text-gray-400">{{ t('admin.common.name') }}</dt>
+                            <dd class="font-medium text-gray-900 dark:text-gray-100">{{ order.customer.name || '—' }}</dd>
+                        </div>
+                        <div class="flex gap-2">
+                            <dt class="w-24 shrink-0 text-gray-400">{{ t('admin.common.email') }}</dt>
+                            <dd class="text-gray-600 dark:text-gray-300">
+                                <bdi dir="ltr">{{ order.customer.email || '—' }}</bdi>
+                            </dd>
+                        </div>
+                        <div class="flex gap-2">
+                            <dt class="w-24 shrink-0 text-gray-400">{{ t('admin.common.phone') }}</dt>
+                            <dd class="text-gray-600 dark:text-gray-300">
+                                <bdi dir="ltr">{{ order.customer.phone || '—' }}</bdi>
+                            </dd>
+                        </div>
+                    </dl>
                     <Link
                         v-if="order.account"
                         :href="route('admin.customers.show', order.account.id)"
@@ -202,7 +232,12 @@ function formatAddress(address: Address): string {
                     <p v-else class="mt-2 text-xs text-gray-400">{{ t('admin.orders.guest_checkout') }}</p>
 
                     <h3 class="mt-4 text-xs font-semibold uppercase text-gray-400">{{ t('admin.orders.shipping_address') }}</h3>
-                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ formatAddress(order.shipping_address) }}</p>
+                    <dl class="mt-1 space-y-1 text-sm">
+                        <div v-for="row in addressRows(order.shipping_address)" :key="row.label" class="flex gap-2">
+                            <dt class="w-24 shrink-0 text-gray-400">{{ row.label }}</dt>
+                            <dd class="text-gray-600 dark:text-gray-300">{{ row.value }}</dd>
+                        </div>
+                    </dl>
 
                     <template v-if="order.customer_note">
                         <h3 class="mt-3 text-xs font-semibold uppercase text-gray-400">{{ t('admin.orders.customer_note') }}</h3>

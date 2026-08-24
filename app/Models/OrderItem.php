@@ -56,14 +56,12 @@ final class OrderItem extends Model
     }
 
     /**
-     * Quantity already covered by return requests. Only a rejected request
-     * frees its quantities for another attempt — a closed return is a
-     * *finished* one (received/refunded), so its items stay counted.
+     * Quantity already covered by return requests — rejected ones included.
+     * The admin's rejection is final; leaving it uncounted let the customer
+     * submit the same items again until one request happened to be approved.
      */
     public function returnedQuantity(): int
     {
-        return (int) $this->returnItems()
-            ->whereHas('productReturn', fn ($q) => $q->where('status', '!=', 'rejected'))
-            ->sum('quantity');
+        return (int) $this->returnItems()->sum('quantity');
     }
 }

@@ -26,6 +26,7 @@ return [
     'size' => [
         'string' => 'يجب أن يكون طول :attribute :size أحرف.',
     ],
+    'phone_ly' => 'أدخل رقم هاتف ليبي صالح، مثل 0912345678 أو ‎+218912345678.',
 
     'attributes' => [
         'customer.name' => 'الاسم الكامل',

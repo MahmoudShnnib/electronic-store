@@ -32,11 +32,11 @@ final class TransferStock
         ?int $userId = null,
     ): StockTransfer {
         if ($from->id === $to->id) {
-            throw new InvalidArgumentException('Source and destination warehouses must differ.');
+            throw new InvalidArgumentException(__('Source and destination warehouses must differ.'));
         }
 
         if ($items === []) {
-            throw new InvalidArgumentException('A transfer needs at least one item.');
+            throw new InvalidArgumentException(__('A transfer needs at least one item.'));
         }
 
         return DB::transaction(function () use ($from, $to, $items, $notes, $userId): StockTransfer {

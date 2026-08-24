@@ -101,7 +101,9 @@ function printInvoice(): void {
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-gray-500">{{ t('admin.common.discount') }}</dt>
-                        <dd>−{{ order.discount_formatted }}</dd>
+                        <dd>
+                            <bdi dir="ltr">−{{ order.discount_formatted }}</bdi>
+                        </dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-gray-500">{{ t('admin.common.tax') }}</dt>

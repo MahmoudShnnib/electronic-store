@@ -15,6 +15,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\StockLevel;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Notifications\OrderPlacedNotification;
@@ -164,7 +165,7 @@ final class PlaceOrder
     {
         $default = Warehouse::default();
 
-        $stocked = \App\Models\StockLevel::query()
+        $stocked = StockLevel::query()
             ->where('product_id', $line->product->id)
             ->where('product_variant_id', $line->variant?->id)
             ->where('quantity', '>=', $line->quantity)

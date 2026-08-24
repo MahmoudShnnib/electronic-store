@@ -72,7 +72,7 @@ it('runs a full guest cart → checkout flow with a cart token', function (): vo
     expect($token)->not->toBeNull();
 
     $checkout = $this->withHeader('X-Cart-Token', $token)->postJson('/api/v1/checkout', [
-        'customer' => ['name' => 'Guest', 'email' => 'guest@test.dev', 'phone' => '091'],
+        'customer' => ['name' => 'Guest', 'email' => 'guest@test.dev', 'phone' => '0912345678'],
         'shipping_address' => ['country' => 'LY', 'city' => 'Tripoli', 'area' => 'Downtown'],
         'payment_method' => 'cod',
         'idempotency_key' => 'api-guest-1',
@@ -93,7 +93,7 @@ it('replays checkout idempotently', function (): void {
     Sanctum::actingAs($user);
 
     $payload = [
-        'customer' => ['name' => 'U', 'email' => $user->email, 'phone' => '091'],
+        'customer' => ['name' => 'U', 'email' => $user->email, 'phone' => '0912345678'],
         'shipping_address' => ['country' => 'LY', 'city' => 'Tripoli', 'area' => 'Downtown'],
         'payment_method' => 'cod',
         'idempotency_key' => 'api-idem-1',
@@ -115,7 +115,7 @@ it('scopes orders to the authenticated user (no IDOR)', function (): void {
     Sanctum::actingAs($owner);
     $this->postJson('/api/v1/cart/items', ['product_id' => $product->id, 'quantity' => 1]);
     $this->postJson('/api/v1/checkout', [
-        'customer' => ['name' => 'O', 'email' => $owner->email, 'phone' => '091'],
+        'customer' => ['name' => 'O', 'email' => $owner->email, 'phone' => '0912345678'],
         'shipping_address' => ['country' => 'LY', 'city' => 'Tripoli', 'area' => 'Downtown'],
         'payment_method' => 'cod',
     ])->assertCreated();

@@ -146,6 +146,17 @@ const visibleGroups = computed(() => {
 
 const visibleAttributeIds = computed(() => new Set(visibleGroups.value.flatMap((group) => group.attributes.map((a) => a.id))));
 
+/** Nested keys like `variants.0.sku` — Inertia flattens them, so read them flat. */
+function err(key: string): string | undefined {
+    return (form.errors as Record<string, string>)[key];
+}
+
+/**
+ * A 422 on a nested field used to render nowhere, and preserveScroll kept the
+ * user pinned to the button — so a rejected save looked like a dead button.
+ */
+const errorSummary = computed(() => Object.values(form.errors as Record<string, string>).filter(Boolean));
+
 function submit(): void {
     // Normalize empty selects to null.
     form.transform((data) => ({
@@ -159,8 +170,15 @@ function submit(): void {
         variants: data.variants,
         // Drop values for attributes the selected category doesn't have, so
         // switching category cleans up specs that no longer belong.
+        // Vue's v-model on a `type="number"` input casts to a JS number, but
+        // the backend validates `value` as a string — cast back before sending.
         specifications: Object.fromEntries(
-            Object.entries(data.specifications).filter(([attributeId]) => visibleAttributeIds.value.has(Number(attributeId))),
+            Object.entries(data.specifications)
+                .filter(([attributeId]) => visibleAttributeIds.value.has(Number(attributeId)))
+                .map(([attributeId, spec]) => [
+                    attributeId,
+                    { ...spec, value: spec.value === '' || spec.value === null ? spec.value : String(spec.value) },
+                ]),
         ),
     }));
 
@@ -376,25 +394,25 @@ function deleteImage(image: ProductImage): void {
                         </button>
                     </div>
                     <div class="grid gap-3 sm:grid-cols-3">
-                        <Field :label="t('admin.common.name')" required>
+                        <Field :label="t('admin.common.name')" required :error="err(`variants.${index}.name`)">
                             <input v-model="variant.name" type="text" :placeholder="t('admin.products.variant_hint')" :class="inputClass" dir="ltr" />
                         </Field>
-                        <Field :label="t('admin.common.sku')" required>
+                        <Field :label="t('admin.common.sku')" required :error="err(`variants.${index}.sku`)">
                             <input v-model="variant.sku" type="text" :class="inputClass" dir="ltr" />
                         </Field>
-                        <Field :label="t('admin.products.barcode')">
+                        <Field :label="t('admin.products.barcode')" :error="err(`variants.${index}.barcode`)">
                             <input v-model="variant.barcode" type="text" :class="inputClass" dir="ltr" />
                         </Field>
-                        <Field :label="t('admin.products.cost_price')">
+                        <Field :label="t('admin.products.cost_price')" :error="err(`variants.${index}.cost_price`)">
                             <input v-model.number="variant.cost_price" type="number" step="0.01" min="0" :class="inputClass" />
                         </Field>
-                        <Field :label="t('admin.common.price')" required>
+                        <Field :label="t('admin.common.price')" required :error="err(`variants.${index}.price`)">
                             <input v-model.number="variant.price" type="number" step="0.01" min="0" :class="inputClass" />
                         </Field>
-                        <Field :label="t('admin.products.sale_price')">
+                        <Field :label="t('admin.products.sale_price')" :error="err(`variants.${index}.sale_price`)">
                             <input v-model.number="variant.sale_price" type="number" step="0.01" min="0" :class="inputClass" />
                         </Field>
-                        <Field :label="t('admin.common.low_stock_threshold')">
+                        <Field :label="t('admin.common.low_stock_threshold')" :error="err(`variants.${index}.low_stock_threshold`)">
                             <input v-model.number="variant.low_stock_threshold" type="number" min="0" :class="inputClass" />
                         </Field>
                         <label class="mt-6 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -455,14 +473,24 @@ function deleteImage(image: ProductImage): void {
                     <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{{ group.name }}</p>
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div v-for="attribute in group.attributes" :key="attribute.id" class="grid grid-cols-2 gap-2">
-                            <Field :label="attribute.unit ? `${attribute.name} (${attribute.unit})` : attribute.name">
+                            <Field
+                                :label="attribute.unit ? `${attribute.name} (${attribute.unit})` : attribute.name"
+                                :error="err(`specifications.${attribute.id}.value`)"
+                            >
+                                <!--
+                                    step="any": a bare number input defaults to step=1, so a
+                                    screen size of 6.8 failed native constraint validation and
+                                    silently blocked the whole form from submitting — which is
+                                    what "Save does nothing on some products" actually was.
+                                -->
                                 <input
                                     v-model="specFor(attribute.id).value"
                                     :type="attribute.type === 'number' ? 'number' : 'text'"
+                                    :step="attribute.type === 'number' ? 'any' : undefined"
                                     :class="inputClass"
                                 />
                             </Field>
-                            <Field :label="`${attribute.name} (AR)`">
+                            <Field :label="`${attribute.name} (AR)`" :error="err(`specifications.${attribute.id}.value_ar`)">
                                 <input v-model="specFor(attribute.id).value_ar" type="text" dir="rtl" :class="inputClass" />
                             </Field>
                         </div>
@@ -559,6 +587,16 @@ function deleteImage(image: ProductImage): void {
                     </Field>
                 </div>
             </section>
+
+            <div
+                v-if="errorSummary.length > 0"
+                class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+            >
+                <p class="mb-1 font-semibold">{{ t('admin.common.fix_errors') }}</p>
+                <ul class="list-inside list-disc space-y-0.5">
+                    <li v-for="(message, index) in errorSummary" :key="index">{{ message }}</li>
+                </ul>
+            </div>
 
             <div class="flex gap-3">
                 <button type="submit" :disabled="form.processing" :class="btnPrimary" class="flex-1 justify-center">

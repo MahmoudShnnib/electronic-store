@@ -34,6 +34,7 @@ interface CouponRow extends Record<string, unknown> {
     usage_limit: number | null;
     per_customer_limit: number | null;
     used_count: number;
+    redemptions: { id: number; customer: string; order_number: string | null; amount_formatted: string; at: string }[];
     applies_to: string;
     applies_to_ids: number[] | null;
     starts_at: string | null;
@@ -59,9 +60,11 @@ const columns: Column[] = [
 
 const modalOpen = ref(false);
 const editing = ref<CouponRow | null>(null);
+/** "Used" was a bare number with no way to see what it was spent on. */
+const history = ref<CouponRow | null>(null);
 const deleting = ref<CouponRow | null>(null);
 
-const form = useForm({
+const blank = {
     code: '',
     type: 'fixed',
     value: null as number | null,
@@ -75,10 +78,15 @@ const form = useForm({
     starts_at: '',
     expires_at: '',
     is_active: true,
-});
+};
+
+const form = useForm({ ...blank });
 
 function openCreate(): void {
     editing.value = null;
+    // Inertia 2 promotes the submitted data to the form's defaults on success,
+    // so a bare reset() re-opened "New coupon" pre-filled with the last one.
+    form.defaults({ ...blank });
     form.reset();
     form.clearErrors();
     modalOpen.value = true;
@@ -152,7 +160,15 @@ function destroy(): void {
             <span class="font-mono font-medium text-gray-900 dark:text-gray-100">{{ row.code }}</span>
         </template>
         <template #cell-used_count="{ row }">
-            {{ row.used_count }}<span v-if="row.usage_limit" class="text-gray-400"> / {{ row.usage_limit }}</span>
+            <button
+                type="button"
+                class="text-blue-600 hover:underline disabled:text-inherit disabled:no-underline dark:text-blue-400"
+                :disabled="row.redemptions.length === 0"
+                :title="t('admin.coupons.history')"
+                @click="history = row"
+            >
+                {{ row.used_count }}<span v-if="row.usage_limit" class="text-gray-400"> / {{ row.usage_limit }}</span>
+            </button>
         </template>
         <template #cell-is_active="{ row }">
             <StatusBadge
@@ -193,7 +209,7 @@ function destroy(): void {
                     <input v-model.number="form.max_discount" type="number" step="0.01" min="0" :class="inputClass" />
                 </Field>
                 <Field :label="t('admin.coupons.minimum_order')" :error="form.errors.min_order">
-                    <input v-model.number="form.min_order" type="number" step="0.01" min="0" :class="inputClass" />
+                    <input v-model.number="form.min_order" type="number" step="1" min="1" :class="inputClass" />
                 </Field>
                 <Field :label="t('admin.coupons.usage_limit')" :error="form.errors.usage_limit">
                     <input v-model.number="form.usage_limit" type="number" min="1" :class="inputClass" />
@@ -250,4 +266,25 @@ function destroy(): void {
         @confirm="destroy"
         @close="deleting = null"
     />
+
+    <FormModal :open="history !== null" :title="t('admin.coupons.history_title', { code: history?.code ?? '' })" @close="history = null">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-200 text-start text-gray-400 dark:border-gray-800">
+                    <th class="py-1.5 pe-4 text-start font-medium">{{ t('admin.common.customer') }}</th>
+                    <th class="py-1.5 pe-4 text-start font-medium">{{ t('admin.common.order') }}</th>
+                    <th class="py-1.5 pe-4 text-start font-medium">{{ t('admin.common.amount') }}</th>
+                    <th class="py-1.5 text-start font-medium">{{ t('admin.common.date') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="entry in history?.redemptions ?? []" :key="entry.id" class="border-b border-gray-100 dark:border-gray-800">
+                    <td class="py-1.5 pe-4 text-gray-800 dark:text-gray-200">{{ entry.customer }}</td>
+                    <td class="py-1.5 pe-4 text-gray-500">{{ entry.order_number ?? '—' }}</td>
+                    <td class="py-1.5 pe-4 text-gray-800 dark:text-gray-200">{{ entry.amount_formatted }}</td>
+                    <td class="py-1.5 text-gray-400">{{ entry.at }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </FormModal>
 </template>
