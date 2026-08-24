@@ -18,6 +18,16 @@ final class Product extends Model
 {
     use HasFactory, LogsActivity, SoftDeletes;
 
+    /**
+     * What the shopper actually pays right now: the sale price while the sale
+     * is live, the regular price otherwise. Shared by storefront and API
+     * filtering/sorting so a price sort never ignores an expired/future sale.
+     */
+    public const EFFECTIVE_PRICE = '(CASE WHEN sale_price_cents IS NOT NULL'
+        .' AND (sale_starts_at IS NULL OR sale_starts_at <= NOW())'
+        .' AND (sale_ends_at IS NULL OR sale_ends_at >= NOW())'
+        .' THEN sale_price_cents ELSE price_cents END)';
+
     protected $fillable = [
         'category_id', 'brand_id', 'supplier_id', 'name', 'name_ar', 'slug', 'sku',
         'barcode', 'short_description', 'short_description_ar', 'description',
@@ -118,13 +128,12 @@ final class Product extends Model
 
     // -- Pricing --------------------------------------------------------------
 
-    /** Whether the sale price is currently in effect (inside its schedule window). */
-    public function saleIsActive(): bool
+    /**
+     * Whether the sale schedule is open right now, ignoring whether a sale price
+     * is set. Variants have no schedule of their own and follow this window.
+     */
+    public function saleWindowIsOpen(): bool
     {
-        if ($this->sale_price_cents === null) {
-            return false;
-        }
-
         if ($this->sale_starts_at !== null && $this->sale_starts_at->isFuture()) {
             return false;
         }
@@ -134,6 +143,12 @@ final class Product extends Model
         }
 
         return true;
+    }
+
+    /** Whether the sale price is currently in effect (inside its schedule window). */
+    public function saleIsActive(): bool
+    {
+        return $this->sale_price_cents !== null && $this->saleWindowIsOpen();
     }
 
     /** The price a customer pays right now, in cents. */
@@ -152,6 +167,22 @@ final class Product extends Model
     public function scopePurchasable(Builder $query): Builder
     {
         return $query->where('status', ProductStatus::Active);
+    }
+
+    /**
+     * Sellable units across every warehouse, variants included (variant stock
+     * rows carry this product's id too). Nothing ever flips a product to
+     * `out_of_stock`, so the grid has to ask the warehouse, not the status.
+     */
+    public function scopeWithStock(Builder $query): Builder
+    {
+        return $query->withSum(['stockLevels as stock_quantity' => fn ($q) => $q->sellable()], 'quantity');
+    }
+
+    /** Falls back to a query only when scopeWithStock() was not applied. */
+    public function availableQuantity(): int
+    {
+        return (int) ($this->stock_quantity ?? $this->stockLevels()->sellable()->sum('quantity'));
     }
 
     public function scopeFeatured(Builder $query): Builder

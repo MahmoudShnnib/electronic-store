@@ -74,6 +74,7 @@ final class CatalogController extends Controller
             ->with(['brand:id,name,slug', 'images'])
             ->withAvg('approvedReviews as rating_avg', 'rating')
             ->withCount('approvedReviews as rating_count')
+            ->withStock()
             ->when($category !== null, function (Builder $q) use ($category): void {
                 $ids = [$category->id, ...$category->children()->pluck('id')->all()];
                 $q->whereIn('category_id', $ids);
@@ -88,28 +89,22 @@ final class CatalogController extends Controller
                 'category_id',
                 array_filter(array_map('intval', (array) $request->query('categories'))),
             ))
-            ->when($request->filled('min_price'), fn (Builder $q) => $q->whereRaw(self::EFFECTIVE_PRICE.' >= ?', [(int) ((float) $request->query('min_price') * 100)]))
-            ->when($request->filled('max_price'), fn (Builder $q) => $q->whereRaw(self::EFFECTIVE_PRICE.' <= ?', [(int) ((float) $request->query('max_price') * 100)]))
-            ->when($request->boolean('in_stock'), fn (Builder $q) => $q->purchasable())
+            ->when($request->filled('min_price'), fn (Builder $q) => $q->whereRaw(Product::EFFECTIVE_PRICE.' >= ?', [(int) ((float) $request->query('min_price') * 100)]))
+            ->when($request->filled('max_price'), fn (Builder $q) => $q->whereRaw(Product::EFFECTIVE_PRICE.' <= ?', [(int) ((float) $request->query('max_price') * 100)]))
+            // "In stock" means units on a shelf, not merely an active status —
+            // nothing in the app ever sets ProductStatus::OutOfStock.
+            ->when($request->boolean('in_stock'), fn (Builder $q) => $q
+                ->purchasable()
+                ->whereHas('stockLevels', fn (Builder $s) => $s->sellable()->where('quantity', '>', 0)))
             ->when($request->boolean('on_sale'), fn (Builder $q) => $q->onSale())
             ->tap(fn (Builder $q) => $this->applySort($q, (string) $request->query('sort', 'newest')));
     }
 
-    /**
-     * What the shopper actually pays right now: the sale price while the sale
-     * is live, the regular price otherwise. Used by both filtering and sorting
-     * so a max-price filter never hides an item whose *sale* price qualifies.
-     */
-    private const EFFECTIVE_PRICE = '(CASE WHEN sale_price_cents IS NOT NULL'
-        .' AND (sale_starts_at IS NULL OR sale_starts_at <= NOW())'
-        .' AND (sale_ends_at IS NULL OR sale_ends_at >= NOW())'
-        .' THEN sale_price_cents ELSE price_cents END)';
-
     private function applySort(Builder $query, string $sort): void
     {
         match ($sort) {
-            'price_asc' => $query->orderByRaw(self::EFFECTIVE_PRICE.' ASC'),
-            'price_desc' => $query->orderByRaw(self::EFFECTIVE_PRICE.' DESC'),
+            'price_asc' => $query->orderByRaw(Product::EFFECTIVE_PRICE.' ASC'),
+            'price_desc' => $query->orderByRaw(Product::EFFECTIVE_PRICE.' DESC'),
             'name' => $query->orderBy('name'),
             'best_selling' => $query->addSelect([
                 'sold_count' => OrderItem::query()

@@ -53,6 +53,7 @@ final class ProductPageService
             ->with(['brand:id,name,slug', 'images'])
             ->withAvg('approvedReviews as rating_avg', 'rating')
             ->withCount('approvedReviews as rating_count')
+            ->withStock()
             ->inRandomOrder()
             ->take(8)
             ->get();
@@ -102,7 +103,7 @@ final class ProductPageService
                     'price_cents' => $v->price_cents,
                     'current_price_cents' => $v->currentPriceCents(),
                     'current_price_formatted' => Money::format($v->currentPriceCents()),
-                    'on_sale' => $v->sale_price_cents !== null,
+                    'on_sale' => $v->saleIsActive(),
                     'image' => $v->image_path !== null ? Storage::disk('public')->url($v->image_path) : null,
                     'available' => $availability['variants'][$v->id] ?? 0,
                 ]),
@@ -133,7 +134,8 @@ final class ProductPageService
     private function availability(Product $product): array
     {
         $levels = $product->stockLevels()
-            ->selectRaw('product_variant_id, SUM(quantity) as qty')
+            ->sellable()
+            ->selectRaw('product_variant_id, MAX(quantity) as qty')
             ->groupBy('product_variant_id')
             ->pluck('qty', 'product_variant_id');
 

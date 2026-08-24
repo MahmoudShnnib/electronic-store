@@ -46,6 +46,13 @@ final class RecordMovement
             throw new RuntimeException('RecordMovement must run inside a database transaction.');
         }
 
+        // Once a product has variants, product-level stock can only be drained (the
+        // migration in SaveProduct does this), never topped up — otherwise it becomes
+        // an orphaned row that AddToCart/PlaceOrder never look at (B23 residual).
+        if ($variant === null && $product->has_variants && $quantityChange > 0) {
+            throw new RuntimeException('Cannot add product-level stock once a product has variants; choose a variant.');
+        }
+
         $stock = $this->lockedStockRow($warehouse, $product, $variant);
 
         $before = $stock->quantity;
@@ -60,12 +67,12 @@ final class RecordMovement
             );
         }
 
-        if ($stock->reserved + $reservedChange < 0) {
-            throw new RuntimeException('Reserved stock cannot go negative.');
-        }
-
         $stock->quantity = $after;
-        $stock->reserved += $reservedChange;
+        // `reserved` is a counter, not sellable stock: clamp it like `damaged`
+        // and `incoming` below. Throwing here meant that one drifted row made
+        // cancelling an order fail inside the transaction, leaving the order
+        // stuck on its old status with nothing to explain it.
+        $stock->reserved = max(0, $stock->reserved + $reservedChange);
         $stock->damaged = max(0, $stock->damaged + $damagedChange);
         $stock->incoming = max(0, $stock->incoming + $incomingChange);
         $stock->save();

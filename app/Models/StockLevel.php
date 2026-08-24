@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -44,14 +45,23 @@ final class StockLevel extends Model
         return $this->belongsTo(Warehouse::class);
     }
 
+    /** Stock sitting in an inactive warehouse isn't sellable — a single order still ships from one active warehouse. */
+    public function scopeSellable(Builder $query): Builder
+    {
+        return $query->whereHas('warehouse', fn ($w) => $w->where('is_active', true));
+    }
+
+    // Products and variants soft-delete, but their stock rows stay behind. Without
+    // withTrashed() the relation resolves to null and every reader of ->product->name
+    // blows up with "Attempt to read property on null".
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 
     public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id')->withTrashed();
     }
 
     public function available(): int

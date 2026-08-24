@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Actions\Catalog;
 
+use App\Actions\Inventory\RecordMovement;
+use App\Enums\MovementType;
 use App\Enums\PriceType;
 use App\Models\PriceHistory;
 use App\Models\Product;
@@ -164,7 +166,7 @@ final class SaveProduct
             return;
         }
 
-        $recordMovement = app(\App\Actions\Inventory\RecordMovement::class);
+        $recordMovement = app(RecordMovement::class);
 
         $levels = $product->stockLevels()
             ->whereNull('product_variant_id')
@@ -174,7 +176,7 @@ final class SaveProduct
 
         foreach ($levels as $level) {
             $recordMovement->handle(
-                type: \App\Enums\MovementType::Correction,
+                type: MovementType::Correction,
                 warehouse: $level->warehouse,
                 product: $product,
                 quantityChange: -$level->quantity,
@@ -183,7 +185,7 @@ final class SaveProduct
             );
 
             $recordMovement->handle(
-                type: \App\Enums\MovementType::Correction,
+                type: MovementType::Correction,
                 warehouse: $level->warehouse,
                 product: $product,
                 variant: $variant,
@@ -199,7 +201,10 @@ final class SaveProduct
      */
     private function syncSpecifications(Product $product, array $specifications): void
     {
-        $product->specificationValues()->delete();
+        // Only touch attributes present in this submission — the form hides attributes
+        // out of the product's category scope, so a blanket delete would silently wipe
+        // values for any attribute not currently visible on the form.
+        $product->specificationValues()->whereIn('specification_attribute_id', array_keys($specifications))->delete();
 
         foreach ($specifications as $attributeId => $value) {
             if (trim($value['value'] ?? '') === '') {

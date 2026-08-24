@@ -36,7 +36,7 @@ final class CartPayload
                 'line_discount_cents' => $line->lineDiscountCents,
                 'line_total_cents' => $line->lineTotalCents,
                 'line_total_formatted' => Money::format($line->lineTotalCents),
-                'purchasable' => $line->product->status->isPurchasable(),
+                'purchasable' => $line->product->status->isPurchasable() && self::available($line) > 0,
             ], $totals->lines),
             'item_count' => $totals->itemCount(),
             'subtotal_cents' => $totals->subtotalCents,
@@ -50,6 +50,22 @@ final class CartPayload
             'coupon' => $totals->coupon?->only(['code', 'type']),
             'coupon_error' => $totals->couponError,
         ];
+    }
+
+    /**
+     * Sellable units for exactly what this line points at. An active status is
+     * not stock — nothing in the app ever sets ProductStatus::OutOfStock.
+     */
+    private static function available(CartLine $line): int
+    {
+        return (int) $line->product->stockLevels()
+            ->when(
+                $line->variant !== null,
+                fn ($q) => $q->where('product_variant_id', $line->variant->id),
+                fn ($q) => $q->whereNull('product_variant_id'),
+            )
+            ->sellable()
+            ->max('quantity');
     }
 
     private static function imageUrl(CartLine $line): ?string
