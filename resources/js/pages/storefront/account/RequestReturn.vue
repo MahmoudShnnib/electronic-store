@@ -2,6 +2,7 @@
 import StoreLayout from '@/layouts/StoreLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
@@ -15,14 +16,14 @@ interface ReturnableItem {
 
 const props = defineProps<{
     order: { id: number; number: string; items: ReturnableItem[] };
-    reasons: string[];
+    reasons: { value: string; label: string }[];
 }>();
 
 const { t } = useI18n();
 
 const form = useForm({
     items: [] as { order_item_id: number; quantity: number }[],
-    reason: props.reasons[0] ?? 'other',
+    reason: props.reasons[0]?.value ?? 'other',
     customer_note: '',
     images: [] as File[],
 });
@@ -43,10 +44,31 @@ function setQuantity(itemId: number, quantity: number, max: number) {
     if (entry) entry.quantity = Math.min(max, Math.max(1, quantity));
 }
 
+const MAX_PHOTOS = 5;
+const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const photoError = ref<string | null>(null);
+
+/**
+ * `accept` on the input is only a hint — the file dialog's "All files" option
+ * walks right past it. Rejecting here (instead of silently truncating) is what
+ * turns a dead form into an explained one.
+ */
 function onFiles(event: Event) {
-    const input = event.target as HTMLInputElement;
-    form.images = Array.from(input.files ?? []).slice(0, 5);
+    const picked = Array.from((event.target as HTMLInputElement).files ?? []);
+    const accepted = picked.filter((file) => ALLOWED_PHOTO_TYPES.includes(file.type));
+
+    photoError.value =
+        accepted.length < picked.length
+            ? t('account.return_photos_type')
+            : picked.length > MAX_PHOTOS
+              ? t('account.return_photos_max', { max: MAX_PHOTOS })
+              : null;
+
+    form.images = accepted.slice(0, MAX_PHOTOS);
 }
+
+/** Laravel reports per-file failures as `images.0`, `images.1`, … */
+const imageError = computed(() => photoError.value ?? Object.entries(form.errors).find(([key]) => key.startsWith('images'))?.[1]);
 
 function submit() {
     form.post(route('account.returns.store', props.order.id));
@@ -113,8 +135,8 @@ function submit() {
                 <section class="rounded-xl border border-border bg-card p-5">
                     <h2 class="mb-3 font-semibold">{{ t('account.return_reason') }}</h2>
                     <select v-model="form.reason" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
-                        <option v-for="reason in reasons" :key="reason" :value="reason">
-                            {{ reason.replaceAll('_', ' ') }}
+                        <option v-for="reason in reasons" :key="reason.value" :value="reason.value">
+                            {{ reason.label }}
                         </option>
                     </select>
                     <p v-if="form.errors.reason" class="mt-1 text-xs text-red-500">{{ form.errors.reason }}</p>
@@ -130,6 +152,7 @@ function submit() {
                         class="block w-full text-sm text-muted-foreground file:me-3 file:rounded-lg file:border-0 file:bg-neutral-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-black dark:file:bg-neutral-800 dark:file:text-white"
                         @change="onFiles"
                     />
+                    <p v-if="imageError" class="mt-1 text-xs text-red-500">{{ imageError }}</p>
                 </section>
 
                 <button

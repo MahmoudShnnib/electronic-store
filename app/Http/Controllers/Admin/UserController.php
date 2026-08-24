@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Users\StoreUserRequest;
 use App\Http\Requests\Admin\Users\UpdateUserRequest;
 use App\Models\User;
+use App\Support\Dates;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -42,7 +43,7 @@ final class UserController extends Controller implements HasMiddleware
                 'email' => $u->email,
                 'roles' => $u->roles->pluck('name'),
                 'is_active' => $u->is_active,
-                'last_login_at' => $u->last_login_at?->diffForHumans(),
+                'last_login_at' => Dates::relative($u->last_login_at),
             ]);
 
         return Inertia::render('admin/users/Index', [

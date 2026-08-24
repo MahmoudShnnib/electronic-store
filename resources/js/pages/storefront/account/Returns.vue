@@ -14,7 +14,7 @@ interface ReturnRow {
     order_number: string;
     status: string;
     status_label: string;
-    reason: string;
+    reason_label: string;
     created_at: string;
 }
 
@@ -58,7 +58,7 @@ const statusColors: Record<string, string> = {
                     <tr v-for="row in returns.data" :key="row.id" class="border-b border-border last:border-0">
                         <td class="px-4 py-3 font-medium">{{ row.rma_number }}</td>
                         <td class="px-4 py-3">{{ row.order_number }}</td>
-                        <td class="px-4 py-3 text-muted-foreground">{{ row.reason }}</td>
+                        <td class="px-4 py-3 text-muted-foreground">{{ row.reason_label }}</td>
                         <td class="px-4 py-3">
                             <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="statusColors[row.status] ?? 'bg-muted'">
                                 {{ row.status_label }}

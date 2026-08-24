@@ -20,7 +20,7 @@ interface ReturnRow extends Record<string, unknown> {
     customer: string;
     status: string;
     status_label: string;
-    reason: string;
+    reason_label: string;
     items_count: number;
     created_at: string;
 }
@@ -61,7 +61,7 @@ const columns: Column[] = [
             </Link>
         </template>
         <template #cell-reason="{ row }">
-            <span class="capitalize">{{ String(row.reason).replaceAll('_', ' ') }}</span>
+            <span>{{ row.reason_label }}</span>
         </template>
         <template #cell-status="{ row }">
             <StatusBadge :status="row.status" :label="row.status_label" />

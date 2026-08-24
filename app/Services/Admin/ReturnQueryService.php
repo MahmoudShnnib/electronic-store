@@ -40,7 +40,7 @@ final class ReturnQueryService
                 'customer' => $r->user?->name ?? '—',
                 'status' => $r->status->value,
                 'status_label' => $r->status->label(),
-                'reason' => $r->reason,
+                'reason_label' => $r->reason->label(),
                 'items_count' => (int) $r->items_count,
                 'created_at' => $r->created_at->toDateTimeString(),
             ]);
@@ -84,7 +84,7 @@ final class ReturnQueryService
                     fn (ReturnStatus $s) => ['value' => $s->value, 'label' => $s->label()],
                     $productReturn->status->allowedTransitions(),
                 ),
-                'reason' => $productReturn->reason,
+                'reason_label' => $productReturn->reason->label(),
                 'customer_note' => $productReturn->customer_note,
                 'admin_note' => $productReturn->admin_note,
                 'images' => array_map(
@@ -109,10 +109,10 @@ final class ReturnQueryService
                 'refund_total_formatted' => Money::format(
                     (int) $productReturn->refunds->sum('amount_cents'),
                 ),
-                'suggested_refund_cents' => $productReturn->items->sum(
+                'suggested_refund_formatted' => Money::format((int) $productReturn->items->sum(
                     fn ($item) => $item->orderItem->unit_price_cents * $item->quantity
                         - intdiv($item->orderItem->discount_cents * $item->quantity, max(1, $item->orderItem->quantity)),
-                ),
+                )),
             ],
             'warehouses' => Warehouse::query()->active()->get(['id', 'name']),
         ];

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Web\Account;
 
 use App\Actions\Returns\RequestReturn;
+use App\Enums\ReturnReason;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Returns\RequestReturnRequest;
 use App\Models\Order;
@@ -30,16 +31,24 @@ final class ReturnController extends Controller
                 'order_number' => $return->order->number,
                 'status' => $return->status->value,
                 'status_label' => $return->status->label(),
-                'reason' => $return->reason,
+                'reason_label' => $return->reason->label(),
                 'created_at' => $return->created_at->toDateString(),
             ]);
 
         return Inertia::render('storefront/account/Returns', ['returns' => $returns]);
     }
 
-    public function create(Request $request, Order $order): Response
+    public function create(Request $request, Order $order): Response|RedirectResponse
     {
         Gate::authorize('view', $order);
+
+        // Eligibility lived only in the action, so this page happily rendered
+        // for any order and only failed once the form was submitted.
+        if (! $order->isReturnable()) {
+            return redirect()
+                ->route('account.orders.show', $order->id)
+                ->with('error', __('This order is not eligible for a return.'));
+        }
 
         $order->load('items');
 
@@ -56,9 +65,7 @@ final class ReturnController extends Controller
                     'returnable' => $item->quantity - $item->returnedQuantity(),
                 ]),
             ],
-            'reasons' => [
-                'defective', 'wrong_item', 'not_as_described', 'no_longer_needed', 'damaged_in_shipping', 'other',
-            ],
+            'reasons' => array_map(fn (ReturnReason $r) => ['value' => $r->value, 'label' => $r->label()], ReturnReason::cases()),
         ]);
     }
 

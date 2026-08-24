@@ -43,16 +43,21 @@ const columns: Column[] = [
 const modalOpen = ref(false);
 const editing = ref<UserRow | null>(null);
 
-const form = useForm({
+const blank = {
     name: '',
     email: '',
     password: '',
     roles: [] as string[],
     is_active: true,
-});
+};
+
+const form = useForm({ ...blank });
 
 function openCreate(): void {
     editing.value = null;
+    // Inertia 2 promotes the submitted data to the form's defaults on success,
+    // so a bare reset() re-opened "New" pre-filled with the last edited record.
+    form.defaults({ ...blank });
     form.reset();
     form.clearErrors();
     modalOpen.value = true;

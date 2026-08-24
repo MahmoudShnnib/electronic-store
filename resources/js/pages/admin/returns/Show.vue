@@ -33,7 +33,7 @@ const props = defineProps<{
         status: string;
         status_label: string;
         allowed_transitions: Option[];
-        reason: string;
+        reason_label: string;
         customer_note: string | null;
         admin_note: string | null;
         images: string[];
@@ -43,7 +43,7 @@ const props = defineProps<{
         created_at: string;
         items: ReturnItem[];
         refund_total_formatted: string;
-        suggested_refund_cents: number;
+        suggested_refund_formatted: string;
     };
     warehouses: { id: number; name: string }[];
 }>();
@@ -125,7 +125,7 @@ const lightbox = ref<string | null>(null);
                 <dl class="grid gap-3 text-sm sm:grid-cols-2">
                     <div>
                         <dt class="text-xs uppercase text-gray-400">{{ t('admin.common.reason') }}</dt>
-                        <dd class="capitalize text-gray-800 dark:text-gray-200">{{ productReturn.reason.replaceAll('_', ' ') }}</dd>
+                        <dd class="text-gray-800 dark:text-gray-200">{{ productReturn.reason_label }}</dd>
                     </div>
                     <div>
                         <dt class="text-xs uppercase text-gray-400">{{ t('admin.common.customer') }}</dt>
@@ -226,7 +226,7 @@ const lightbox = ref<string | null>(null);
                     </div>
                     <div class="flex justify-between">
                         <dt>{{ t('admin.returns.suggested_amount') }}</dt>
-                        <dd>{{ (productReturn.suggested_refund_cents / 100).toFixed(2) }}</dd>
+                        <dd>{{ productReturn.suggested_refund_formatted }}</dd>
                     </div>
                 </dl>
                 <Link :href="route('admin.orders.show', productReturn.order.id)" :class="btnSecondary" class="mt-3 w-full justify-center">{{

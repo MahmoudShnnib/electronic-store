@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web\Account;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -18,6 +19,11 @@ final class OrderController extends Controller
     public function index(Request $request): Response
     {
         $orders = $request->user()->orders()
+            // Units ordered, not the number of lines.
+            ->withSum('items as items_count', 'quantity')
+            // Feeds Order::isReturnable() so it can tell "fully returned" apart
+            // from "nothing returned yet" without a query per order.
+            ->withSum('returnItems as returned_units', 'quantity')
             ->latest()
             ->paginate(10)
             ->through(fn (Order $order) => [
@@ -27,9 +33,10 @@ final class OrderController extends Controller
                 'status_label' => $order->status->label(),
                 'payment_status' => $order->payment_status->value,
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
-                'items_count' => $order->items()->count(),
-                'created_at' => $order->created_at->toDayDateTimeString(),
+                'items_count' => (int) $order->items_count,
+                'created_at' => Dates::dayDateTime($order->created_at),
                 'cancellable' => $order->status->isCancellable(),
+                'returnable' => $order->isReturnable(),
             ]);
 
         return Inertia::render('storefront/account/Orders', ['orders' => $orders]);
@@ -58,8 +65,9 @@ final class OrderController extends Controller
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
                 'coupon_code' => $order->coupon_code,
                 'customer_note' => $order->customer_note,
-                'created_at' => $order->created_at->toDayDateTimeString(),
+                'created_at' => Dates::dayDateTime($order->created_at),
                 'cancellable' => $order->status->isCancellable(),
+                'returnable' => $order->isReturnable(),
                 'items' => $order->items->map(fn ($item) => [
                     'id' => $item->id,
                     'name' => $item->variant_name !== null
@@ -73,7 +81,7 @@ final class OrderController extends Controller
                 'timeline' => $order->statusHistories->map(fn ($h) => [
                     'status' => $h->to_status->label(),
                     'comment' => $h->comment,
-                    'at' => $h->created_at->toDayDateTimeString(),
+                    'at' => Dates::dayDateTime($h->created_at),
                 ]),
                 'refunds' => $order->refunds->map(fn ($r) => [
                     'amount_formatted' => Money::format($r->amount_cents, $order->currency),

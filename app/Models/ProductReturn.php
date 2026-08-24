@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\ReturnReason;
 use App\Enums\ReturnStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -29,6 +30,7 @@ final class ProductReturn extends Model
     {
         return [
             'status' => ReturnStatus::class,
+            'reason' => ReturnReason::class,
             'images' => 'array',
             'reviewed_at' => 'immutable_datetime',
             'received_at' => 'immutable_datetime',

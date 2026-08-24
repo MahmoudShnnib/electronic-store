@@ -2,12 +2,21 @@
 
 namespace Tests\Feature\Auth;
 
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class RegistrationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Registration assigns the "customer" role, same as the API/Google paths.
+        $this->seed(RolesAndPermissionsSeeder::class);
+    }
 
     public function test_registration_screen_can_be_rendered()
     {

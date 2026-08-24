@@ -28,7 +28,7 @@ final class ReturnController extends Controller
                 'rma_number' => $r->rma_number,
                 'order_number' => $r->order->number,
                 'status' => $r->status->value,
-                'reason' => $r->reason,
+                'reason' => $r->reason->value,
                 'created_at' => $r->created_at->toIso8601String(),
             ]);
 

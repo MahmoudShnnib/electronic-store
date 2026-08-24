@@ -52,7 +52,7 @@ const modalOpen = ref(false);
 const editing = ref<SupplierRow | null>(null);
 const deleting = ref<SupplierRow | null>(null);
 
-const form = useForm({
+const blank = {
     company_name: '',
     contact_person: '',
     email: '',
@@ -61,10 +61,15 @@ const form = useForm({
     tax_number: '',
     status: 'active',
     notes: '',
-});
+};
+
+const form = useForm({ ...blank });
 
 function openCreate(): void {
     editing.value = null;
+    // Inertia 2 promotes the submitted data to the form's defaults on success,
+    // so a bare reset() re-opened "New" pre-filled with the last edited record.
+    form.defaults({ ...blank });
     form.reset();
     form.clearErrors();
     modalOpen.value = true;

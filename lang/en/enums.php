@@ -92,6 +92,15 @@ return [
         'original' => 'Original method',
     ],
 
+    'return_reason' => [
+        'defective' => 'Defective',
+        'wrong_item' => 'Wrong item',
+        'not_as_described' => 'Not as described',
+        'no_longer_needed' => 'No longer needed',
+        'damaged_in_shipping' => 'Damaged in shipping',
+        'other' => 'Other',
+    ],
+
     'return_status' => [
         'requested' => 'Requested',
         'under_review' => 'Under review',

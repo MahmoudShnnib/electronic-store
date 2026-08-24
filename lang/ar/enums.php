@@ -91,6 +91,15 @@ return [
         'original' => 'طريقة الدفع الأصلية',
     ],
 
+    'return_reason' => [
+        'defective' => 'تالف',
+        'wrong_item' => 'منتج خاطئ',
+        'not_as_described' => 'لا يطابق الوصف',
+        'no_longer_needed' => 'لم أعد بحاجة إليه',
+        'damaged_in_shipping' => 'تضرر أثناء الشحن',
+        'other' => 'أخرى',
+    ],
+
     'return_status' => [
         'requested' => 'مطلوب',
         'under_review' => 'قيد المراجعة',
