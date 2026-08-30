@@ -11,7 +11,32 @@ import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
 
-const { t } = useI18n();
+const { t, te } = useI18n();
+
+/**
+ * Activity rows store machine keys (`po_received`) and raw DB columns
+ * (`price_cents`). Both were rendered verbatim, so the page stayed English on
+ * the Arabic site and read like debug output. Unknown keys fall back to a
+ * humanized version of the key rather than showing a missing-translation path.
+ */
+function eventLabel(event: string | null): string {
+    if (!event) return '—';
+
+    return te(`admin.audit.events.${event}`) ? t(`admin.audit.events.${event}`) : humanize(event);
+}
+
+function fieldLabel(field: string): string {
+    return te(`admin.audit.fields.${field}`) ? t(`admin.audit.fields.${field}`) : humanize(field);
+}
+
+function humanize(key: string): string {
+    const words = key
+        .replace(/_cents$/, '')
+        .replace(/_id$/, '')
+        .replace(/_/g, ' ');
+
+    return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 interface LogRow {
     id: number;
@@ -85,8 +110,10 @@ function pretty(properties: Record<string, unknown>): string {
                             <ChevronDown v-if="expanded.has(log.id)" class="h-4 w-4" />
                             <ChevronRight v-else class="h-4 w-4" />
                         </td>
-                        <td class="px-3 py-2.5 text-gray-800 dark:text-gray-200">{{ log.description }}</td>
-                        <td class="px-3 py-2.5 text-gray-500">{{ log.event ?? '—' }}</td>
+                        <td class="px-3 py-2.5 text-gray-800 dark:text-gray-200">
+                            {{ te(`admin.audit.events.${log.description}`) ? t(`admin.audit.events.${log.description}`) : log.description }}
+                        </td>
+                        <td class="px-3 py-2.5 text-gray-500">{{ eventLabel(log.event) }}</td>
                         <td class="px-3 py-2.5 text-gray-500">
                             <template v-if="log.subject_type">{{ log.subject_type }} #{{ log.subject_id }}</template>
                             <template v-else>—</template>
@@ -106,7 +133,7 @@ function pretty(properties: Record<string, unknown>): string {
                                 </thead>
                                 <tbody>
                                     <tr v-for="change in log.changes" :key="change.field" class="border-t border-gray-200 dark:border-gray-800">
-                                        <td class="py-1.5 pe-4 font-medium text-gray-600 dark:text-gray-300">{{ change.field }}</td>
+                                        <td class="py-1.5 pe-4 font-medium text-gray-600 dark:text-gray-300">{{ fieldLabel(change.field) }}</td>
                                         <td class="py-1.5 pe-4 text-gray-500 line-through decoration-red-400/60">{{ display(change.old) }}</td>
                                         <td class="py-1.5 text-gray-800 dark:text-gray-100">{{ display(change.new) }}</td>
                                     </tr>

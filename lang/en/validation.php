@@ -5,6 +5,8 @@
  * built-in English defaults, which merge underneath this file.
  */
 return [
+    'phone_ly' => 'Enter a Libyan mobile number, e.g. 0912345678 or +218912345678.',
+
     'attributes' => [
         'customer.name' => 'full name',
         'customer.phone' => 'phone number',

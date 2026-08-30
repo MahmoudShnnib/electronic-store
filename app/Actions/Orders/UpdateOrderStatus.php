@@ -95,7 +95,28 @@ final class UpdateOrderStatus
                 ->lockForUpdate()
                 ->first();
 
-            $stock?->update(['reserved' => max(0, $stock->reserved - $item->quantity)]);
+            if ($stock === null) {
+                continue;
+            }
+
+            // Clamping a short reservation used to be invisible, and the
+            // missing units later made cancelling the order blow up. Log
+            // the shortfall so the drift is traceable.
+            $release = min($item->quantity, $stock->reserved);
+            $stock->update(['reserved' => $stock->reserved - $release]);
+
+            if ($release < $item->quantity) {
+                activity()
+                    ->performedOn($order)
+                    ->withProperties([
+                        'product_id' => $item->product_id,
+                        'warehouse_id' => $item->warehouse_id,
+                        'expected' => $item->quantity,
+                        'released' => $release,
+                    ])
+                    ->event('reservation_shortfall')
+                    ->log("Order {$order->number}: reserved stock was short on completion");
+            }
         }
     }
 

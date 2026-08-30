@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Actions\Cart\ResolveCart;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -26,7 +27,9 @@ class HandleInertiaRequests extends Middleware
 
         return [
             ...parent::share($request),
-            'name' => config('app.name'),
+            // Admin → Settings saves `store_name`; every layout renders this prop,
+            // so without it the setting was only ever visible on the invoice.
+            'name' => Setting::get('store_name') ?: config('app.name'),
             'locale' => app()->getLocale(),
             'auth' => [
                 'user' => $user === null ? null : [

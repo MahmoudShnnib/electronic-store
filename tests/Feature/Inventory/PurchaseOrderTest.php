@@ -71,6 +71,42 @@ it('supports partial receiving', function (): void {
     expect($po->refresh()->status)->toBe(PurchaseOrderStatus::Received);
 });
 
+it('sends, receives and cancels a multi-line purchase order over HTTP', function (): void {
+    // Two lines on purpose: Eloquent only arms preventLazyLoading on models
+    // hydrated as part of a collection of more than one, so a single-item PO
+    // never reproduced the LazyLoadingViolation that 500'd all three actions.
+    $po = makePo(Product::factory()->create(), 10);
+    $po->items()->create([
+        'product_id' => Product::factory()->create()->id,
+        'quantity_ordered' => 5,
+        'unit_cost_cents' => 20_000,
+        'line_total_cents' => 100_000,
+    ]);
+
+    $line = $po->items()->orderBy('id')->first();
+    $manager = staff('inventory_manager');
+
+    $this->actingAs($manager)
+        ->post(route('admin.purchase-orders.send', $po))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $this->actingAs($manager)
+        ->post(route('admin.purchase-orders.receive', $po), ['quantities' => [$line->id => 4]])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect(StockLevel::query()->where('product_id', $line->product_id)->sole()->quantity)->toBe(4);
+
+    $this->actingAs($manager)
+        ->post(route('admin.purchase-orders.cancel', $po))
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($po->refresh()->status)->toBe(PurchaseOrderStatus::Cancelled)
+        ->and(StockLevel::query()->sum('incoming'))->toBe(0);
+});
+
 it('rejects receiving more than outstanding', function (): void {
     $product = Product::factory()->create();
     $po = makePo($product, 5);

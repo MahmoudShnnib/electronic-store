@@ -22,6 +22,7 @@ final class WishlistController extends Controller
             ->with(['brand:id,name,slug', 'images'])
             ->withAvg('approvedReviews as rating_avg', 'rating')
             ->withCount('approvedReviews as rating_count')
+            ->withStock()
             ->paginate(24);
 
         return Inertia::render('storefront/Wishlist', [

@@ -64,12 +64,19 @@ final class AuditLogController extends Controller implements HasMiddleware
     }
 
     /**
+     * Spatie stores model diffs in `attribute_changes`, not `properties` —
+     * withChanges() and withProperties() write to different columns. Reading
+     * only `properties` meant every "updated" row rendered as raw JSON with
+     * nothing to say about what actually changed.
+     *
      * @return list<array{field: string, old: mixed, new: mixed}>
      */
     private static function changes(Activity $a): array
     {
-        $new = $a->properties['attributes'] ?? null;
-        $old = $a->properties['old'] ?? [];
+        $changes = $a->attribute_changes ?? collect();
+
+        $new = $changes['attributes'] ?? $a->properties['attributes'] ?? null;
+        $old = $changes['old'] ?? $a->properties['old'] ?? [];
 
         if (! is_array($new)) {
             return [];

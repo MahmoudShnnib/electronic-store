@@ -209,7 +209,9 @@ const blank = '—';
                             <td class="px-3 py-1.5 pt-3 text-end text-gray-500">
                                 {{ t('admin.common.discount') }}<span v-if="order.coupon_code" class="ms-1 text-xs">({{ order.coupon_code }})</span>
                             </td>
-                            <td class="px-3 py-1.5 pt-3 text-end">−{{ order.discount_formatted }}</td>
+                            <td class="px-3 py-1.5 pt-3 text-end">
+                                <bdi dir="ltr">−{{ order.discount_formatted }}</bdi>
+                            </td>
                         </tr>
                         <tr>
                             <td colspan="4" />

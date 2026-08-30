@@ -45,13 +45,19 @@ final class ProductVariant extends Model
     }
 
     /**
-     * A variant carries its own sale price but no schedule of its own — it
-     * runs inside the parent product's sale window. Without this the variant
-     * sale price applied forever, ignoring the product's end date.
+     * Variants carry a sale price but no schedule of their own, so they follow
+     * the parent product's window. Without this a variant sale never ends and
+     * the dead price is still what CartItem charges at checkout.
      */
     public function saleIsActive(): bool
     {
-        return $this->sale_price_cents !== null && $this->product->saleWindowIsOpen();
+        if ($this->sale_price_cents === null) {
+            return false;
+        }
+
+        $this->loadMissing('product');
+
+        return $this->product?->saleWindowIsOpen() ?? true;
     }
 
     public function currentPriceCents(): int

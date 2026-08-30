@@ -48,7 +48,7 @@ const modalOpen = ref(false);
 const editing = ref<BrandRow | null>(null);
 const deleting = ref<BrandRow | null>(null);
 
-const form = useForm({
+const blank = {
     name: '',
     name_ar: '',
     slug: '',
@@ -56,10 +56,15 @@ const form = useForm({
     position: 0,
     is_active: true,
     logo: null as File | null,
-});
+};
+
+const form = useForm({ ...blank });
 
 function openCreate(): void {
     editing.value = null;
+    // Inertia 2 promotes the submitted data to the form's defaults on success,
+    // so a bare reset() re-opened "New" pre-filled with the last edited record.
+    form.defaults({ ...blank });
     form.reset();
     form.clearErrors();
     modalOpen.value = true;
@@ -175,7 +180,7 @@ function destroy(): void {
             <div class="flex justify-end gap-3">
                 <button type="button" :class="btnSecondary" @click="modalOpen = false">{{ t('admin.common.cancel') }}</button>
                 <button type="submit" :disabled="form.processing" :class="btnPrimary">
-                    {{ form.processing ? 'Saving…' : 'Save' }}
+                    {{ form.processing ? t('admin.common.saving') : t('admin.common.save') }}
                 </button>
             </div>
         </form>

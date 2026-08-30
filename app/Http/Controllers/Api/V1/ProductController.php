@@ -34,8 +34,8 @@ final class ProductController extends Controller
             ))
             ->when($request->boolean('featured'), fn ($q) => $q->featured())
             ->when($request->boolean('on_sale'), fn ($q) => $q->onSale())
-            ->when($request->query('sort') === 'price_asc', fn ($q) => $q->orderByRaw('COALESCE(sale_price_cents, price_cents) ASC'))
-            ->when($request->query('sort') === 'price_desc', fn ($q) => $q->orderByRaw('COALESCE(sale_price_cents, price_cents) DESC'))
+            ->when($request->query('sort') === 'price_asc', fn ($q) => $q->orderByRaw(Product::EFFECTIVE_PRICE.' ASC'))
+            ->when($request->query('sort') === 'price_desc', fn ($q) => $q->orderByRaw(Product::EFFECTIVE_PRICE.' DESC'))
             ->when(! in_array($request->query('sort'), ['price_asc', 'price_desc'], true), fn ($q) => $q->latest('published_at'))
             ->paginate(min(50, max(1, (int) $request->query('per_page', '20'))));
 

@@ -12,6 +12,13 @@ interface Toast {
 const page = usePage();
 const flash = computed(() => page.props.flash as { success?: string | null; error?: string | null });
 
+/**
+ * Validation failures used to vanish: a 422 from "add to cart" or a coupon
+ * carries an `errors` bag, not a flash message, and pages without a form to
+ * render it into showed nothing at all — the button just went dead.
+ */
+const errors = computed(() => Object.values((page.props.errors ?? {}) as Record<string, string>).filter(Boolean));
+
 const toasts = ref<Toast[]>([]);
 let nextId = 0;
 
@@ -54,6 +61,8 @@ watch(
     },
     { deep: true, immediate: true },
 );
+
+watch(errors, (messages) => messages.forEach((message) => push('error', message)), { deep: true, immediate: true });
 </script>
 
 <template>

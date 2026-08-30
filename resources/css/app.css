@@ -2,22 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Tajawal for both languages. It carries a full Latin set, so English no longer
+ * renders in a different (lighter) typeface than Arabic — which is what made the
+ * two sides of the site look like two different products.
+ */
 body,
 html {
-    --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-}
-
-/*
- * Arabic UI uses Tajawal instead of the platform's default Arabic fallback
- * (Geeza Pro / Segoe UI Arabic). Keyed on <html lang>, which the server sets
- * on first paint and applyDocumentLocale() keeps in sync on locale switches,
- * so it covers the storefront, admin, and auth screens alike.
- */
-html[lang='ar'] body {
-    font-family:
-        'Tajawal', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+    --font-sans: 'Tajawal', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
 @layer base {

@@ -95,7 +95,9 @@ function printInvoice(): void {
                 <dl class="w-64 space-y-1 text-sm">
                     <div class="flex justify-between">
                         <dt class="text-gray-500">{{ t('admin.common.discount') }}</dt>
-                        <dd>−{{ order.discount_formatted }}</dd>
+                        <dd>
+                            <bdi dir="ltr">−{{ order.discount_formatted }}</bdi>
+                        </dd>
                     </div>
                     <div class="flex justify-between border-t-2 border-gray-900 pt-2 text-base font-bold">
                         <dt>{{ t('admin.common.total') }}</dt>

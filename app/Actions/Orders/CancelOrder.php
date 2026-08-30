@@ -7,6 +7,8 @@ namespace App\Actions\Orders;
 use App\Actions\Inventory\RecordMovement;
 use App\Enums\MovementType;
 use App\Enums\OrderStatus;
+use App\Models\Coupon;
+use App\Models\CouponRedemption;
 use App\Models\Order;
 use App\Notifications\OrderStatusChangedNotification;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +16,8 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * Cancels an order that has not shipped: releases the reservation, restores
- * sellable stock, and writes ledger + history entries.
+ * sellable stock, releases any coupon redemption, and writes ledger + history
+ * entries.
  */
 final class CancelOrder
 {
@@ -50,6 +53,13 @@ final class CancelOrder
                     reason: $reason,
                     userId: $userId,
                 );
+            }
+
+            $redemption = CouponRedemption::query()->where('order_id', $order->id)->first();
+
+            if ($redemption !== null) {
+                Coupon::whereKey($redemption->coupon_id)->where('used_count', '>', 0)->decrement('used_count');
+                $redemption->delete();
             }
 
             $order->update([

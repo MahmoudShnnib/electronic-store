@@ -25,8 +25,13 @@ final class Cart extends Model
         return $this->hasMany(CartItem::class);
     }
 
+    /**
+     * Coupons soft-delete. Without withTrashed() an admin deleting a coupon makes
+     * it vanish from the cart with no discount and no explanation, and the order
+     * is placed at full price — so resolve it and let the totals report the error.
+     */
     public function coupon(): BelongsTo
     {
-        return $this->belongsTo(Coupon::class);
+        return $this->belongsTo(Coupon::class)->withTrashed();
     }
 }

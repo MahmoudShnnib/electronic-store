@@ -65,7 +65,8 @@ final class AddToCart
         }
 
         $available = (int) ($variant?->stockLevels() ?? $product->stockLevels()->whereNull('product_variant_id'))
-            ->sum('quantity');
+            ->sellable()
+            ->max('quantity');
 
         if ($quantity > $available) {
             throw ValidationException::withMessages([

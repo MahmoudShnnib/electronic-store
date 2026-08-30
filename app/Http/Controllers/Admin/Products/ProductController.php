@@ -53,7 +53,7 @@ final class ProductController extends Controller
 
         return redirect()
             ->route('admin.products.edit', $product)
-            ->with('success', "Product “{$product->name}” created.");
+            ->with('success', __('Product “:name” created.', ['name' => $product->name]));
     }
 
     public function edit(Product $product): Response

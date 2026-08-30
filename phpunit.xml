@@ -26,8 +26,8 @@
         <env name="DB_HOST" value="127.0.0.1"/>
         <env name="DB_PORT" value="5432"/>
         <env name="DB_DATABASE" value="electronic_store_test"/>
-        <env name="DB_USERNAME" value="mahmoudshnnib"/>
-        <env name="DB_PASSWORD" value=""/>
+        <!-- Credentials come from the environment (.env locally, job env in CI);
+             hardcoding one developer's Postgres role broke everyone else's run. -->
         <env name="MAIL_MAILER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

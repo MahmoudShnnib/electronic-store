@@ -31,6 +31,7 @@ final class HomePageService
                 ->with(['brand:id,name,slug', 'images'])
                 ->withAvg('approvedReviews as rating_avg', 'rating')
                 ->withCount('approvedReviews as rating_count')
+                ->withStock()
                 ->take(8)
                 ->get();
 

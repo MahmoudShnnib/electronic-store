@@ -12,7 +12,9 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Instrument Sans', ...defaultTheme.fontFamily.sans],
+                // One typeface for both languages — Tajawal ships Latin glyphs,
+                // so English and Arabic finally look like the same product.
+                sans: ['Tajawal', ...defaultTheme.fontFamily.sans],
             },
             borderRadius: {
                 lg: 'var(--radius)',

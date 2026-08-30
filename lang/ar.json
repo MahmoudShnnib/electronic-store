@@ -104,5 +104,13 @@
     "Refund for order :number": "استرداد للطلب :number",
     "Order :number created.": "تم إنشاء الطلب :number.",
     "Only a completed order can be returned (status: :status).": "لا يمكن إرجاع سوى طلب مكتمل (الحالة: :status).",
-    "You can only review products from orders that were completed.": "يمكنك تقييم منتجات الطلبات المكتملة فقط."
+    "You can only review products from orders that were completed.": "يمكنك تقييم منتجات الطلبات المكتملة فقط.",
+    "A transfer needs at least one item.": "يجب أن يحتوي التحويل على منتج واحد على الأقل.",
+    "Cannot send an empty purchase order.": "لا يمكن إرسال أمر شراء فارغ.",
+    "Only draft purchase orders can be sent.": "يمكن إرسال أوامر الشراء في حالة المسودة فقط.",
+    "Product “:name” created.": "تم إنشاء المنتج «:name».",
+    "Purchase order :number created.": "تم إنشاء أمر الشراء :number.",
+    "Source and destination warehouses must differ.": "يجب أن يختلف المستودع المصدر عن الوجهة.",
+    "This coupon is no longer available.": "لم يعد هذا الكوبون متاحاً.",
+    "This purchase order cannot be cancelled.": "لا يمكن إلغاء أمر الشراء هذا."
 }

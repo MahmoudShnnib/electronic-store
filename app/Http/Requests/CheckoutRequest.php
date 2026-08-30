@@ -16,13 +16,27 @@ final class CheckoutRequest extends FormRequest
         return true;
     }
 
+    /** Libyan mobile: 09XXXXXXXX or +2189XXXXXXXX, separators ignored. */
+    private const PHONE_PATTERN = '/^(?:\+?218|0)9\d{8}$/';
+
+    /** Strip the separators people type so the pattern only sees digits. */
+    protected function prepareForValidation(): void
+    {
+        $phone = $this->input('customer.phone');
+
+        if (is_string($phone)) {
+            $this->merge([
+                'customer' => [...(array) $this->input('customer'), 'phone' => preg_replace('/[\s\-().]/', '', $phone)],
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'customer.name' => ['required', 'string', 'max:120'],
             'customer.email' => ['nullable', 'email', 'max:255'],
-            'customer.phone' => ['required', 'string', 'max:32'],
-            'shipping_address.country' => ['required', 'string', 'size:2'],
+            'customer.phone' => ['required', 'string', 'max:32', 'regex:'.self::PHONE_PATTERN],
             'shipping_address.city' => [
                 'required', 'string', 'max:120',
                 Rule::in(array_column(config('store.cities', []), 'en')),
@@ -34,9 +48,17 @@ final class CheckoutRequest extends FormRequest
         ];
     }
 
+    public function messages(): array
+    {
+        return ['customer.phone.regex' => __('validation.phone_ly')];
+    }
+
     public function toCheckoutData(): CheckoutData
     {
         $validated = $this->validated();
+
+        // The store ships to one country, so it is configuration, not input.
+        $validated['shipping_address']['country'] = config('store.country', 'LY');
 
         // Contact and delivery details are one section now — the address
         // snapshot reuses the customer's name and phone.

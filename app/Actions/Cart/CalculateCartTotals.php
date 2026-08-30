@@ -97,6 +97,10 @@ final class CalculateCartTotals
             return [0, null, null];
         }
 
+        if ($coupon->trashed()) {
+            return [0, $coupon, __('This coupon is no longer available.')];
+        }
+
         if (! $coupon->isCurrentlyValid()) {
             return [0, $coupon, __('This coupon is no longer valid.')];
         }

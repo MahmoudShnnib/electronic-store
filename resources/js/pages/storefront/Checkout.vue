@@ -45,7 +45,6 @@ const form = useForm({
         phone: props.customer.phone,
     },
     shipping_address: {
-        country: 'LY',
         city: '',
         area: '',
     },
@@ -60,6 +59,13 @@ function fillFromAddress(address: AddressData) {
 }
 
 function submit() {
+    // The city picker is a custom control, so native `required` can't reach it.
+    if (form.shipping_address.city === '') {
+        form.setError('shipping_address.city', t('checkout.city_required'));
+
+        return;
+    }
+
     form.post(route('checkout.store'));
 }
 
@@ -75,8 +81,11 @@ function error(key: string): string | undefined {
     <div class="mx-auto w-full max-w-7xl px-4 py-8">
         <h1 class="mb-6 text-2xl font-bold">{{ t('checkout.title') }}</h1>
 
-        <p v-if="error('cart') || error('coupon')" class="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-            {{ error('cart') ?? error('coupon') }}
+        <p
+            v-if="error('cart') || error('coupon') || cart.coupon_error"
+            class="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
+        >
+            {{ error('cart') ?? error('coupon') ?? cart.coupon_error }}
         </p>
 
         <form class="flex flex-col gap-8 lg:flex-row" @submit.prevent="submit">
@@ -106,6 +115,8 @@ function error(key: string): string | undefined {
                             <input
                                 v-model="form.customer.name"
                                 type="text"
+                                required
+                                maxlength="120"
                                 class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                             />
                             <p v-if="error('customer.name')" class="mt-1 text-xs text-red-500">{{ error('customer.name') }}</p>
@@ -116,6 +127,11 @@ function error(key: string): string | undefined {
                                 v-model="form.customer.phone"
                                 type="tel"
                                 dir="ltr"
+                                required
+                                inputmode="tel"
+                                placeholder="0912345678"
+                                pattern="[\s\-().+0-9]{10,20}"
+                                :title="t('checkout.phone_hint')"
                                 class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                             />
                             <p v-if="error('customer.phone')" class="mt-1 text-xs text-red-500">{{ error('customer.phone') }}</p>
@@ -147,6 +163,8 @@ function error(key: string): string | undefined {
                             <input
                                 v-model="form.shipping_address.area"
                                 type="text"
+                                required
+                                maxlength="120"
                                 class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                             />
                             <p v-if="error('shipping_address.area')" class="mt-1 text-xs text-red-500">{{ error('shipping_address.area') }}</p>
@@ -220,7 +238,9 @@ function error(key: string): string | undefined {
                         <dt>
                             {{ t('cart.discount') }} <template v-if="cart.coupon">({{ cart.coupon.code }})</template>
                         </dt>
-                        <dd>-{{ cart.discount_formatted }}</dd>
+                        <dd>
+                            <bdi dir="ltr">−{{ cart.discount_formatted }}</bdi>
+                        </dd>
                     </div>
                     <div class="flex justify-between border-t border-border pt-3 text-base font-bold">
                         <dt>{{ t('cart.total') }}</dt>

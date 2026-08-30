@@ -23,8 +23,12 @@ final class CancelPurchaseOrder
     public function handle(PurchaseOrder $po, ?int $userId = null): PurchaseOrder
     {
         if (in_array($po->status, [PurchaseOrderStatus::Received, PurchaseOrderStatus::Cancelled], true)) {
-            throw new InvalidArgumentException('This purchase order cannot be cancelled.');
+            throw new InvalidArgumentException(__('This purchase order cannot be cancelled.'));
         }
+
+        // Route-bound models arrive with nothing loaded and preventLazyLoading is on
+        // outside production, so every relation this action touches must be explicit.
+        $po->loadMissing(['warehouse', 'items.product', 'items.variant']);
 
         return DB::transaction(function () use ($po, $userId): PurchaseOrder {
             // Drafts never booked incoming stock; sent/partially received POs did.

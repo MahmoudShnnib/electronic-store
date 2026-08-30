@@ -23,12 +23,16 @@ final class SendPurchaseOrder
     public function handle(PurchaseOrder $po): PurchaseOrder
     {
         if ($po->status !== PurchaseOrderStatus::Draft) {
-            throw new InvalidArgumentException('Only draft purchase orders can be sent.');
+            throw new InvalidArgumentException(__('Only draft purchase orders can be sent.'));
         }
 
         if ($po->items()->count() === 0) {
-            throw new InvalidArgumentException('Cannot send an empty purchase order.');
+            throw new InvalidArgumentException(__('Cannot send an empty purchase order.'));
         }
+
+        // Route-bound models arrive with nothing loaded and preventLazyLoading is on
+        // outside production, so every relation this action touches must be explicit.
+        $po->loadMissing(['warehouse', 'items.product', 'items.variant']);
 
         return DB::transaction(function () use ($po): PurchaseOrder {
             foreach ($po->items as $item) {

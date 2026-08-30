@@ -201,7 +201,10 @@ final class SaveProduct
      */
     private function syncSpecifications(Product $product, array $specifications): void
     {
-        $product->specificationValues()->delete();
+        // Only touch attributes present in this submission — the form hides attributes
+        // out of the product's category scope, so a blanket delete would silently wipe
+        // values for any attribute not currently visible on the form.
+        $product->specificationValues()->whereIn('specification_attribute_id', array_keys($specifications))->delete();
 
         foreach ($specifications as $attributeId => $value) {
             if (trim($value['value'] ?? '') === '') {

@@ -43,13 +43,18 @@ const modalOpen = ref(false);
 const editing = ref<RoleRow | null>(null);
 const deleting = ref<RoleRow | null>(null);
 
-const form = useForm({
+const blank = {
     name: '',
     permissions: [] as string[],
-});
+};
+
+const form = useForm({ ...blank });
 
 function openCreate(): void {
     editing.value = null;
+    // Inertia 2 promotes the submitted data to the form's defaults on success,
+    // so a bare reset() re-opened "New" pre-filled with the last edited record.
+    form.defaults({ ...blank });
     form.reset();
     form.clearErrors();
     modalOpen.value = true;

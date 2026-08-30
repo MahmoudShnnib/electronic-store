@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Enums\ProductStatus;
+use App\Models\Category;
 use App\Models\ProductVariant;
 use App\Models\SpecificationAttribute;
 use App\Support\Money;
@@ -108,7 +109,12 @@ final class ProductRequest extends FormRequest
         }
     }
 
-    /** Number-type specification attributes must actually receive numbers. */
+    /**
+     * Number-type specification attributes must actually receive numbers, and an
+     * attribute must be scoped to the submitted category (or have no scope at all —
+     * universal) — the client already hides out-of-scope attributes, this is the
+     * server-side half of that same rule (B28 gap).
+     */
     private function validateSpecificationTypes(Validator $v): void
     {
         $specs = $this->input('specifications', []) ?? [];
@@ -117,9 +123,14 @@ final class ProductRequest extends FormRequest
             return;
         }
 
-        $types = SpecificationAttribute::query()
+        $categoryId = (int) $this->input('category_id');
+        $parentId = Category::whereKey($categoryId)->value('parent_id');
+
+        $attributes = SpecificationAttribute::query()
             ->whereIn('id', array_keys($specs))
-            ->pluck('type', 'id');
+            ->with('categories:id')
+            ->get()
+            ->keyBy('id');
 
         foreach ($specs as $attributeId => $spec) {
             $value = $spec['value'] ?? null;
@@ -128,7 +139,24 @@ final class ProductRequest extends FormRequest
                 continue;
             }
 
-            if ($types->get((int) $attributeId) === 'number' && ! is_numeric($value)) {
+            $attribute = $attributes->get((int) $attributeId);
+
+            if ($attribute === null) {
+                continue;
+            }
+
+            $scopedIds = $attribute->categories->pluck('id');
+
+            if ($scopedIds->isNotEmpty() && ! $scopedIds->contains($categoryId) && ! $scopedIds->contains($parentId)) {
+                $v->errors()->add(
+                    "specifications.{$attributeId}.value",
+                    __('This specification does not apply to the selected category.'),
+                );
+
+                continue;
+            }
+
+            if ($attribute->type === 'number' && ! is_numeric($value)) {
                 $v->errors()->add(
                     "specifications.{$attributeId}.value",
                     __('This specification only accepts a number.'),

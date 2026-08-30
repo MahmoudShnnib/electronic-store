@@ -53,6 +53,7 @@ final class ProductPageService
             ->with(['brand:id,name,slug', 'images'])
             ->withAvg('approvedReviews as rating_avg', 'rating')
             ->withCount('approvedReviews as rating_count')
+            ->withStock()
             ->inRandomOrder()
             ->take(8)
             ->get();
@@ -129,7 +130,8 @@ final class ProductPageService
     private function availability(Product $product): array
     {
         $levels = $product->stockLevels()
-            ->selectRaw('product_variant_id, SUM(quantity) as qty')
+            ->sellable()
+            ->selectRaw('product_variant_id, MAX(quantity) as qty')
             ->groupBy('product_variant_id')
             ->pluck('qty', 'product_variant_id');
 

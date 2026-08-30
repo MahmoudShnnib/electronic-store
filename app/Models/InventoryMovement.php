@@ -40,14 +40,16 @@ final class InventoryMovement extends Model
         return $this->belongsTo(Warehouse::class);
     }
 
+    // The ledger outlives the things it references: a deleted product or variant
+    // must still render its history rather than crash on a null relation.
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 
     public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id')->withTrashed();
     }
 
     public function reference(): MorphTo

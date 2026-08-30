@@ -23,16 +23,19 @@ final class CouponRequest extends FormRequest
         return [
             'code' => [
                 'required', 'string', 'max:64', 'alpha_dash',
-                // Deleted coupons don't reserve their code — matching the
-                // partial unique index, which only covers live rows.
+                // A finished coupon does not reserve its code: deleted ones are
+                // excluded by the partial unique index, and expired ones are
+                // soft-deleted by the controller before the new row is saved.
                 Rule::unique('coupons', 'code')
                     ->ignore($this->route('coupon')?->id)
-                    ->whereNull('deleted_at'),
+                    ->whereNull('deleted_at')
+                    ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now())),
             ],
             'type' => ['required', Rule::enum(CouponType::class)],
             'value' => ['nullable', 'required_if:type,fixed', 'numeric', 'min:0.01'],
             'percent' => ['nullable', 'required_if:type,percentage', 'numeric', 'min:0.01', 'max:100'],
-            'min_order' => ['nullable', 'numeric', 'min:0'],
+            // Whole units only — a 0.03 minimum is a rule that can never bind.
+            'min_order' => ['nullable', 'integer', 'min:1'],
             'max_discount' => ['nullable', 'numeric', 'min:0'],
             'usage_limit' => ['nullable', 'integer', 'min:1'],
             'per_customer_limit' => ['nullable', 'integer', 'min:1'],

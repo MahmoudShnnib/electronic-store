@@ -26,6 +26,10 @@ final class CouponController extends Controller implements HasMiddleware
     {
         $coupons = Coupon::query()
             ->withCount('redemptions')
+            // ponytail: loads every redemption for the 25 coupons on the page and
+            // keeps the newest 10 in PHP. Move to a per-coupon endpoint if a
+            // single code ever collects thousands of uses.
+            ->with(['redemptions' => fn ($q) => $q->latest('id')->with(['user:id,name', 'order:id,number'])])
             ->when($request->filled('q'), fn ($q) => $q->whereRaw('code ILIKE ?', ['%'.$request->query('q').'%']))
             ->latest()
             ->paginate(25)
@@ -46,6 +50,13 @@ final class CouponController extends Controller implements HasMiddleware
                 'per_customer_limit' => $c->per_customer_limit,
                 'used_count' => $c->used_count,
                 'redemptions_count' => $c->redemptions_count,
+                'redemptions' => $c->redemptions->take(10)->map(fn ($r) => [
+                    'id' => $r->id,
+                    'customer' => $r->user?->name ?? __('admin.guest'),
+                    'order_number' => $r->order?->number,
+                    'amount_formatted' => Money::format($r->amount_cents),
+                    'at' => $r->created_at->toDateString(),
+                ])->values(),
                 'applies_to' => $c->applies_to,
                 'applies_to_ids' => $c->applies_to_ids,
                 'starts_at' => $c->starts_at?->format('Y-m-d\TH:i'),
@@ -63,16 +74,38 @@ final class CouponController extends Controller implements HasMiddleware
 
     public function store(CouponRequest $request): RedirectResponse
     {
-        Coupon::create($this->validated($request));
+        $attributes = $this->validated($request);
+        $this->retireExpiredWithCode($attributes['code']);
+
+        Coupon::create($attributes);
 
         return back()->with('success', __('Coupon created.'));
     }
 
     public function update(CouponRequest $request, Coupon $coupon): RedirectResponse
     {
-        $coupon->update($this->validated($request));
+        $attributes = $this->validated($request);
+        $this->retireExpiredWithCode($attributes['code'], $coupon->id);
+
+        $coupon->update($attributes);
 
         return back()->with('success', __('Coupon updated.'));
+    }
+
+    /**
+     * A code is only reserved while its coupon can still be used. Retiring the
+     * expired holder (a soft delete — its redemption history survives) is what
+     * frees the code, and it matches the partial unique index on live rows.
+     */
+    private function retireExpiredWithCode(string $code, ?int $exceptId = null): void
+    {
+        Coupon::query()
+            ->where('code', $code)
+            ->when($exceptId !== null, fn ($q) => $q->whereKeyNot($exceptId))
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '<=', now())
+            ->get()
+            ->each->delete();
     }
 
     public function destroy(Coupon $coupon): RedirectResponse

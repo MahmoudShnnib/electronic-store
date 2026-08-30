@@ -57,6 +57,8 @@ const props = defineProps<{
 }>();
 
 const columns: Column[] = [
+    // The id was only readable off the /admin/products/{id}/edit URL before.
+    { key: 'id', label: t('admin.common.id'), sortable: true },
     { key: 'name', label: t('admin.common.product'), sortable: true },
     { key: 'sku', label: t('admin.common.sku'), sortable: true },
     { key: 'category', label: t('admin.common.category') },

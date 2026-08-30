@@ -80,3 +80,51 @@ it('allows recreating a coupon with a deleted coupon\'s code', function (): void
 
     expect(Coupon::query()->where('code', 'SUMMER25')->count())->toBe(1);
 });
+
+// -- B4: an expired coupon no longer reserves its code -----------------------
+
+it('allows recreating a coupon with an expired coupon\'s code', function (): void {
+    $expired = Coupon::factory()->create(['code' => 'WINTER10', 'expires_at' => now()->subWeek()]);
+
+    $this->actingAs(staff('super_admin'))->post(route('admin.coupons.store'), [
+        'code' => 'WINTER10',
+        'type' => 'percentage',
+        'percent' => 10,
+        'applies_to' => 'all',
+        'is_active' => true,
+    ])->assertSessionHasNoErrors();
+
+    // The spent one is retired, not erased — its redemption history survives.
+    expect($expired->refresh()->trashed())->toBeTrue()
+        ->and(Coupon::query()->where('code', 'WINTER10')->count())->toBe(1);
+});
+
+it('rejects a fractional minimum order', function (): void {
+    $this->actingAs(staff('super_admin'))->post(route('admin.coupons.store'), [
+        'code' => 'TINYMIN',
+        'type' => 'percentage',
+        'percent' => 10,
+        'min_order' => 0.03,
+        'applies_to' => 'all',
+        'is_active' => true,
+    ])->assertSessionHasErrors('min_order');
+});
+
+// -- B3: a coupon deleted after it was applied must say so, not vanish -------
+
+it('reports an error instead of silently dropping a deleted coupon', function (): void {
+    $product = Product::factory()->create(['price_cents' => 10_000, 'tax_rate' => 0]);
+    $coupon = Coupon::factory()->create(['type' => 'fixed', 'value_cents' => 2_000, 'is_active' => true]);
+
+    $cart = cartWith([[$product, 1]]);
+    app(ApplyCoupon::class)->handle($cart, $coupon->code);
+
+    $coupon->delete();
+
+    $totals = app(CalculateCartTotals::class)->handle($cart->fresh());
+
+    // Before, the relation resolved to null: no discount, no error, and the
+    // order was placed at full price without a word to the customer.
+    expect($totals->discountCents)->toBe(0)
+        ->and($totals->couponError)->not->toBeNull();
+});

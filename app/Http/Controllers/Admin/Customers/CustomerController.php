@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin\Customers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -48,7 +49,7 @@ final class CustomerController extends Controller implements HasMiddleware
                 'orders_count' => $u->orders_count,
                 'lifetime_formatted' => Money::format((int) ($u->lifetime_cents ?? 0)),
                 'joined_at' => $u->created_at->toDateString(),
-                'last_login_at' => $u->last_login_at?->diffForHumans(),
+                'last_login_at' => Dates::relative($u->last_login_at),
             ]);
 
         return Inertia::render('admin/customers/Index', [

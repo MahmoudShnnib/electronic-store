@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\StockLevel;
 use App\Models\User;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -92,7 +93,7 @@ final class DashboardController extends Controller
                     'status' => $o->status->value,
                     'status_label' => $o->status->label(),
                     'total_formatted' => Money::format($o->total_cents, $o->currency),
-                    'created_at' => $o->created_at->diffForHumans(),
+                    'created_at' => Dates::relative($o->created_at),
                 ]),
             'recentActivity' => Activity::query()
                 ->with('causer')
@@ -103,7 +104,7 @@ final class DashboardController extends Controller
                     'id' => $a->id,
                     'description' => $a->description,
                     'causer' => $a->causer?->name ?? __('admin.system'),
-                    'created_at' => $a->created_at->diffForHumans(),
+                    'created_at' => Dates::relative($a->created_at),
                 ]),
         ]);
     }

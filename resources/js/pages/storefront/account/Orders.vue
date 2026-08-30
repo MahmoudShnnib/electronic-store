@@ -3,7 +3,7 @@ import EmptyState from '@/components/store/EmptyState.vue';
 import Pagination from '@/components/store/Pagination.vue';
 import type { PaginationLink } from '@/components/store/types';
 import StoreLayout from '@/layouts/StoreLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
@@ -25,6 +25,12 @@ defineProps<{
 }>();
 
 const { t } = useI18n();
+
+function cancelOrder(id: number) {
+    if (confirm(t('account.cancel_confirm'))) {
+        router.post(route('account.orders.cancel', id), {}, { preserveScroll: true });
+    }
+}
 
 const statusColors: Record<string, string> = {
     pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
@@ -76,13 +82,23 @@ const statusColors: Record<string, string> = {
                             </span>
                         </td>
                         <td class="px-4 py-3 font-semibold">{{ order.total_formatted }}</td>
-                        <td class="px-4 py-3 text-end">
-                            <Link
-                                :href="route('account.orders.show', order.id)"
-                                class="text-sm font-medium text-black hover:underline dark:text-white"
-                            >
-                                {{ t('account.view') }}
-                            </Link>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
+                                <Link
+                                    :href="route('account.orders.show', order.id)"
+                                    class="text-sm font-medium text-black hover:underline dark:text-white"
+                                >
+                                    {{ t('account.view') }}
+                                </Link>
+                                <button
+                                    v-if="order.cancellable"
+                                    type="button"
+                                    class="text-sm font-medium text-red-600 hover:underline"
+                                    @click="cancelOrder(order.id)"
+                                >
+                                    {{ t('account.cancel_order') }}
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 </tbody>

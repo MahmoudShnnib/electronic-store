@@ -127,7 +127,9 @@ function removeCoupon() {
                 <dl class="space-y-2 text-sm">
                     <div v-if="cart.discount_cents > 0" class="flex justify-between text-green-600">
                         <dt>{{ t('cart.discount') }}</dt>
-                        <dd>-{{ cart.discount_formatted }}</dd>
+                        <dd>
+                            <bdi dir="ltr">−{{ cart.discount_formatted }}</bdi>
+                        </dd>
                     </div>
                     <div class="flex justify-between border-t border-border pt-3 text-base font-bold">
                         <dt>{{ t('cart.total') }}</dt>
