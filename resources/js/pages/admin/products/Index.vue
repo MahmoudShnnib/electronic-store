@@ -3,6 +3,7 @@ import AdminSelect from '@/components/admin/AdminSelect.vue';
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import DataTable, { type Column } from '@/components/admin/DataTable.vue';
 import FilterBar from '@/components/admin/FilterBar.vue';
+import FormModal from '@/components/admin/FormModal.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
@@ -10,7 +11,7 @@ import type { Option, Paginator } from '@/components/admin/types';
 import { btnPrimary, btnSecondary, checkboxClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Plus, RotateCcw, Trash2 } from 'lucide-vue-next';
+import { Pencil, Plus, RotateCcw, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -33,6 +34,17 @@ interface ProductRow extends Record<string, unknown> {
     low_stock: boolean;
     image: string | null;
     deleted_at: string | null;
+    name_ar: string | null;
+    barcode: string | null;
+    short_description: string | null;
+    supplier: string | null;
+    cost_price_formatted: string;
+    sale_price_formatted: string | null;
+    low_stock_threshold: number;
+    variants_count: number;
+    gallery: string[];
+    created_at: string | null;
+    updated_at: string | null;
 }
 
 const props = defineProps<{
@@ -57,8 +69,32 @@ const columns: Column[] = [
 const selected = ref<number[]>([]);
 const bulkAction = ref('');
 const deleting = ref<ProductRow | null>(null);
+const previewing = ref<ProductRow | null>(null);
 
 const allSelected = computed(() => props.products.data.length > 0 && selected.value.length === props.products.data.length);
+
+/** Label/value pairs for the details modal, in display order. */
+const previewFields = computed<{ label: string; value: string | number | null; class?: string }[]>(() => {
+    const row = previewing.value;
+
+    if (row === null) return [];
+
+    return [
+        { label: t('admin.common.sku'), value: row.sku },
+        { label: t('admin.products.barcode'), value: row.barcode },
+        { label: t('admin.common.category'), value: row.category },
+        { label: t('admin.common.brand'), value: row.brand },
+        { label: t('admin.common.supplier'), value: row.supplier },
+        { label: t('admin.products.regular_price'), value: row.price_formatted },
+        { label: t('admin.products.sale_price'), value: row.sale_price_formatted },
+        { label: t('admin.products.cost_price'), value: row.cost_price_formatted },
+        { label: t('admin.nav.stock'), value: row.stock, class: row.low_stock ? 'font-semibold text-amber-600' : '' },
+        { label: t('admin.common.low_stock_threshold'), value: row.low_stock_threshold },
+        { label: t('admin.products.variants'), value: row.variants_count },
+        { label: t('admin.common.created'), value: row.created_at },
+        { label: t('admin.common.updated'), value: row.updated_at },
+    ];
+});
 
 function toggleAll(): void {
     selected.value = allSelected.value ? [] : props.products.data.map((p) => p.id);
@@ -107,7 +143,7 @@ function restore(product: ProductRow): void {
     <PageHeader :title="t('admin.products.title')" :subtitle="t('admin.products.count', { count: products.total })">
         <template #actions>
             <button type="button" :class="btnSecondary" @click="toggleTrashed">
-                {{ filters.trashed ? 'Hide trash' : 'Show trash' }}
+                {{ filters.trashed ? t('admin.common.hide_trash') : t('admin.common.show_trash') }}
             </button>
             <Link v-if="can.create" :href="route('admin.products.create')" :class="btnPrimary">
                 <Plus class="h-4 w-4" />{{ t('admin.products.new') }}</Link
@@ -128,7 +164,7 @@ function restore(product: ProductRow): void {
         <div v-if="selected.length > 0 && can.update" class="flex items-center gap-2">
             <AdminSelect
                 v-model="bulkAction"
-                class="!w-auto"
+                class="!w-auto min-w-40"
                 :empty-label="t('admin.products.bulk_action', { count: selected.length })"
                 :options="[
                     { value: 'activate', label: t('admin.common.activate') },
@@ -142,7 +178,15 @@ function restore(product: ProductRow): void {
         </div>
     </FilterBar>
 
-    <DataTable :columns="columns" :rows="products.data" :sort="String(filters.sort ?? '')" :dir="String(filters.dir ?? '')" @sort="sortBy">
+    <DataTable
+        :columns="columns"
+        :rows="products.data"
+        :sort="String(filters.sort ?? '')"
+        :dir="String(filters.dir ?? '')"
+        clickable-rows
+        @sort="sortBy"
+        @row-click="previewing = $event"
+    >
         <template #select>
             <input type="checkbox" :class="checkboxClass" :checked="allSelected" @change="toggleAll" />
         </template>
@@ -160,14 +204,7 @@ function restore(product: ProductRow): void {
                 />
                 <div v-else class="flex h-9 w-9 items-center justify-center rounded-md bg-gray-100 text-xs text-gray-400 dark:bg-gray-800">—</div>
                 <div>
-                    <Link
-                        v-if="can.update && !row.deleted_at"
-                        :href="route('admin.products.edit', row.id)"
-                        class="font-medium text-gray-900 hover:text-blue-600 dark:text-gray-100"
-                    >
-                        {{ row.name }}
-                    </Link>
-                    <span v-else class="font-medium text-gray-900 dark:text-gray-100">{{ row.name }}</span>
+                    <span class="font-medium text-gray-900 dark:text-gray-100">{{ row.name }}</span>
                     <p v-if="row.is_featured" class="text-xs text-amber-600">{{ t('admin.products.featured') }}</p>
                 </div>
             </div>
@@ -182,6 +219,14 @@ function restore(product: ProductRow): void {
         </template>
 
         <template #row-actions="{ row }">
+            <Link
+                v-if="can.update && !row.deleted_at"
+                :href="route('admin.products.edit', row.id)"
+                class="rounded p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950"
+                :title="t('admin.common.edit')"
+            >
+                <Pencil class="h-4 w-4" />
+            </Link>
             <button
                 v-if="row.deleted_at && can.delete"
                 type="button"
@@ -214,4 +259,56 @@ function restore(product: ProductRow): void {
         @confirm="destroy"
         @close="deleting = null"
     />
+
+    <FormModal :open="previewing !== null" :title="t('admin.products.details')" wide @close="previewing = null">
+        <div v-if="previewing" class="grid gap-5">
+            <div class="flex items-start gap-4">
+                <img
+                    v-if="previewing.image"
+                    :src="previewing.image"
+                    :alt="previewing.name"
+                    class="h-20 w-20 shrink-0 rounded-lg border border-gray-200 object-cover dark:border-gray-700"
+                />
+                <div class="min-w-0">
+                    <p class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ previewing.name }}</p>
+                    <p v-if="previewing.name_ar" class="text-sm text-gray-500 dark:text-gray-400" dir="rtl">{{ previewing.name_ar }}</p>
+                    <div class="mt-2 flex flex-wrap items-center gap-2">
+                        <StatusBadge :status="previewing.status" :label="previewing.status_label" />
+                        <span v-if="previewing.is_featured" class="text-xs text-amber-600">{{ t('admin.products.featured') }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+                <div v-for="field in previewFields" :key="field.label">
+                    <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ field.label }}</dt>
+                    <dd class="mt-0.5 text-gray-800 dark:text-gray-200" :class="field.class">{{ field.value ?? '—' }}</dd>
+                </div>
+            </dl>
+
+            <div>
+                <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('admin.common.description') }}</p>
+                <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                    {{ previewing.short_description || t('admin.products.no_description') }}
+                </p>
+            </div>
+
+            <div v-if="previewing.gallery.length > 1" class="flex flex-wrap gap-2">
+                <img
+                    v-for="url in previewing.gallery"
+                    :key="url"
+                    :src="url"
+                    :alt="previewing.name"
+                    class="h-14 w-14 rounded-md border border-gray-200 object-cover dark:border-gray-700"
+                />
+            </div>
+
+            <div class="flex justify-end gap-2 border-t border-gray-200 pt-4 dark:border-gray-800">
+                <button type="button" :class="btnSecondary" @click="previewing = null">{{ t('admin.common.close') }}</button>
+                <Link v-if="can.update && !previewing.deleted_at" :href="route('admin.products.edit', previewing.id)" :class="btnPrimary">
+                    <Pencil class="h-4 w-4" />{{ t('admin.common.edit') }}
+                </Link>
+            </div>
+        </div>
+    </FormModal>
 </template>

@@ -32,8 +32,11 @@ final class RolesAndPermissionsSeeder extends Seeder
         'orders' => [
             'orders.view', 'orders.manage',
         ],
-        'returns' => [
-            'returns.manage', 'refunds.manage',
+        'refunds' => [
+            'refunds.manage',
+        ],
+        'treasury' => [
+            'treasury.view', 'treasury.manage',
         ],
         'customers' => [
             'customers.view', 'customers.manage',
@@ -72,7 +75,8 @@ final class RolesAndPermissionsSeeder extends Seeder
 
         Role::findOrCreate('order_manager')->syncPermissions([
             'orders.view', 'orders.manage',
-            'returns.manage', 'refunds.manage',
+            'refunds.manage',
+            'treasury.view',
             'customers.view',
             'reports.view',
         ]);

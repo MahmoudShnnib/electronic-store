@@ -22,10 +22,9 @@ final class Product extends Model
         'category_id', 'brand_id', 'supplier_id', 'name', 'name_ar', 'slug', 'sku',
         'barcode', 'short_description', 'short_description_ar', 'description',
         'description_ar', 'cost_price_cents', 'price_cents', 'sale_price_cents',
-        'sale_starts_at', 'sale_ends_at', 'tax_rate', 'has_variants',
-        'low_stock_threshold', 'warranty_months', 'weight_grams', 'length_mm',
-        'width_mm', 'height_mm', 'status', 'is_featured', 'meta_title',
-        'meta_description', 'published_at', 'created_by', 'updated_by',
+        'sale_starts_at', 'sale_ends_at', 'has_variants',
+        'low_stock_threshold', 'status', 'is_featured',
+        'published_at', 'created_by', 'updated_by',
     ];
 
     protected function casts(): array
@@ -35,7 +34,6 @@ final class Product extends Model
             'cost_price_cents' => 'integer',
             'price_cents' => 'integer',
             'sale_price_cents' => 'integer',
-            'tax_rate' => 'float',
             'has_variants' => 'boolean',
             'is_featured' => 'boolean',
             'sale_starts_at' => 'immutable_datetime',
@@ -118,13 +116,13 @@ final class Product extends Model
 
     // -- Pricing --------------------------------------------------------------
 
-    /** Whether the sale price is currently in effect (inside its schedule window). */
-    public function saleIsActive(): bool
+    /**
+     * Whether "now" falls inside the scheduled sale window, regardless of
+     * whether a sale price is actually set. Variants have no schedule of their
+     * own, so their sale prices follow this one.
+     */
+    public function saleWindowIsOpen(): bool
     {
-        if ($this->sale_price_cents === null) {
-            return false;
-        }
-
         if ($this->sale_starts_at !== null && $this->sale_starts_at->isFuture()) {
             return false;
         }
@@ -134,6 +132,12 @@ final class Product extends Model
         }
 
         return true;
+    }
+
+    /** Whether the sale price is currently in effect (inside its schedule window). */
+    public function saleIsActive(): bool
+    {
+        return $this->sale_price_cents !== null && $this->saleWindowIsOpen();
     }
 
     /** The price a customer pays right now, in cents. */

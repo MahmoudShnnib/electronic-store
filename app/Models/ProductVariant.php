@@ -44,9 +44,19 @@ final class ProductVariant extends Model
         return $this->hasMany(StockLevel::class);
     }
 
+    /**
+     * A variant carries its own sale price but no schedule of its own — it
+     * runs inside the parent product's sale window. Without this the variant
+     * sale price applied forever, ignoring the product's end date.
+     */
+    public function saleIsActive(): bool
+    {
+        return $this->sale_price_cents !== null && $this->product->saleWindowIsOpen();
+    }
+
     public function currentPriceCents(): int
     {
-        return $this->sale_price_cents !== null ? (int) $this->sale_price_cents : (int) $this->price_cents;
+        return $this->saleIsActive() ? (int) $this->sale_price_cents : (int) $this->price_cents;
     }
 
     public function displayName(): string

@@ -22,8 +22,6 @@ final class ProductDetailResource extends ProductResource
         return [
             ...parent::toArray($request),
             'description' => $this->description,
-            'warranty_months' => $this->warranty_months,
-            'weight_grams' => $this->weight_grams,
             'has_variants' => $this->has_variants,
             'images' => $this->whenLoaded('images', fn () => $this->images->map(fn ($img) => [
                 'id' => $img->id,
@@ -36,7 +34,7 @@ final class ProductDetailResource extends ProductResource
                 'sku' => $v->sku,
                 'attributes' => $v->attributes,
                 'price' => Money::toDecimal($v->price_cents),
-                'current_price' => Money::toDecimal($v->currentPriceCents()),
+                'current_price' => Money::toDecimal($v->setRelation('product', $this->resource)->currentPriceCents()),
                 'image' => $v->image_path !== null ? Storage::disk('public')->url($v->image_path) : null,
             ])),
             'specifications' => $this->whenLoaded('specificationValues', fn () => $this->specificationValues

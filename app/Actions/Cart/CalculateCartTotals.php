@@ -18,7 +18,7 @@ final class CalculateCartTotals
 {
     public function handle(Cart $cart, ?int $userId = null): CartTotals
     {
-        $cart->loadMissing(['items.product.images', 'items.variant', 'coupon']);
+        $cart->loadMissing(['items.product.images', 'items.variant.product', 'coupon']);
 
         $lines = [];
         $subtotal = 0;
@@ -41,10 +41,9 @@ final class CalculateCartTotals
 
         [$discount, $coupon, $couponError] = $this->resolveCoupon($cart->coupon, $subtotal, $lines, $userId);
 
-        // Distribute the discount proportionally so tax is charged on the
-        // discounted amount — but ONLY across the lines the coupon actually
-        // covers. A product-limited coupon must not shave tax off items it
-        // doesn't apply to.
+        // Distribute the discount proportionally across the lines the coupon
+        // actually covers. A product-limited coupon must not shave money off
+        // items it doesn't apply to.
         $eligible = array_map(fn (array $line) => $coupon !== null && $this->lineIsEligible($coupon, $line), $lines);
         $eligibleSubtotal = array_sum(array_map(
             fn (array $line, bool $ok) => $ok ? $line['subtotal'] : 0,
@@ -54,7 +53,6 @@ final class CalculateCartTotals
         $lastEligibleIndex = array_key_last(array_filter($eligible));
 
         $builtLines = [];
-        $tax = 0;
         $remainingDiscount = $discount;
 
         foreach ($lines as $index => $line) {
@@ -68,10 +66,6 @@ final class CalculateCartTotals
 
             $remainingDiscount -= $lineDiscount;
 
-            $taxable = max(0, $line['subtotal'] - $lineDiscount);
-            $lineTax = (int) round($taxable * ((float) $line['item']->product->tax_rate) / 100);
-            $tax += $lineTax;
-
             $builtLines[] = new CartLine(
                 product: $line['item']->product,
                 variant: $line['item']->variant,
@@ -79,8 +73,7 @@ final class CalculateCartTotals
                 unitPriceCents: $line['unit'],
                 lineSubtotalCents: $line['subtotal'],
                 lineDiscountCents: $lineDiscount,
-                lineTaxCents: $lineTax,
-                lineTotalCents: $taxable + $lineTax,
+                lineTotalCents: max(0, $line['subtotal'] - $lineDiscount),
                 cartItemId: $line['item']->id,
             );
         }
@@ -89,8 +82,7 @@ final class CalculateCartTotals
             lines: $builtLines,
             subtotalCents: $subtotal,
             discountCents: $discount,
-            taxCents: $tax,
-            totalCents: max(0, $subtotal - $discount) + $tax,
+            totalCents: max(0, $subtotal - $discount),
             coupon: $coupon,
             couponError: $couponError,
         );

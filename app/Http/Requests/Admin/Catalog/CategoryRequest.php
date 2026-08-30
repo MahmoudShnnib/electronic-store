@@ -33,8 +33,6 @@ final class CategoryRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:2000'],
             'position' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
-            'meta_title' => ['nullable', 'string', 'max:255'],
-            'meta_description' => ['nullable', 'string', 'max:500'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             // Ticked by the admin form to clear an existing image without
             // uploading a replacement.

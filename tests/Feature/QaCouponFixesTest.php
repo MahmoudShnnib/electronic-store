@@ -21,11 +21,11 @@ function cartWith(array $linesSpec): Cart
     return $cart;
 }
 
-// -- ×2: scoped coupon only discounts (and de-taxes) eligible lines ----------
+// -- ×2: scoped coupon only discounts the eligible lines ---------------------
 
-it('does not shave tax off lines a product-limited coupon excludes', function (): void {
-    $inScope = Product::factory()->create(['price_cents' => 10_000, 'tax_rate' => 0]);
-    $outOfScope = Product::factory()->create(['price_cents' => 10_000, 'tax_rate' => 10.0]);
+it('does not discount lines a product-limited coupon excludes', function (): void {
+    $inScope = Product::factory()->create(['price_cents' => 10_000]);
+    $outOfScope = Product::factory()->create(['price_cents' => 10_000]);
 
     $coupon = Coupon::factory()->create([
         'type' => 'fixed', 'value_cents' => 5_000,
@@ -38,13 +38,13 @@ it('does not shave tax off lines a product-limited coupon excludes', function ()
 
     $totals = app(CalculateCartTotals::class)->handle($cart->refresh());
 
-    $taxedLine = collect($totals->lines)->firstWhere(fn ($l) => $l->product->id === $outOfScope->id);
+    $excludedLine = collect($totals->lines)->firstWhere(fn ($l) => $l->product->id === $outOfScope->id);
     $discountedLine = collect($totals->lines)->firstWhere(fn ($l) => $l->product->id === $inScope->id);
 
     expect($totals->discountCents)->toBe(5_000)
-        // The taxed line keeps its full tax: 10% of 100.00, untouched by the coupon.
-        ->and($taxedLine->lineTaxCents)->toBe(1_000)
-        ->and($taxedLine->lineDiscountCents)->toBe(0)
+        // The out-of-scope line keeps its full price, untouched by the coupon.
+        ->and($excludedLine->lineDiscountCents)->toBe(0)
+        ->and($excludedLine->lineTotalCents)->toBe(10_000)
         ->and($discountedLine->lineDiscountCents)->toBe(5_000);
 });
 

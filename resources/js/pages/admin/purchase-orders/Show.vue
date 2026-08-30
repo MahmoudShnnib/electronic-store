@@ -34,9 +34,7 @@ const props = defineProps<{
         status_label: string;
         is_editable: boolean;
         is_receivable: boolean;
-        subtotal_formatted: string;
         discount_formatted: string;
-        tax_formatted: string;
         shipping_formatted: string;
         total_formatted: string;
         expected_at: string | null;
@@ -179,16 +177,8 @@ function cancel(): void {
                 <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.purchase_orders.totals') }}</h2>
                 <dl class="space-y-1.5 text-sm text-gray-600 dark:text-gray-300">
                     <div class="flex justify-between">
-                        <dt>{{ t('admin.common.subtotal') }}</dt>
-                        <dd>{{ purchaseOrder.subtotal_formatted }}</dd>
-                    </div>
-                    <div class="flex justify-between">
                         <dt>{{ t('admin.common.discount') }}</dt>
                         <dd>−{{ purchaseOrder.discount_formatted }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.common.tax') }}</dt>
-                        <dd>{{ purchaseOrder.tax_formatted }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt>{{ t('admin.common.shipping') }}</dt>

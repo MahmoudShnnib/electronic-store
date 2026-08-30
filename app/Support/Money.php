@@ -33,6 +33,11 @@ final class Money
         $formatter->setAttribute(NumberFormatter::MIN_FRACTION_DIGITS, 2);
         $formatter->setAttribute(NumberFormatter::MAX_FRACTION_DIGITS, 2);
 
+        // Amount first, currency after — English would otherwise render
+        // "LYD 119.00" while Arabic renders "119.00 د.ل.", so the two locales
+        // disagreed on which side the currency sits.
+        $formatter->setPattern('#,##0.00 ¤');
+
         return $formatter->formatCurrency(self::toDecimal($cents), $currency);
     }
 }

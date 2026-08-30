@@ -2,6 +2,7 @@ import '../css/app.css';
 
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { ConfigProvider } from 'radix-vue';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
@@ -32,7 +33,13 @@ createInertiaApp({
 
         applyDocumentLocale(locale);
 
-        createApp({ render: () => h(App, props) })
+        // Radix primitives default to `dir: 'ltr'` and ignore <html dir>, so in
+        // Arabic every select, dropdown and popover laid itself out left-to-right
+        // inside an otherwise right-to-left page. ConfigProvider is the one place
+        // that fixes all of them. Locale changes hard-reload, so this is static.
+        const dir = locale === 'ar' ? 'rtl' : 'ltr';
+
+        createApp({ render: () => h(ConfigProvider, { dir }, () => h(App, props)) })
             .use(plugin)
             .use(ZiggyVue)
             .use(i18n)

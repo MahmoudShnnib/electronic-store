@@ -23,7 +23,7 @@ final class RefundController extends Controller implements HasMiddleware
     public function index(Request $request): Response
     {
         $refunds = Refund::query()
-            ->with(['order:id,number,currency', 'productReturn:id,rma_number', 'creator:id,name'])
+            ->with(['order:id,number,currency', 'creator:id,name'])
             ->when($request->filled('q'), fn ($q) => $q->whereHas(
                 'order',
                 fn ($qq) => $qq->whereRaw('number ILIKE ?', ['%'.$request->query('q').'%']),
@@ -35,7 +35,6 @@ final class RefundController extends Controller implements HasMiddleware
                 'id' => $r->id,
                 'order_number' => $r->order->number,
                 'order_id' => $r->order_id,
-                'rma_number' => $r->productReturn?->rma_number,
                 'amount_formatted' => Money::format($r->amount_cents, $r->order->currency),
                 'method' => $r->method->label(),
                 'reference' => $r->reference,

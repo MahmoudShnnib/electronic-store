@@ -14,7 +14,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 /** A confirmed order from a registered customer, so every report has data —
  *  including the customer report, whose users join once hid an ambiguous
  *  deleted_at column that only surfaced at runtime. */
-function seedRevenueOrder(): Order
+function seedRevenueOrder(bool $complete = true): Order
 {
     $product = Product::factory()->create(['price_cents' => 150_00]);
     giveStock($product, 5);
@@ -30,7 +30,9 @@ function seedRevenueOrder(): Order
         paymentMethod: PaymentMethod::CashOnDelivery,
     ), $buyer);
 
-    return app(UpdateOrderStatus::class)->handle($order, OrderStatus::Confirmed);
+    return $complete
+        ? app(UpdateOrderStatus::class)->handle($order, OrderStatus::Completed)
+        : $order;
 }
 
 it('renders the sales report with a customer breakdown', function (): void {
@@ -64,7 +66,7 @@ it('exports the customer report as CSV', function (): void {
 });
 
 it('renders the invoice report with paid and outstanding amounts', function (): void {
-    $order = seedRevenueOrder(); // 2 × 150.00 = 300.00
+    $order = seedRevenueOrder(complete: false); // 2 × 150.00 = 300.00
 
     $order->payments()->create([
         'method' => 'cod',
@@ -89,7 +91,7 @@ it('exports every report without errors', function (): void {
     $reports = [
         'sales_by_day', 'sales_by_product', 'sales_by_category', 'sales_by_brand',
         'sales_by_customer', 'invoices', 'inventory_valuation', 'low_stock',
-        'movements', 'returns', 'refunds',
+        'movements', 'refunds',
     ];
 
     $this->actingAs(staff('super_admin'));

@@ -60,9 +60,6 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         Route::patch('/addresses/{address}', [Web\Account\AddressController::class, 'update'])->name('addresses.update');
         Route::delete('/addresses/{address}', [Web\Account\AddressController::class, 'destroy'])->name('addresses.destroy');
 
-        Route::get('/returns', [Web\Account\ReturnController::class, 'index'])->name('returns.index');
-        Route::get('/orders/{order}/return', [Web\Account\ReturnController::class, 'create'])->name('returns.create');
-        Route::post('/orders/{order}/return', [Web\Account\ReturnController::class, 'store'])->name('returns.store');
     });
 });
 

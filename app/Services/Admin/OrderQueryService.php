@@ -5,8 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Admin;
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Enums\ProductStatus;
+use App\Enums\RefundMethod;
 use App\Models\Order;
+use App\Models\OrderStatusHistory;
+use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Setting;
 use App\Services\Reports\ReportDateRange;
 use App\Support\Money;
@@ -62,8 +68,48 @@ final class OrderQueryService
     }
 
     /**
+     * Props for admin/orders/Create: everything the manual-order form needs to
+     * pick lines and a delivery city.
+     *
+     * @return array<string, mixed>
+     */
+    public function createProps(): array
+    {
+        return [
+            'products' => Product::query()
+                ->where('status', ProductStatus::Active)
+                ->with('variants:id,product_id,name,sku,price_cents,sale_price_cents,is_active')
+                ->orderBy('name')
+                ->get(['id', 'name', 'name_ar', 'sku', 'price_cents', 'sale_price_cents', 'sale_starts_at', 'sale_ends_at', 'has_variants'])
+                ->map(fn (Product $p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'sku' => $p->sku,
+                    'has_variants' => (bool) $p->has_variants,
+                    'price' => Money::toDecimal($p->currentPriceCents()),
+                    'price_formatted' => Money::format($p->currentPriceCents()),
+                    'variants' => $p->variants
+                        ->where('is_active', true)
+                        ->map(fn (ProductVariant $v) => [
+                            'id' => $v->id,
+                            'name' => $v->name,
+                            'sku' => $v->sku,
+                            'price' => Money::toDecimal($v->setRelation('product', $p)->currentPriceCents()),
+                            'price_formatted' => Money::format($v->currentPriceCents()),
+                        ])
+                        ->values(),
+                ]),
+            'cities' => config('store.cities', []),
+            'paymentMethods' => array_map(
+                fn (PaymentMethod $m) => ['value' => $m->value, 'label' => $m->label()],
+                PaymentMethod::cases(),
+            ),
+        ];
+    }
+
+    /**
      * Props for admin/orders/Show: the full order detail with items, timeline,
-     * payments, refunds and linked returns.
+     * payments and refunds.
      *
      * @return array<string, mixed>
      */
@@ -71,7 +117,7 @@ final class OrderQueryService
     {
         $order->load([
             'items', 'statusHistories.user:id,name', 'payments.confirmer:id,name',
-            'refunds', 'returns', 'user:id,name,email,phone',
+            'refunds', 'user:id,name,email,phone',
         ]);
 
         $paidCents = (int) $order->payments->where('status', 'confirmed')->sum('amount_cents');
@@ -90,15 +136,17 @@ final class OrderQueryService
                 'payment_status' => $order->payment_status->value,
                 'payment_status_label' => $order->payment_status->label(),
                 'payment_method' => $order->payment_method->label(),
+                // Preselects the refund form on the channel the money came in
+                // through, so the common case needs no thought and still lands
+                // in the database as a concrete method.
+                'default_refund_method' => RefundMethod::fromPaymentMethod($order->payment_method)->value,
                 'placed_via' => $order->placed_via,
                 'customer' => $order->customer,
                 'account' => $order->user?->only(['id', 'name', 'email', 'phone']),
                 'shipping_address' => $order->shipping_address,
                 'billing_address' => $order->billing_address,
-                'subtotal_formatted' => Money::format($order->subtotal_cents, $order->currency),
                 'discount_formatted' => Money::format($order->discount_cents, $order->currency),
                 'coupon_code' => $order->coupon_code,
-                'tax_formatted' => Money::format($order->tax_cents, $order->currency),
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
                 'total_cents' => $order->total_cents,
                 'paid_cents' => $paidCents,
@@ -106,7 +154,9 @@ final class OrderQueryService
                 'outstanding_formatted' => Money::format(max(0, $order->total_cents - $paidCents), $order->currency),
                 'refunded_formatted' => Money::format($refundedCents, $order->currency),
                 'customer_note' => $order->customer_note,
-                'internal_note' => $order->internal_note,
+                // Drives the "return / product problem" button: only a
+                // finished order can be sent back.
+                'can_resolve_issue' => $order->status === OrderStatus::Completed,
                 'created_at' => $order->created_at->toDateTimeString(),
                 'items' => $order->items->map(fn ($item) => [
                     'id' => $item->id,
@@ -117,12 +167,11 @@ final class OrderQueryService
                     'quantity' => $item->quantity,
                     'unit_price_formatted' => Money::format($item->unit_price_cents, $order->currency),
                     'discount_formatted' => Money::format($item->discount_cents, $order->currency),
-                    'tax_formatted' => Money::format($item->tax_cents, $order->currency),
                     'line_total_formatted' => Money::format($item->line_total_cents, $order->currency),
                 ]),
                 'timeline' => $order->statusHistories->map(fn ($h) => [
-                    'from' => $h->from_status?->label(),
-                    'to' => $h->to_status->label(),
+                    'from' => OrderStatusHistory::labelFor($h->from_status),
+                    'to' => OrderStatusHistory::labelFor($h->to_status),
                     'comment' => $h->comment,
                     'user' => $h->user?->name ?? __('admin.system'),
                     'at' => $h->created_at->toDateTimeString(),
@@ -143,11 +192,6 @@ final class OrderQueryService
                     'reference' => $r->reference,
                     'reason' => $r->reason,
                     'at' => $r->created_at->toDateTimeString(),
-                ]),
-                'returns' => $order->returns->map(fn ($r) => [
-                    'id' => $r->id,
-                    'rma_number' => $r->rma_number,
-                    'status_label' => $r->status->label(),
                 ]),
             ],
         ];
@@ -179,9 +223,7 @@ final class OrderQueryService
                     'unit_price_formatted' => Money::format($item->unit_price_cents, $order->currency),
                     'line_total_formatted' => Money::format($item->line_total_cents, $order->currency),
                 ]),
-                'subtotal_formatted' => Money::format($order->subtotal_cents, $order->currency),
                 'discount_formatted' => Money::format($order->discount_cents, $order->currency),
-                'tax_formatted' => Money::format($order->tax_cents, $order->currency),
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
             ],
             'store' => [

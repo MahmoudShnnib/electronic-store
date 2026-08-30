@@ -50,7 +50,7 @@ const props = defineProps<{
         revenue_today: string;
         revenue_month: string;
         orders_total: number;
-        orders_pending: number;
+        orders_in_progress: number;
         orders_completed: number;
         orders_cancelled: number;
         customers_total: number;
@@ -112,7 +112,11 @@ const chartOptions = {
         <StatCard :label="t('admin.dashboard.revenue_today')" :value="kpis.revenue_today" tone="success" />
         <StatCard :label="t('admin.dashboard.revenue_this_month')" :value="kpis.revenue_month" tone="success" />
         <StatCard :label="t('admin.dashboard.total_orders')" :value="kpis.orders_total" />
-        <StatCard :label="t('admin.dashboard.pending_orders')" :value="kpis.orders_pending" :tone="kpis.orders_pending > 0 ? 'warning' : 'default'" />
+        <StatCard
+            :label="t('admin.dashboard.in_progress_orders')"
+            :value="kpis.orders_in_progress"
+            :tone="kpis.orders_in_progress > 0 ? 'warning' : 'default'"
+        />
         <StatCard :label="t('admin.dashboard.completed_orders')" :value="kpis.orders_completed" />
         <StatCard :label="t('admin.dashboard.cancelled_orders')" :value="kpis.orders_cancelled" />
         <StatCard :label="t('admin.dashboard.customers')" :value="kpis.customers_total" />

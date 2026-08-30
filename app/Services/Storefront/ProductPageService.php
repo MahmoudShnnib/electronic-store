@@ -81,13 +81,9 @@ final class ProductPageService
                 'sale_price_formatted' => $product->saleIsActive() ? Money::format((int) $product->sale_price_cents) : null,
                 'current_price_cents' => $product->currentPriceCents(),
                 'current_price_formatted' => Money::format($product->currentPriceCents()),
-                'warranty_months' => $product->warranty_months,
-                'weight_grams' => $product->weight_grams,
                 'status' => $product->status->value,
                 'purchasable' => $product->status->isPurchasable(),
                 'has_variants' => $product->has_variants,
-                'meta_title' => $product->meta_title,
-                'meta_description' => $product->meta_description,
                 'images' => $product->images->map(fn ($img) => [
                     'id' => $img->id,
                     'url' => Storage::disk('public')->url($img->path),
@@ -102,7 +98,7 @@ final class ProductPageService
                     'price_cents' => $v->price_cents,
                     'current_price_cents' => $v->currentPriceCents(),
                     'current_price_formatted' => Money::format($v->currentPriceCents()),
-                    'on_sale' => $v->sale_price_cents !== null,
+                    'on_sale' => $v->saleIsActive(),
                     'image' => $v->image_path !== null ? Storage::disk('public')->url($v->image_path) : null,
                     'available' => $availability['variants'][$v->id] ?? 0,
                 ]),
@@ -162,12 +158,12 @@ final class ProductPageService
             return false;
         }
 
-        // Verified purchase required: user must have a delivered order containing it.
+        // Verified purchase required: user must have a completed order containing it.
         return OrderItem::query()
             ->where('product_id', $product->id)
             ->whereHas('order', fn ($q) => $q
                 ->where('user_id', $user->id)
-                ->whereIn('status', ['delivered', 'completed']))
+                ->where('status', 'completed'))
             ->exists();
     }
 }

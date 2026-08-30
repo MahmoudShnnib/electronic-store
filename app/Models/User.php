@@ -74,11 +74,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Review::class);
     }
 
-    public function returns(): HasMany
-    {
-        return $this->hasMany(ProductReturn::class);
-    }
-
     // -- Helpers --------------------------------------------------------------
 
     public function isStaff(): bool

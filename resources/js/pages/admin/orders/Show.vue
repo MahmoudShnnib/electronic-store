@@ -4,10 +4,11 @@ import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
+import { btnDanger, btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { Printer } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
@@ -33,15 +34,14 @@ const props = defineProps<{
         payment_status: string;
         payment_status_label: string;
         payment_method: string;
+        default_refund_method: string;
         placed_via: string;
         customer: { name?: string; email?: string; phone?: string };
         account: { id: number; name: string; email: string; phone: string | null } | null;
         shipping_address: Address;
         billing_address: Address;
-        subtotal_formatted: string;
         discount_formatted: string;
         coupon_code: string | null;
-        tax_formatted: string;
         total_formatted: string;
         total_cents: number;
         paid_cents: number;
@@ -49,7 +49,7 @@ const props = defineProps<{
         outstanding_formatted: string;
         refunded_formatted: string;
         customer_note: string | null;
-        internal_note: string | null;
+        can_resolve_issue: boolean;
         created_at: string;
         items: {
             id: number;
@@ -58,7 +58,6 @@ const props = defineProps<{
             quantity: number;
             unit_price_formatted: string;
             discount_formatted: string;
-            tax_formatted: string;
             line_total_formatted: string;
         }[];
         timeline: { from: string | null; to: string; comment: string | null; user: string; at: string }[];
@@ -72,18 +71,46 @@ const props = defineProps<{
             at: string;
         }[];
         refunds: { id: number; amount_formatted: string; method: string; reference: string | null; reason: string | null; at: string }[];
-        returns: { id: number; rma_number: string; status_label: string }[];
     };
 }>();
 
+/**
+ * One button per allowed transition — no dropdown. `returned` is left out
+ * whenever the dedicated return/problem form below can handle it, so there is
+ * exactly one way to send an order back.
+ */
+const quickTransitions = computed(() =>
+    props.order.allowed_transitions.filter((option) => !(option.value === 'returned' && props.order.can_resolve_issue)),
+);
+
+/** Transitions that undo the sale — always ask for a reason before firing. */
+const reasonRequired = ['cancelled', 'returned'];
+
 const statusForm = useForm({ status: '', comment: '' });
 
-function submitStatus(): void {
-    if (statusForm.status === '') return;
+/** The transition awaiting a typed reason, if any. */
+const pendingStatus = ref<string | null>(null);
+
+function pickStatus(status: string): void {
+    if (reasonRequired.includes(status)) {
+        pendingStatus.value = pendingStatus.value === status ? null : status;
+        statusForm.comment = '';
+
+        return;
+    }
+
+    submitStatus(status);
+}
+
+function submitStatus(status: string): void {
+    statusForm.status = status;
 
     statusForm.post(route('admin.orders.status', props.order.id), {
         preserveScroll: true,
-        onSuccess: () => statusForm.reset(),
+        onSuccess: () => {
+            statusForm.reset();
+            pendingStatus.value = null;
+        },
     });
 }
 
@@ -105,17 +132,38 @@ function submitRefund(): void {
     });
 }
 
-const noteForm = useForm({ internal_note: props.order.internal_note ?? '' });
+/**
+ * The single post-completion action: always records a reason, and refunds only
+ * when an amount is entered. Defaults to giving back everything collected.
+ */
+const issueForm = useForm({
+    reason: '',
+    amount: props.order.paid_cents / 100,
+    method: props.order.default_refund_method,
+    restock: true,
+    reference: '',
+});
 
-function submitNote(): void {
-    noteForm.post(route('admin.orders.note', props.order.id), { preserveScroll: true });
+const issueOpen = ref(false);
+
+function submitIssue(): void {
+    issueForm.post(route('admin.orders.issue', props.order.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            issueForm.reset();
+            issueOpen.value = false;
+        },
+    });
 }
 
-function formatAddress(address: Address): string {
-    return [address.name, address.phone, [address.area, address.city, address.country].filter(Boolean).join(', '), address.notes]
-        .filter(Boolean)
-        .join(' · ');
-}
+const refundMethods = computed(() => [
+    { value: 'cash', label: t('admin.orders.cash') },
+    { value: 'bank_transfer', label: t('admin.orders.bank_transfer') },
+    { value: 'store_credit', label: t('admin.orders.store_credit') },
+]);
+
+/** Shown wherever the customer left a field empty, so the gap is obvious. */
+const blank = '—';
 </script>
 
 <template>
@@ -142,7 +190,6 @@ function formatAddress(address: Address): string {
                             <th class="px-3 py-2.5 text-end">{{ t('admin.common.qty') }}</th>
                             <th class="px-3 py-2.5 text-end">{{ t('admin.common.unit') }}</th>
                             <th class="px-3 py-2.5 text-end">{{ t('admin.common.discount') }}</th>
-                            <th class="px-3 py-2.5 text-end">{{ t('admin.common.tax') }}</th>
                             <th class="px-3 py-2.5 text-end">{{ t('admin.common.total') }}</th>
                         </tr>
                     </thead>
@@ -153,33 +200,22 @@ function formatAddress(address: Address): string {
                             <td class="px-3 py-2.5 text-end">{{ item.quantity }}</td>
                             <td class="px-3 py-2.5 text-end">{{ item.unit_price_formatted }}</td>
                             <td class="px-3 py-2.5 text-end">{{ item.discount_formatted }}</td>
-                            <td class="px-3 py-2.5 text-end">{{ item.tax_formatted }}</td>
                             <td class="px-3 py-2.5 text-end font-medium">{{ item.line_total_formatted }}</td>
                         </tr>
                     </tbody>
                     <tfoot class="border-t border-gray-200 text-sm dark:border-gray-700">
                         <tr>
-                            <td colspan="5" />
-                            <td class="px-3 py-1.5 pt-3 text-end text-gray-500">{{ t('admin.common.subtotal') }}</td>
-                            <td class="px-3 py-1.5 pt-3 text-end">{{ order.subtotal_formatted }}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="5" />
-                            <td class="px-3 py-1.5 text-end text-gray-500">
+                            <td colspan="4" />
+                            <td class="px-3 py-1.5 pt-3 text-end text-gray-500">
                                 {{ t('admin.common.discount') }}<span v-if="order.coupon_code" class="ms-1 text-xs">({{ order.coupon_code }})</span>
                             </td>
-                            <td class="px-3 py-1.5 text-end">−{{ order.discount_formatted }}</td>
+                            <td class="px-3 py-1.5 pt-3 text-end">−{{ order.discount_formatted }}</td>
                         </tr>
                         <tr>
-                            <td colspan="5" />
-                            <td class="px-3 py-1.5 text-end text-gray-500">{{ t('admin.common.tax') }}</td>
-                            <td class="px-3 py-1.5 text-end">{{ order.tax_formatted }}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="5" />
+                            <td colspan="4" />
                         </tr>
                         <tr class="font-semibold text-gray-900 dark:text-gray-100">
-                            <td colspan="5" />
+                            <td colspan="4" />
                             <td class="px-3 py-2 text-end">{{ t('admin.common.total') }}</td>
                             <td class="px-3 py-2 text-end">{{ order.total_formatted }}</td>
                         </tr>
@@ -190,9 +226,19 @@ function formatAddress(address: Address): string {
             <div class="grid gap-6 md:grid-cols-2">
                 <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                     <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.customer') }}</h2>
-                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ order.customer.name }}</p>
-                    <p class="text-sm text-gray-500">{{ order.customer.email }}</p>
-                    <p class="text-sm text-gray-500">{{ order.customer.phone }}</p>
+
+                    <!-- Every field is labelled and always rendered, so a typo
+                         or a missing value is visible instead of blending into
+                         an unlabelled run of lines. -->
+                    <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+                        <dt class="text-gray-400">{{ t('admin.common.name') }}</dt>
+                        <dd class="font-medium text-gray-900 dark:text-gray-100">{{ order.customer.name || blank }}</dd>
+                        <dt class="text-gray-400">{{ t('admin.common.phone') }}</dt>
+                        <dd class="text-gray-600 dark:text-gray-300" dir="ltr">{{ order.customer.phone || blank }}</dd>
+                        <dt class="text-gray-400">{{ t('admin.common.email') }}</dt>
+                        <dd class="text-gray-600 dark:text-gray-300" dir="ltr">{{ order.customer.email || blank }}</dd>
+                    </dl>
+
                     <Link
                         v-if="order.account"
                         :href="route('admin.customers.show', order.account.id)"
@@ -202,7 +248,20 @@ function formatAddress(address: Address): string {
                     <p v-else class="mt-2 text-xs text-gray-400">{{ t('admin.orders.guest_checkout') }}</p>
 
                     <h3 class="mt-4 text-xs font-semibold uppercase text-gray-400">{{ t('admin.orders.shipping_address') }}</h3>
-                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ formatAddress(order.shipping_address) }}</p>
+                    <dl class="mt-1 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-sm">
+                        <dt class="text-gray-400">{{ t('admin.common.recipient') }}</dt>
+                        <dd class="text-gray-600 dark:text-gray-300">{{ order.shipping_address.name || blank }}</dd>
+                        <dt class="text-gray-400">{{ t('admin.common.phone') }}</dt>
+                        <dd class="text-gray-600 dark:text-gray-300" dir="ltr">{{ order.shipping_address.phone || blank }}</dd>
+                        <dt class="text-gray-400">{{ t('admin.common.city') }}</dt>
+                        <dd class="text-gray-600 dark:text-gray-300">{{ order.shipping_address.city || blank }}</dd>
+                        <dt class="text-gray-400">{{ t('admin.common.area') }}</dt>
+                        <dd class="text-gray-600 dark:text-gray-300">{{ order.shipping_address.area || blank }}</dd>
+                        <template v-if="order.shipping_address.notes">
+                            <dt class="text-gray-400">{{ t('admin.common.notes') }}</dt>
+                            <dd class="text-gray-600 dark:text-gray-300">{{ order.shipping_address.notes }}</dd>
+                        </template>
+                    </dl>
 
                     <template v-if="order.customer_note">
                         <h3 class="mt-3 text-xs font-semibold uppercase text-gray-400">{{ t('admin.orders.customer_note') }}</h3>
@@ -233,17 +292,38 @@ function formatAddress(address: Address): string {
                     <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.orders.order_status') }}</h2>
                     <StatusBadge :status="order.status" :label="order.status_label" />
                 </div>
-                <form v-if="order.allowed_transitions.length > 0" class="grid gap-3" @submit.prevent="submitStatus">
-                    <Field :label="t('admin.common.move_to')" :error="statusForm.errors.status">
-                        <AdminSelect v-model="statusForm.status" :placeholder="t('admin.common.choose')" :options="order.allowed_transitions" />
-                    </Field>
-                    <Field :label="t('admin.common.comment')" :error="statusForm.errors.comment">
-                        <input v-model="statusForm.comment" type="text" :class="inputClass" />
-                    </Field>
-                    <button type="submit" :disabled="statusForm.processing || statusForm.status === ''" :class="btnPrimary" class="justify-center">
-                        {{ t('admin.orders.update_status') }}
-                    </button>
-                </form>
+                <template v-if="quickTransitions.length > 0">
+                    <div class="grid gap-2">
+                        <button
+                            v-for="option in quickTransitions"
+                            :key="option.value"
+                            type="button"
+                            :disabled="statusForm.processing"
+                            :class="option.value === 'cancelled' ? btnDanger : btnPrimary"
+                            class="justify-center"
+                            @click="pickStatus(String(option.value))"
+                        >
+                            {{ option.label }}
+                        </button>
+                    </div>
+
+                    <!-- Undoing a sale needs a written reason; it lands in the timeline. -->
+                    <div v-if="pendingStatus" class="mt-3 grid gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                        <Field :label="t('admin.orders.reason_required')" :error="statusForm.errors.comment">
+                            <input v-model="statusForm.comment" type="text" :class="inputClass" />
+                        </Field>
+                        <button
+                            type="button"
+                            :disabled="statusForm.processing || statusForm.comment.trim() === ''"
+                            :class="btnDanger"
+                            class="justify-center"
+                            @click="submitStatus(pendingStatus)"
+                        >
+                            {{ t('admin.common.confirm') }}
+                        </button>
+                    </div>
+                    <p v-if="statusForm.errors.status" class="mt-2 text-sm text-red-600">{{ statusForm.errors.status }}</p>
+                </template>
                 <p v-else class="text-sm text-gray-400">{{ t('admin.orders.final_state') }}</p>
             </section>
 
@@ -275,6 +355,9 @@ function formatAddress(address: Address): string {
                         {{ p.amount_formatted }} · {{ p.method }} · {{ p.reference ?? 'no ref' }} · {{ p.at }}
                     </li>
                 </ul>
+                <p class="mb-3 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-950/50 dark:text-gray-400">
+                    {{ t('admin.orders.treasury_hint') }}
+                </p>
                 <form class="grid gap-3 border-t border-gray-100 pt-3 dark:border-gray-800" @submit.prevent="submitPayment">
                     <Field :label="t('admin.orders.record_payment')" :error="paymentForm.errors.amount">
                         <input
@@ -302,22 +385,60 @@ function formatAddress(address: Address): string {
             <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.refund') }}</h2>
                 <ul v-if="order.refunds.length > 0" class="mb-3 space-y-1 text-xs text-gray-500">
-                    <li v-for="r in order.refunds" :key="r.id">{{ r.amount_formatted }} · {{ r.method }} · {{ r.at }}</li>
+                    <li v-for="r in order.refunds" :key="r.id">
+                        {{ r.amount_formatted }} · {{ r.method }} · {{ r.at }}
+                        <span v-if="r.reason" class="block text-gray-400">{{ r.reason }}</span>
+                    </li>
                 </ul>
-                <form class="grid gap-3" @submit.prevent="submitRefund">
+
+                <!-- After the customer has the goods, returning and refunding is
+                     one action so the reason, the money and the stock stay in sync. -->
+                <template v-if="order.can_resolve_issue">
+                    <button v-if="!issueOpen" type="button" :class="btnDanger" class="w-full justify-center" @click="issueOpen = true">
+                        {{ t('admin.orders.report_issue') }}
+                    </button>
+                    <form v-else class="grid gap-3" @submit.prevent="submitIssue">
+                        <Field :label="t('admin.orders.issue_reason')" :error="issueForm.errors.reason">
+                            <textarea v-model="issueForm.reason" rows="2" :class="inputClass" />
+                        </Field>
+                        <Field :label="t('admin.orders.refund_amount')" :hint="t('admin.orders.refund_amount_hint')" :error="issueForm.errors.amount">
+                            <input v-model.number="issueForm.amount" type="number" step="0.01" min="0" :class="inputClass" />
+                        </Field>
+                        <Field :label="t('admin.common.method')" :error="issueForm.errors.method">
+                            <AdminSelect v-model="issueForm.method" :options="refundMethods" />
+                        </Field>
+                        <input
+                            v-model="issueForm.reference"
+                            type="text"
+                            :placeholder="t('admin.common.reference_optional')"
+                            :class="inputClass"
+                            dir="ltr"
+                        />
+                        <label class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                            <input v-model="issueForm.restock" type="checkbox" :class="checkboxClass" />
+                            {{ t('admin.orders.restock_items') }}
+                        </label>
+                        <div class="flex gap-2">
+                            <button
+                                type="submit"
+                                :disabled="issueForm.processing || issueForm.reason.trim() === ''"
+                                :class="btnDanger"
+                                class="flex-1 justify-center"
+                            >
+                                {{ t('admin.common.confirm') }}
+                            </button>
+                            <button type="button" :class="btnSecondary" @click="issueOpen = false">{{ t('admin.common.cancel') }}</button>
+                        </div>
+                    </form>
+                </template>
+
+                <!-- An order already sent back can still need money returned. -->
+                <form v-else class="grid gap-3" @submit.prevent="submitRefund">
                     <Field :label="t('admin.common.amount')" :error="refundForm.errors.amount">
                         <input v-model.number="refundForm.amount" type="number" step="0.01" min="0.01" :class="inputClass" />
                     </Field>
                     <Field :label="t('admin.common.method')" :error="refundForm.errors.method">
-                        <AdminSelect
-                            v-model="refundForm.method"
-                            :options="[
-                                { value: 'cash', label: t('admin.orders.cash') },
-                                { value: 'bank_transfer', label: t('admin.orders.bank_transfer') },
-                                { value: 'store_credit', label: t('admin.orders.store_credit') },
-                                { value: 'original', label: t('admin.orders.original_method') },
-                            ]"
-                        />
+                        <AdminSelect v-model="refundForm.method" :options="refundMethods" />
                     </Field>
                     <input
                         v-model="refundForm.reference"
@@ -329,31 +450,6 @@ function formatAddress(address: Address): string {
                     <input v-model="refundForm.reason" type="text" :placeholder="t('admin.common.reason_optional')" :class="inputClass" />
                     <button type="submit" :disabled="refundForm.processing" :class="btnSecondary" class="justify-center">
                         {{ t('admin.orders.issue_refund') }}
-                    </button>
-                </form>
-            </section>
-
-            <section
-                v-if="order.returns.length > 0"
-                class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
-            >
-                <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.nav.returns') }}</h2>
-                <ul class="space-y-2 text-sm">
-                    <li v-for="r in order.returns" :key="r.id" class="flex items-center justify-between">
-                        <Link :href="route('admin.returns.show', r.id)" class="text-blue-600 hover:underline dark:text-blue-400">
-                            {{ r.rma_number }}
-                        </Link>
-                        <span class="text-xs text-gray-400">{{ r.status_label }}</span>
-                    </li>
-                </ul>
-            </section>
-
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.orders.internal_note') }}</h2>
-                <form class="grid gap-3" @submit.prevent="submitNote">
-                    <textarea v-model="noteForm.internal_note" rows="3" :class="inputClass" />
-                    <button type="submit" :disabled="noteForm.processing" :class="btnSecondary" class="justify-center">
-                        {{ t('admin.orders.save_note') }}
                     </button>
                 </form>
             </section>

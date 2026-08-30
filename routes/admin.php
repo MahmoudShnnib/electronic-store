@@ -46,19 +46,22 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
 
         // Orders
         Route::get('orders', [Admin\Orders\OrderController::class, 'index'])->name('orders.index');
+        // Before the {order} route, or "create" is read as an order id.
+        Route::get('orders/create', [Admin\Orders\ManualOrderController::class, 'create'])->name('orders.create');
+        Route::post('orders', [Admin\Orders\ManualOrderController::class, 'store'])->name('orders.store');
         Route::get('orders/{order}', [Admin\Orders\OrderController::class, 'show'])->name('orders.show');
         Route::post('orders/{order}/status', Admin\Orders\UpdateOrderStatusController::class)->name('orders.status');
-        Route::post('orders/{order}/note', Admin\Orders\UpdateOrderNoteController::class)->name('orders.note');
         Route::post('orders/{order}/payments', Admin\Orders\ConfirmOrderPaymentController::class)->name('orders.payments.store');
         Route::get('orders/{order}/invoice', Admin\Orders\OrderInvoiceController::class)->name('orders.invoice');
 
-        // Returns & refunds
-        Route::get('returns', [Admin\Returns\ReturnController::class, 'index'])->name('returns.index');
-        Route::get('returns/{productReturn}', [Admin\Returns\ReturnController::class, 'show'])->name('returns.show');
-        Route::post('returns/{productReturn}/review', Admin\Returns\ReviewReturnController::class)->name('returns.review');
-        Route::post('returns/{productReturn}/receive', Admin\Returns\ReceiveReturnController::class)->name('returns.receive');
+        // Refunds
         Route::get('refunds', [Admin\Refunds\RefundController::class, 'index'])->name('refunds.index');
         Route::post('orders/{order}/refunds', Admin\Refunds\StoreRefundController::class)->name('refunds.store');
+        Route::post('orders/{order}/issue', Admin\Orders\ResolveOrderIssueController::class)->name('orders.issue');
+
+        // Treasury
+        Route::get('treasury', [Admin\Treasury\TreasuryController::class, 'index'])->name('treasury.index');
+        Route::post('treasury', Admin\Treasury\StoreTreasuryTransactionController::class)->name('treasury.store');
 
         // Customers & engagement
         Route::get('customers', [Admin\Customers\CustomerController::class, 'index'])->name('customers.index');

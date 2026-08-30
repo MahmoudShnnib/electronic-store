@@ -24,7 +24,6 @@ final class StoreRefundRequest extends FormRequest
         return [
             'amount' => ['required', 'numeric', 'min:0.01'],
             'method' => ['required', Rule::enum(RefundMethod::class)],
-            'return_id' => ['nullable', 'integer', 'exists:returns,id'],
             'reference' => ['nullable', 'string', 'max:120'],
             'reason' => ['nullable', 'string', 'max:500'],
         ];

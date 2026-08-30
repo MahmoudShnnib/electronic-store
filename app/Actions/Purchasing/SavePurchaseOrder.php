@@ -29,7 +29,6 @@ final class SavePurchaseOrder
                     'warehouse_id' => $validated['warehouse_id'],
                     'status' => PurchaseOrderStatus::Draft,
                     'discount_cents' => Money::fromDecimal($validated['discount'] ?? 0),
-                    'tax_cents' => Money::fromDecimal($validated['tax'] ?? 0),
                     'shipping_cents' => Money::fromDecimal($validated['shipping'] ?? 0),
                     'expected_at' => $validated['expected_at'] ?? null,
                     'notes' => $validated['notes'] ?? null,
@@ -40,7 +39,6 @@ final class SavePurchaseOrder
                     'supplier_id' => $validated['supplier_id'],
                     'warehouse_id' => $validated['warehouse_id'],
                     'discount_cents' => Money::fromDecimal($validated['discount'] ?? 0),
-                    'tax_cents' => Money::fromDecimal($validated['tax'] ?? 0),
                     'shipping_cents' => Money::fromDecimal($validated['shipping'] ?? 0),
                     'expected_at' => $validated['expected_at'] ?? null,
                     'notes' => $validated['notes'] ?? null,
@@ -78,7 +76,7 @@ final class SavePurchaseOrder
 
         $po->update([
             'subtotal_cents' => $subtotal,
-            'total_cents' => max(0, $subtotal - $po->discount_cents) + $po->tax_cents + $po->shipping_cents,
+            'total_cents' => max(0, $subtotal - $po->discount_cents) + $po->shipping_cents,
         ]);
     }
 }

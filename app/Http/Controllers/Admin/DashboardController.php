@@ -21,10 +21,8 @@ final class DashboardController extends Controller
 {
     public function __invoke(): Response
     {
-        $revenueStatuses = [
-            OrderStatus::Confirmed, OrderStatus::Processing, OrderStatus::ReadyForShipping,
-            OrderStatus::Shipped, OrderStatus::Delivered, OrderStatus::Completed,
-        ];
+        // Cancelled and refunded orders are not revenue; everything else is.
+        $revenueStatuses = [OrderStatus::InProgress, OrderStatus::Completed];
 
         $revenue = fn ($query) => (int) $query->whereIn('status', $revenueStatuses)->sum('total_cents');
 
@@ -72,7 +70,7 @@ final class DashboardController extends Controller
                 'revenue_today' => Money::format($revenue(Order::query()->whereDate('created_at', today()))),
                 'revenue_month' => Money::format($revenue(Order::query()->whereBetween('created_at', [now()->startOfMonth(), now()]))),
                 'orders_total' => Order::query()->count(),
-                'orders_pending' => Order::query()->where('status', OrderStatus::Pending)->count(),
+                'orders_in_progress' => Order::query()->where('status', OrderStatus::InProgress)->count(),
                 'orders_completed' => Order::query()->where('status', OrderStatus::Completed)->count(),
                 'orders_cancelled' => Order::query()->where('status', OrderStatus::Cancelled)->count(),
                 'customers_total' => User::query()->role('customer')->count(),

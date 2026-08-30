@@ -46,12 +46,6 @@ return [
         ['en' => 'Hun', 'ar' => 'هون'],
     ],
 
-    // Fallback VAT-style rate (percent) when a product has no explicit tax rate.
-    'default_tax_rate' => env('STORE_DEFAULT_TAX_RATE', 0),
-
-    // Days after delivery during which a customer may request a return.
-    'return_window_days' => env('STORE_RETURN_WINDOW_DAYS', 14),
-
     // Maximum quantity of a single item per order.
     'max_quantity_per_item' => env('STORE_MAX_QTY_PER_ITEM', 10),
 

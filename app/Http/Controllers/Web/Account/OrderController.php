@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web\Account;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderStatusHistory;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -52,9 +53,7 @@ final class OrderController extends Controller
                 'customer' => $order->customer,
                 'shipping_address' => $order->shipping_address,
                 'billing_address' => $order->billing_address,
-                'subtotal_formatted' => Money::format($order->subtotal_cents, $order->currency),
                 'discount_formatted' => Money::format($order->discount_cents, $order->currency),
-                'tax_formatted' => Money::format($order->tax_cents, $order->currency),
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
                 'coupon_code' => $order->coupon_code,
                 'customer_note' => $order->customer_note,
@@ -71,7 +70,7 @@ final class OrderController extends Controller
                     'line_total_formatted' => Money::format($item->line_total_cents, $order->currency),
                 ]),
                 'timeline' => $order->statusHistories->map(fn ($h) => [
-                    'status' => $h->to_status->label(),
+                    'status' => OrderStatusHistory::labelFor($h->to_status),
                     'comment' => $h->comment,
                     'at' => $h->created_at->toDayDateTimeString(),
                 ]),

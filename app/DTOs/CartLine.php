@@ -16,7 +16,6 @@ final readonly class CartLine
         public int $unitPriceCents,
         public int $lineSubtotalCents,
         public int $lineDiscountCents,
-        public int $lineTaxCents,
         public int $lineTotalCents,
         public ?int $cartItemId = null,
     ) {}

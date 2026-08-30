@@ -19,7 +19,7 @@ final class PurchaseOrder extends Model
 
     protected $fillable = [
         'po_number', 'supplier_id', 'warehouse_id', 'status', 'subtotal_cents',
-        'discount_cents', 'tax_cents', 'shipping_cents', 'total_cents',
+        'discount_cents', 'shipping_cents', 'total_cents',
         'expected_at', 'received_at', 'notes', 'created_by',
     ];
 
@@ -29,7 +29,6 @@ final class PurchaseOrder extends Model
             'status' => PurchaseOrderStatus::class,
             'subtotal_cents' => 'integer',
             'discount_cents' => 'integer',
-            'tax_cents' => 'integer',
             'shipping_cents' => 'integer',
             'total_cents' => 'integer',
             'expected_at' => 'immutable_date',

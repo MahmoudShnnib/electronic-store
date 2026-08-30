@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import StoreLayout from '@/layouts/StoreLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ArrowLeft, RotateCcw } from 'lucide-vue-next';
+import { ArrowLeft } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
@@ -26,9 +26,7 @@ const props = defineProps<{
         customer: { name?: string; email?: string; phone?: string };
         shipping_address: AddressSnapshot;
         billing_address: AddressSnapshot;
-        subtotal_formatted: string;
         discount_formatted: string;
-        tax_formatted: string;
         total_formatted: string;
         coupon_code: string | null;
         customer_note: string | null;
@@ -76,14 +74,6 @@ function formatAddress(address: AddressSnapshot): string {
             </div>
 
             <div class="flex flex-wrap gap-2">
-                <Link
-                    v-if="['delivered', 'completed'].includes(order.status)"
-                    :href="route('account.returns.create', order.id)"
-                    class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium transition hover:bg-muted"
-                >
-                    <RotateCcw class="h-4 w-4" />
-                    {{ t('account.request_return') }}
-                </Link>
                 <button
                     v-if="order.cancellable"
                     type="button"
@@ -135,18 +125,10 @@ function formatAddress(address: AddressSnapshot): string {
                 <section class="rounded-xl border border-border bg-card p-5">
                     <dl class="space-y-2 text-sm">
                         <div class="flex justify-between">
-                            <dt class="text-muted-foreground">{{ t('cart.subtotal') }}</dt>
-                            <dd>{{ order.subtotal_formatted }}</dd>
-                        </div>
-                        <div class="flex justify-between">
                             <dt class="text-muted-foreground">
                                 {{ t('cart.discount') }} <template v-if="order.coupon_code">({{ order.coupon_code }})</template>
                             </dt>
                             <dd>{{ order.discount_formatted }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-muted-foreground">{{ t('cart.tax') }}</dt>
-                            <dd>{{ order.tax_formatted }}</dd>
                         </div>
                         <div class="flex justify-between border-t border-border pt-3 font-bold">
                             <dt>{{ t('cart.total') }}</dt>

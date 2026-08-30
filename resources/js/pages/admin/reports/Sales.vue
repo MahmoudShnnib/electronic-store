@@ -25,7 +25,6 @@ const props = defineProps<{
         avg_order_formatted: string;
         estimated_cost_formatted: string;
         estimated_profit_formatted: string;
-        returns: number;
         refunded_formatted: string;
         new_customers: number;
     };
@@ -117,7 +116,6 @@ function exportUrl(report: string): string {
             tone="success"
             :hint="t('admin.reports.cost', { amount: summary.estimated_cost_formatted })"
         />
-        <StatCard :label="t('admin.nav.returns')" :value="summary.returns" />
         <StatCard :label="t('admin.common.refunded')" :value="summary.refunded_formatted" tone="warning" />
         <StatCard :label="t('admin.reports.new_customers')" :value="summary.new_customers" />
     </div>
@@ -244,7 +242,6 @@ function exportUrl(report: string): string {
 
     <div class="mt-6 flex flex-wrap gap-3">
         <a :href="exportUrl('movements')" :class="btnSecondary"><Download class="h-4 w-4" />{{ t('admin.reports.movements_csv') }}</a>
-        <a :href="exportUrl('returns')" :class="btnSecondary"><Download class="h-4 w-4" />{{ t('admin.reports.returns_csv') }}</a>
         <a :href="exportUrl('refunds')" :class="btnSecondary"><Download class="h-4 w-4" />{{ t('admin.reports.refunds_csv') }}</a>
     </div>
 </template>

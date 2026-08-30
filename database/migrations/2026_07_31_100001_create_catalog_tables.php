@@ -18,8 +18,6 @@ return new class extends Migration
             $table->string('image_path')->nullable();
             $table->unsignedInteger('position')->default(0);
             $table->boolean('is_active')->default(true);
-            $table->string('meta_title')->nullable();
-            $table->string('meta_description', 500)->nullable();
             $table->timestamps();
             $table->softDeletes();
 
@@ -79,15 +77,8 @@ return new class extends Migration
             $table->decimal('tax_rate', 5, 2)->default(0);
             $table->boolean('has_variants')->default(false);
             $table->unsignedInteger('low_stock_threshold')->default(5);
-            $table->unsignedInteger('warranty_months')->nullable();
-            $table->unsignedInteger('weight_grams')->nullable();
-            $table->unsignedInteger('length_mm')->nullable();
-            $table->unsignedInteger('width_mm')->nullable();
-            $table->unsignedInteger('height_mm')->nullable();
             $table->string('status')->default('draft');
             $table->boolean('is_featured')->default(false);
-            $table->string('meta_title')->nullable();
-            $table->string('meta_description', 500)->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('published_at')->nullable();

@@ -15,6 +15,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Cart;
 use App\Models\Order;
+use App\Models\StockLevel;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Notifications\OrderPlacedNotification;
@@ -34,7 +35,7 @@ use Illuminate\Validation\ValidationException;
  *     clear cart
  *   }
  *
- * Prices, discounts, and taxes are always recomputed server-side via
+ * Prices and discounts are always recomputed server-side via
  * CalculateCartTotals. Nothing from the client is trusted.
  */
 final class PlaceOrder
@@ -113,14 +114,13 @@ final class PlaceOrder
                         'unit_price_cents' => $line->unitPriceCents,
                         'quantity' => $line->quantity,
                         'discount_cents' => $line->lineDiscountCents,
-                        'tax_cents' => $line->lineTaxCents,
                         'line_total_cents' => $line->lineTotalCents,
                     ]);
                 }
 
                 $order->statusHistories()->create([
                     'from_status' => null,
-                    'to_status' => OrderStatus::Pending,
+                    'to_status' => OrderStatus::InProgress,
                     'comment' => 'Order placed.',
                     'user_id' => $user?->id,
                 ]);
@@ -164,7 +164,7 @@ final class PlaceOrder
     {
         $default = Warehouse::default();
 
-        $stocked = \App\Models\StockLevel::query()
+        $stocked = StockLevel::query()
             ->where('product_id', $line->product->id)
             ->where('product_variant_id', $line->variant?->id)
             ->where('quantity', '>=', $line->quantity)
@@ -187,14 +187,13 @@ final class PlaceOrder
             'customer' => $data->customer,
             'billing_address' => $data->billingAddress,
             'shipping_address' => $data->shippingAddress,
-            'status' => OrderStatus::Pending,
+            'status' => OrderStatus::InProgress,
             'payment_status' => PaymentStatus::Unpaid,
             'payment_method' => $data->paymentMethod,
             'currency' => (string) config('store.currency'),
             'subtotal_cents' => $totals->subtotalCents,
             'discount_cents' => $totals->discountCents,
             'coupon_code' => $totals->discountCents > 0 ? $totals->coupon?->code : null,
-            'tax_cents' => $totals->taxCents,
             'total_cents' => $totals->totalCents,
             'customer_note' => $data->customerNote,
             'idempotency_key' => $data->idempotencyKey,

@@ -16,7 +16,6 @@ interface RefundRow extends Record<string, unknown> {
     id: number;
     order_number: string;
     order_id: number;
-    rma_number: string | null;
     amount_formatted: string;
     method: string;
     reference: string | null;
@@ -32,7 +31,6 @@ defineProps<{
 
 const columns: Column[] = [
     { key: 'order_number', label: t('admin.common.order') },
-    { key: 'rma_number', label: t('admin.common.rma') },
     { key: 'amount_formatted', label: t('admin.common.amount') },
     { key: 'method', label: t('admin.common.method') },
     { key: 'reference', label: t('admin.common.reference') },

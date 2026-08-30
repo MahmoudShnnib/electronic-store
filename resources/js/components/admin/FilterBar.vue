@@ -72,13 +72,15 @@ onBeforeUnmount(() => {
             />
         </div>
 
-        <!-- `!w-auto`: inputClass carries w-full, which wins on source order and
-             would stretch each filter across the whole bar. -->
+        <!-- `!w-auto`: the trigger carries w-full so it fills a form field, and
+             that would stretch each filter across the whole bar and push the
+             next one onto its own row. The min-width keeps longer labels from
+             collapsing to a sliver. -->
         <AdminSelect
             v-for="select in selects ?? []"
             :key="select.key"
             v-model="state[select.key]"
-            class="!w-auto"
+            class="!w-auto min-w-40 max-w-56"
             :empty-label="select.label"
             :options="select.options"
             @update:model-value="apply"

@@ -5,8 +5,10 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
+import { btnPrimary } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { Plus } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
@@ -50,7 +52,11 @@ const columns: Column[] = [
 <template>
     <Head :title="t('admin.orders.title')" />
 
-    <PageHeader :title="t('admin.orders.title')" :subtitle="t('admin.orders.count', { count: orders.total })" />
+    <PageHeader :title="t('admin.orders.title')" :subtitle="t('admin.orders.count', { count: orders.total })">
+        <template #actions>
+            <Link :href="route('admin.orders.create')" :class="btnPrimary"><Plus class="h-4 w-4" />{{ t('admin.orders.new') }}</Link>
+        </template>
+    </PageHeader>
 
     <FilterBar
         :url="route('admin.orders.index')"

@@ -24,9 +24,7 @@ final class OrderResource extends JsonResource
             'payment_status' => $this->payment_status->value,
             'payment_method' => $this->payment_method->value,
             'currency' => $this->currency,
-            'subtotal' => Money::toDecimal($this->subtotal_cents),
             'discount' => Money::toDecimal($this->discount_cents),
-            'tax' => Money::toDecimal($this->tax_cents),
             'total' => Money::toDecimal($this->total_cents),
             'coupon_code' => $this->coupon_code,
             'cancellable' => $this->status->isCancellable(),
@@ -45,7 +43,7 @@ final class OrderResource extends JsonResource
             ])),
             'shipping_address' => $this->when($this->relationLoaded('items'), $this->shipping_address),
             'timeline' => $this->whenLoaded('statusHistories', fn () => $this->statusHistories->map(fn ($h) => [
-                'status' => $h->to_status->value,
+                'status' => $h->to_status,
                 'comment' => $h->comment,
                 'at' => $h->created_at->toIso8601String(),
             ])),

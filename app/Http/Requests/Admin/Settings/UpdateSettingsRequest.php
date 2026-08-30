@@ -21,7 +21,6 @@ final class UpdateSettingsRequest extends FormRequest
     {
         return [
             'settings' => ['required', 'array'],
-            'settings.return_window_days' => ['nullable', 'integer', 'min:0', 'max:365'],
         ];
     }
 }

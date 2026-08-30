@@ -78,7 +78,6 @@ final class CustomerController extends Controller implements HasMiddleware
                     'total_formatted' => Money::format($o->total_cents, $o->currency),
                     'created_at' => $o->created_at->toDateString(),
                 ]),
-                'returns_count' => $customer->returns()->count(),
                 'reviews_count' => $customer->reviews()->count(),
             ],
         ]);

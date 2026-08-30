@@ -19,7 +19,6 @@ import {
     Menu,
     Moon,
     Package,
-    RotateCcw,
     Settings,
     ShoppingBag,
     Sun,
@@ -143,10 +142,6 @@ const footerPages = [
                                 <Link :href="route('account.addresses.index')" :class="menuRow" @click="closeMenu">
                                     <MapPin class="h-4 w-4" />
                                     {{ t('nav.addresses') }}
-                                </Link>
-                                <Link :href="route('account.returns.index')" :class="menuRow" @click="closeMenu">
-                                    <RotateCcw class="h-4 w-4" />
-                                    {{ t('nav.returns') }}
                                 </Link>
                                 <Link :href="route('profile.edit')" :class="menuRow" @click="closeMenu">
                                     <Settings class="h-4 w-4" />

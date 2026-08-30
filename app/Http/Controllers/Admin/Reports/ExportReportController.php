@@ -25,7 +25,7 @@ final class ExportReportController extends Controller implements HasMiddleware
     {
         abort_unless(in_array($report, [
             'sales_by_day', 'sales_by_product', 'sales_by_category', 'sales_by_brand',
-            'sales_by_customer', 'invoices', 'inventory_valuation', 'low_stock', 'movements', 'returns', 'refunds',
+            'sales_by_customer', 'invoices', 'inventory_valuation', 'low_stock', 'movements', 'refunds',
         ], true), 404);
 
         [$from, $to] = ReportDateRange::fromRequest($request);

@@ -20,9 +20,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class ReportService
 {
-    private const REVENUE_STATUSES = [
-        'confirmed', 'processing', 'ready_for_shipping', 'shipped', 'delivered', 'completed',
-    ];
+    /** Everything except cancelled and refunded counts as revenue. */
+    private const REVENUE_STATUSES = ['in_progress', 'completed'];
 
     private function revenueOrders(CarbonImmutable $from, CarbonImmutable $to): Builder
     {
@@ -55,7 +54,6 @@ final class ReportService
             ->selectRaw('COALESCE(SUM(order_items.quantity * COALESCE(product_variants.cost_price_cents, products.cost_price_cents, 0)),0) as cost')
             ->value('cost');
 
-        $returns = (int) DB::table('returns')->whereBetween('created_at', [$from, $to])->count();
         $refunded = (int) DB::table('refunds')->where('status', 'completed')->whereBetween('created_at', [$from, $to])->sum('amount_cents');
         $newCustomers = (int) DB::table('users')->whereBetween('created_at', [$from, $to])->whereNull('deleted_at')->count();
 
@@ -66,7 +64,6 @@ final class ReportService
             'avg_order_formatted' => Money::format((int) round((float) $row->avg_order)),
             'estimated_cost_formatted' => Money::format($cost),
             'estimated_profit_formatted' => Money::format(max(0, (int) $row->revenue - $cost)),
-            'returns' => $returns,
             'refunded_formatted' => Money::format($refunded),
             'new_customers' => $newCustomers,
         ];
@@ -340,15 +337,6 @@ final class ReportService
                     ->selectRaw('inventory_movements.created_at, products.name, warehouses.name as warehouse, inventory_movements.type, quantity_before, quantity_change, quantity_after, reason')
                     ->get()
                     ->map(fn ($r) => [$r->created_at, $r->name, $r->warehouse, $r->type, $r->quantity_before, $r->quantity_change, $r->quantity_after, $r->reason]),
-            ],
-            'returns' => [
-                ['RMA', 'Order', 'Status', 'Reason', 'Date'],
-                DB::table('returns')
-                    ->join('orders', 'orders.id', '=', 'returns.order_id')
-                    ->whereBetween('returns.created_at', [$from, $to])
-                    ->selectRaw('returns.rma_number, orders.number, returns.status, returns.reason, returns.created_at')
-                    ->get()
-                    ->map(fn ($r) => [$r->rma_number, $r->number, $r->status, $r->reason, $r->created_at]),
             ],
             'refunds' => [
                 ['Order', 'Amount', 'Method', 'Reference', 'Date'],

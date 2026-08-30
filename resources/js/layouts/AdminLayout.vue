@@ -28,8 +28,8 @@ import {
     Sun,
     Tag,
     Truck,
-    Undo2,
     Users,
+    Wallet,
     Warehouse,
     X,
 } from 'lucide-vue-next';
@@ -127,8 +127,8 @@ const sections = computed<NavSection[]>(() =>
             label: t('admin.nav.sales'),
             links: [
                 { label: t('admin.nav.orders'), href: route('admin.orders.index'), icon: ShoppingCart, permission: 'orders.view' },
-                { label: t('admin.nav.returns'), href: route('admin.returns.index'), icon: Undo2, permission: 'returns.manage' },
                 { label: t('admin.nav.refunds'), href: route('admin.refunds.index'), icon: CreditCard, permission: 'refunds.manage' },
+                { label: t('admin.nav.treasury'), href: route('admin.treasury.index'), icon: Wallet, permission: 'treasury.view' },
             ],
         },
         {

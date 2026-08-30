@@ -2,15 +2,20 @@
 
 declare(strict_types=1);
 
+use App\Actions\Catalog\SaveProduct;
+use App\Actions\Checkout\PlaceOrder;
 use App\Actions\Inventory\AdjustStock;
 use App\Actions\Purchasing\CancelPurchaseOrder;
 use App\Actions\Purchasing\SendPurchaseOrder;
-use App\Actions\Returns\CreateRefund;
+use App\Actions\Refunds\CreateRefund;
+use App\DTOs\CheckoutData;
 use App\Enums\MovementType;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\PurchaseOrderStatus;
 use App\Enums\RefundMethod;
+use App\Models\Cart;
+use App\Models\InventoryMovement;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
@@ -28,7 +33,7 @@ function unpaidOrder(User $user, int $totalCents = 10_000): Order
     return Order::create([
         'number' => ReferenceNumber::generate('ORD'),
         'user_id' => $user->id,
-        'status' => 'pending',
+        'status' => 'in_progress',
         'payment_status' => PaymentStatus::Unpaid,
         'payment_method' => PaymentMethod::CashOnDelivery,
         'customer' => ['name' => $user->name, 'email' => $user->email],
@@ -88,7 +93,7 @@ it('releases booked incoming stock when a sent PO is cancelled', function (): vo
 
     expect(StockLevel::query()->sole()->incoming)->toBe(0)
         ->and($po->refresh()->status)->toBe(PurchaseOrderStatus::Cancelled)
-        ->and(\App\Models\InventoryMovement::query()->where('type', MovementType::PurchaseCancelled)->count())->toBe(1);
+        ->and(InventoryMovement::query()->where('type', MovementType::PurchaseCancelled)->count())->toBe(1);
 });
 
 // -- A7: adjustment direction comes from the movement type -------------------
@@ -116,13 +121,13 @@ it('fulfils an order from a secondary warehouse when the default is empty', func
     giveStock($product, 5, warehouse: $secondary);
 
     $user = customer();
-    $cart = (new \App\Models\Cart)->forceFill(['user_id' => $user->id]);
+    $cart = (new Cart)->forceFill(['user_id' => $user->id]);
     $cart->save();
     $cart->items()->create(['product_id' => $product->id, 'quantity' => 2]);
 
-    $order = app(\App\Actions\Checkout\PlaceOrder::class)->handle(
+    $order = app(PlaceOrder::class)->handle(
         $cart,
-        new \App\DTOs\CheckoutData(
+        new CheckoutData(
             customer: ['name' => $user->name, 'email' => $user->email, 'phone' => '0910000000'],
             shippingAddress: ['name' => $user->name, 'phone' => '0910000000', 'country' => 'LY', 'city' => 'Tripoli', 'area' => 'Center'],
             billingAddress: ['name' => $user->name, 'phone' => '0910000000', 'country' => 'LY', 'city' => 'Tripoli', 'area' => 'Center'],
@@ -144,7 +149,7 @@ it('moves product-level stock onto the first variant when variants are added', f
     $product = Product::factory()->create();
     giveStock($product, 12);
 
-    app(\App\Actions\Catalog\SaveProduct::class)->handle($product, [], [[
+    app(SaveProduct::class)->handle($product, [], [[
         'name' => 'Red', 'sku' => 'VAR-RED-1', 'price_cents' => 5_000, 'cost_price_cents' => 0,
     ]]);
 
@@ -152,26 +157,4 @@ it('moves product-level stock onto the first variant when variants are added', f
 
     expect((int) $product->stockLevels()->whereNull('product_variant_id')->sum('quantity'))->toBe(0)
         ->and((int) $product->stockLevels()->where('product_variant_id', $variant->id)->sum('quantity'))->toBe(12);
-});
-
-// -- B9: a closed return keeps its quantities returned -----------------------
-
-it('does not free return quantities when a return is closed', function (): void {
-    $user = customer();
-    $order = unpaidOrder($user);
-    $item = $order->items()->create([
-        'product_id' => Product::factory()->create()->id,
-        'warehouse_id' => defaultWarehouse()->id,
-        'product_name' => 'Thing', 'sku' => 'T-1',
-        'unit_price_cents' => 1_000, 'quantity' => 2, 'line_total_cents' => 2_000,
-    ]);
-
-    $return = \App\Models\ProductReturn::create([
-        'rma_number' => ReferenceNumber::generate('RMA'),
-        'order_id' => $order->id, 'user_id' => $user->id,
-        'status' => 'closed', 'reason' => 'defective',
-    ]);
-    $return->items()->create(['order_item_id' => $item->id, 'quantity' => 2]);
-
-    expect($item->returnedQuantity())->toBe(2);
 });

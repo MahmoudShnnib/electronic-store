@@ -22,7 +22,6 @@ it('lets each staff role reach only its own sections', function (): void {
 
     // Order manager: orders yes, products no.
     $this->actingAs($orders)->get(route('admin.orders.index'))->assertOk();
-    $this->actingAs($orders)->get(route('admin.returns.index'))->assertOk();
     $this->actingAs($orders)->get(route('admin.products.index'))->assertForbidden();
 });
 

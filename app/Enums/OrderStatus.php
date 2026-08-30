@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+/**
+ * Four states, no more: an order is being worked on, it is done, it was called
+ * off, or the money went back. The old ten-step shipping pipeline
+ * (pending/confirmed/processing/ready_for_shipping/shipped/delivered/returned)
+ * was collapsed into these — see the 2026-08-16 migration for the mapping.
+ */
 enum OrderStatus: string
 {
-    case Pending = 'pending';
-    case Confirmed = 'confirmed';
-    case Processing = 'processing';
-    case ReadyForShipping = 'ready_for_shipping';
-    case Shipped = 'shipped';
-    case Delivered = 'delivered';
+    case InProgress = 'in_progress';
     case Completed = 'completed';
     case Cancelled = 'cancelled';
-    case Returned = 'returned';
     case Refunded = 'refunded';
 
     /**
@@ -23,14 +23,8 @@ enum OrderStatus: string
     public function allowedTransitions(): array
     {
         return match ($this) {
-            self::Pending => [self::Confirmed, self::Cancelled],
-            self::Confirmed => [self::Processing, self::Cancelled],
-            self::Processing => [self::ReadyForShipping, self::Cancelled],
-            self::ReadyForShipping => [self::Shipped, self::Cancelled],
-            self::Shipped => [self::Delivered],
-            self::Delivered => [self::Completed, self::Returned],
-            self::Completed => [self::Returned],
-            self::Returned => [self::Refunded],
+            self::InProgress => [self::Completed, self::Cancelled],
+            self::Completed => [self::Refunded],
             self::Cancelled, self::Refunded => [],
         };
     }
@@ -45,10 +39,10 @@ enum OrderStatus: string
         return $this->canTransitionTo(self::Cancelled);
     }
 
-    /** Statuses where stock is still reserved (not yet shipped, not released). */
+    /** Statuses where stock is still reserved — the goods have not left yet. */
     public function holdsReservation(): bool
     {
-        return in_array($this, [self::Pending, self::Confirmed, self::Processing, self::ReadyForShipping], true);
+        return $this === self::InProgress;
     }
 
     public function label(): string

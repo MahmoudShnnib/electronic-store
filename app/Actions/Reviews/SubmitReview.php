@@ -27,13 +27,13 @@ final class SubmitReview
             ->where('product_id', $product->id)
             ->whereHas('order', fn ($q) => $q
                 ->where('user_id', $user->id)
-                ->whereIn('status', ['delivered', 'completed']))
+                ->where('status', 'completed'))
             ->latest('id')
             ->first();
 
         if ($orderItem === null) {
             throw ValidationException::withMessages([
-                'rating' => __('You can only review products from orders that were delivered to you.'),
+                'rating' => __('You can only review products from orders that were completed.'),
             ]);
         }
 

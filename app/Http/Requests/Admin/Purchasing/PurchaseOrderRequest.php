@@ -23,7 +23,6 @@ final class PurchaseOrderRequest extends FormRequest
             'supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
             'discount' => ['nullable', 'numeric', 'min:0'],
-            'tax' => ['nullable', 'numeric', 'min:0'],
             'shipping' => ['nullable', 'numeric', 'min:0'],
             'expected_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],

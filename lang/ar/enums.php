@@ -35,16 +35,19 @@ return [
     ],
 
     'order_status' => [
+        'in_progress' => 'قيد التنفيذ',
+        'completed' => 'مكتمل',
+        'cancelled' => 'ملغى',
+        'refunded' => 'مسترد',
+
+        // Retired states — kept so old timeline entries still read properly.
         'pending' => 'قيد الانتظار',
         'confirmed' => 'مؤكد',
         'processing' => 'قيد التجهيز',
         'ready_for_shipping' => 'جاهز للشحن',
         'shipped' => 'تم الشحن',
         'delivered' => 'تم التسليم',
-        'completed' => 'مكتمل',
-        'cancelled' => 'ملغى',
         'returned' => 'مُرتجع',
-        'refunded' => 'مسترد',
     ],
 
     'payment_method' => [
@@ -84,11 +87,20 @@ return [
         'cancelled' => 'ملغى',
     ],
 
+    'treasury_account' => [
+        'cash' => 'نقدًا',
+        'bank' => 'مصرفي',
+    ],
+
+    'treasury_direction' => [
+        'in' => 'وارد',
+        'out' => 'صادر',
+    ],
+
     'refund_method' => [
         'cash' => 'نقدًا',
         'bank_transfer' => 'تحويل بنكي',
         'store_credit' => 'رصيد المتجر',
-        'original' => 'طريقة الدفع الأصلية',
     ],
 
     'return_status' => [

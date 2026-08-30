@@ -17,10 +17,13 @@ const props = defineProps<{
     sort?: string;
     dir?: string;
     rowKey?: string;
+    /** Opt in to row activation: click or Enter/Space emits `row-click`. */
+    clickableRows?: boolean;
 }>();
 
 const emit = defineEmits<{
     (e: 'sort', key: string): void;
+    (e: 'row-click', row: T): void;
 }>();
 
 function keyOf(row: T, index: number): string | number {
@@ -28,6 +31,24 @@ function keyOf(row: T, index: number): string | number {
     const value = row[k];
 
     return typeof value === 'number' || typeof value === 'string' ? value : index;
+}
+
+function activate(row: T, event: Event): void {
+    if (!props.clickableRows) return;
+
+    // Checkboxes, edit/delete buttons and links inside the row keep their own
+    // behaviour — activating the row must not fire on top of them.
+    if ((event.target as HTMLElement | null)?.closest('a, button, input, select, textarea, label') !== null) return;
+
+    emit('row-click', row);
+}
+
+function onKeydown(row: T, event: KeyboardEvent): void {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+
+    // Space scrolls the page by default; the row owns the key while focused.
+    event.preventDefault();
+    activate(row, event);
 }
 </script>
 
@@ -69,7 +90,20 @@ function keyOf(row: T, index: number): string | number {
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                <tr v-for="(row, index) in rows" :key="keyOf(row, index)" class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                <tr
+                    v-for="(row, index) in rows"
+                    :key="keyOf(row, index)"
+                    class="hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    :class="
+                        clickableRows
+                            ? 'cursor-pointer focus:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:focus:bg-gray-800/50'
+                            : ''
+                    "
+                    :tabindex="clickableRows ? 0 : undefined"
+                    :role="clickableRows ? 'button' : undefined"
+                    @click="activate(row, $event)"
+                    @keydown="onKeydown(row, $event)"
+                >
                     <td v-if="$slots.select" class="px-3 py-2.5">
                         <slot name="row-select" :row="row" />
                     </td>

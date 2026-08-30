@@ -31,8 +31,9 @@ final class ProductQueryService
     public function indexProps(Request $request): array
     {
         $products = Product::query()
-            ->with(['category:id,name', 'brand:id,name', 'images'])
+            ->with(['category:id,name', 'brand:id,name', 'supplier:id,company_name', 'images'])
             ->withSum('stockLevels as stock_quantity', 'quantity')
+            ->withCount('variants')
             ->when($request->boolean('trashed'), fn ($q) => $q->onlyTrashed())
             ->when($request->filled('q'), fn ($q) => $q->search((string) $request->query('q')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', (string) $request->query('status')))
@@ -61,6 +62,21 @@ final class ProductQueryService
                 'image' => ($img = $p->images->firstWhere('is_primary', true) ?? $p->images->first()) !== null
                     ? Storage::disk('public')->url($img->path) : null,
                 'deleted_at' => $p->deleted_at?->toDateTimeString(),
+                // Everything below only feeds the row details modal — the list
+                // itself never renders it, so no extra request when a row opens.
+                'name_ar' => $p->name_ar,
+                'barcode' => $p->barcode,
+                'short_description' => $p->short_description,
+                'supplier' => $p->supplier?->company_name,
+                'cost_price_formatted' => Money::format($p->cost_price_cents),
+                'sale_price_formatted' => $p->sale_price_cents !== null ? Money::format($p->sale_price_cents) : null,
+                'low_stock_threshold' => $p->low_stock_threshold,
+                'variants_count' => (int) $p->variants_count,
+                'gallery' => $p->images
+                    ->map(fn ($img) => Storage::disk('public')->url($img->path))
+                    ->values(),
+                'created_at' => $p->created_at?->toDateTimeString(),
+                'updated_at' => $p->updated_at?->toDateTimeString(),
             ]);
 
         return [
@@ -108,17 +124,9 @@ final class ProductQueryService
                 'sale_price' => $product->sale_price_cents !== null ? Money::toDecimal($product->sale_price_cents) : null,
                 'sale_starts_at' => $product->sale_starts_at?->format('Y-m-d\TH:i'),
                 'sale_ends_at' => $product->sale_ends_at?->format('Y-m-d\TH:i'),
-                'tax_rate' => $product->tax_rate,
                 'low_stock_threshold' => $product->low_stock_threshold,
-                'warranty_months' => $product->warranty_months,
-                'weight_grams' => $product->weight_grams,
-                'length_mm' => $product->length_mm,
-                'width_mm' => $product->width_mm,
-                'height_mm' => $product->height_mm,
                 'status' => $product->status->value,
                 'is_featured' => $product->is_featured,
-                'meta_title' => $product->meta_title,
-                'meta_description' => $product->meta_description,
                 'images' => $product->images->map(fn ($img) => [
                     'id' => $img->id,
                     'url' => Storage::disk('public')->url($img->path),

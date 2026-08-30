@@ -58,17 +58,9 @@ interface ProductData {
     sale_price: number | null;
     sale_starts_at: string | null;
     sale_ends_at: string | null;
-    tax_rate: number;
     low_stock_threshold: number;
-    warranty_months: number | null;
-    weight_grams: number | null;
-    length_mm: number | null;
-    width_mm: number | null;
-    height_mm: number | null;
     status: string;
     is_featured: boolean;
-    meta_title: string | null;
-    meta_description: string | null;
     images: ProductImage[];
     variants: VariantForm[];
     specifications: Record<number, SpecValue>;
@@ -107,17 +99,9 @@ const form = useForm({
     sale_price: props.product?.sale_price ?? (null as number | null),
     sale_starts_at: props.product?.sale_starts_at ?? '',
     sale_ends_at: props.product?.sale_ends_at ?? '',
-    tax_rate: props.product?.tax_rate ?? 0,
     low_stock_threshold: props.product?.low_stock_threshold ?? 5,
-    warranty_months: props.product?.warranty_months ?? (null as number | null),
-    weight_grams: props.product?.weight_grams ?? (null as number | null),
-    length_mm: props.product?.length_mm ?? (null as number | null),
-    width_mm: props.product?.width_mm ?? (null as number | null),
-    height_mm: props.product?.height_mm ?? (null as number | null),
     status: props.product?.status ?? 'draft',
     is_featured: props.product?.is_featured ?? false,
-    meta_title: props.product?.meta_title ?? '',
-    meta_description: props.product?.meta_description ?? '',
     variants: (props.product?.variants ?? []) as VariantForm[],
     specifications: (props.product?.specifications ?? {}) as Record<number, SpecValue>,
 });
@@ -345,9 +329,6 @@ function deleteImage(image: ProductImage): void {
                     <Field :label="t('admin.products.sale_ends')" :error="form.errors.sale_ends_at">
                         <AdminDateInput v-model="form.sale_ends_at" with-time />
                     </Field>
-                    <Field :label="t('admin.common.tax_rate')" :error="form.errors.tax_rate">
-                        <input v-model.number="form.tax_rate" type="number" step="0.01" min="0" max="100" :class="inputClass" />
-                    </Field>
                 </div>
             </section>
 
@@ -523,41 +504,6 @@ function deleteImage(image: ProductImage): void {
                 <Field class="mt-4" :label="t('admin.common.low_stock_threshold')" :error="form.errors.low_stock_threshold">
                     <input v-model.number="form.low_stock_threshold" type="number" min="0" :class="inputClass" />
                 </Field>
-            </section>
-
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.products.logistics') }}</h2>
-                <div class="grid gap-3">
-                    <Field :label="t('admin.products.warranty')" :error="form.errors.warranty_months">
-                        <input v-model.number="form.warranty_months" type="number" min="0" :class="inputClass" />
-                    </Field>
-                    <Field :label="t('admin.products.weight')" :error="form.errors.weight_grams">
-                        <input v-model.number="form.weight_grams" type="number" min="0" :class="inputClass" />
-                    </Field>
-                    <div class="grid grid-cols-3 gap-2">
-                        <Field :label="t('admin.products.length')"
-                            ><input v-model.number="form.length_mm" type="number" min="0" :class="inputClass"
-                        /></Field>
-                        <Field :label="t('admin.products.width')"
-                            ><input v-model.number="form.width_mm" type="number" min="0" :class="inputClass"
-                        /></Field>
-                        <Field :label="t('admin.products.height')"
-                            ><input v-model.number="form.height_mm" type="number" min="0" :class="inputClass"
-                        /></Field>
-                    </div>
-                </div>
-            </section>
-
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.products.seo') }}</h2>
-                <div class="grid gap-3">
-                    <Field :label="t('admin.products.meta_title')" :error="form.errors.meta_title">
-                        <input v-model="form.meta_title" type="text" :class="inputClass" dir="ltr" />
-                    </Field>
-                    <Field :label="t('admin.products.meta_description')" :error="form.errors.meta_description">
-                        <textarea v-model="form.meta_description" rows="3" :class="inputClass" dir="ltr" />
-                    </Field>
-                </div>
             </section>
 
             <div class="flex gap-3">

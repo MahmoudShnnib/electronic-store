@@ -40,7 +40,7 @@ function checkoutData(array $overrides = []): CheckoutData
 }
 
 it('recalculates all totals server-side', function (): void {
-    $product = Product::factory()->create(['price_cents' => 100_00, 'tax_rate' => 10]);
+    $product = Product::factory()->create(['price_cents' => 100_00]);
     giveStock($product, 5);
 
     $user = customer();
@@ -49,8 +49,7 @@ it('recalculates all totals server-side', function (): void {
     $totals = app(CalculateCartTotals::class)->handle($cart, $user->id);
 
     expect($totals->subtotalCents)->toBe(200_00)
-        ->and($totals->taxCents)->toBe(20_00)
-        ->and($totals->totalCents)->toBe(200_00 + 20_00);
+        ->and($totals->totalCents)->toBe(200_00);
 });
 
 it('places an order, snapshots items, and reserves stock through the ledger', function (): void {
@@ -64,7 +63,7 @@ it('places an order, snapshots items, and reserves stock through the ledger', fu
 
     $stock = StockLevel::query()->sole();
 
-    expect($order->status)->toBe(OrderStatus::Pending)
+    expect($order->status)->toBe(OrderStatus::InProgress)
         ->and($order->items)->toHaveCount(1)
         ->and($order->items->first()->product_name)->toBe($product->name)
         ->and($order->items->first()->sku)->toBe($product->sku)

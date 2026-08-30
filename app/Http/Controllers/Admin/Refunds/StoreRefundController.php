@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin\Refunds;
 
-use App\Actions\Returns\CreateRefund;
+use App\Actions\Refunds\CreateRefund;
 use App\Enums\RefundMethod;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Refunds\StoreRefundRequest;
 use App\Models\Order;
-use App\Models\ProductReturn;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -30,7 +29,6 @@ final class StoreRefundController extends Controller implements HasMiddleware
             $order,
             Money::fromDecimal($validated['amount']),
             RefundMethod::from($validated['method']),
-            isset($validated['return_id']) ? ProductReturn::query()->find($validated['return_id']) : null,
             $validated['reference'] ?? null,
             $validated['reason'] ?? null,
             $request->user()->id,

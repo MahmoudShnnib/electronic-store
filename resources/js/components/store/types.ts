@@ -73,12 +73,8 @@ export interface CartItemData {
 export interface CartData {
     items: CartItemData[];
     item_count: number;
-    subtotal_cents: number;
-    subtotal_formatted: string;
     discount_cents: number;
     discount_formatted: string;
-    tax_cents: number;
-    tax_formatted: string;
     total_cents: number;
     total_formatted: string;
     coupon: { code: string; type: string } | null;

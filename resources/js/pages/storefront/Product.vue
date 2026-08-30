@@ -6,7 +6,7 @@ import RatingStars from '@/components/store/RatingStars.vue';
 import type { PaginationLink, ProductCardData } from '@/components/store/types';
 import StoreLayout from '@/layouts/StoreLayout.vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { Heart, ImageOff, ShieldCheck } from 'lucide-vue-next';
+import { Heart, ImageOff } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -39,12 +39,9 @@ interface ProductDetail {
     on_sale: boolean;
     sale_price_formatted: string | null;
     current_price_formatted: string;
-    warranty_months: number | null;
     status: string;
     purchasable: boolean;
     has_variants: boolean;
-    meta_title: string | null;
-    meta_description: string | null;
     images: { id: number; url: string; alt: string | null; is_primary: boolean }[];
     variants: VariantData[];
     available: number;
@@ -146,9 +143,7 @@ function submitReview() {
 </script>
 
 <template>
-    <Head :title="product.meta_title ?? product.name">
-        <meta v-if="product.meta_description" name="description" :content="product.meta_description" />
-    </Head>
+    <Head :title="product.name"> </Head>
 
     <div class="mx-auto w-full max-w-7xl px-4 py-8">
         <!-- Breadcrumbs -->
@@ -277,11 +272,6 @@ function submitReview() {
                         <Heart class="h-5 w-5" />
                     </button>
                 </div>
-
-                <p v-if="product.warranty_months" class="flex items-center gap-2 text-sm text-muted-foreground">
-                    <ShieldCheck class="h-4 w-4 text-green-600" />
-                    {{ t('product.warranty', { months: product.warranty_months }) }}
-                </p>
             </div>
         </div>
 

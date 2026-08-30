@@ -56,7 +56,5 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
 
         Route::post('reviews', [V1\ReviewController::class, 'store'])->name('reviews.store');
 
-        Route::get('returns', [V1\ReturnController::class, 'index'])->name('returns.index');
-        Route::post('returns', [V1\ReturnController::class, 'store'])->name('returns.store');
     });
 });

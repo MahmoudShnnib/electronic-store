@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Enums\ProductStatus;
+use App\Models\ProductVariant;
+use App\Models\SpecificationAttribute;
 use App\Support\Money;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 final class ProductRequest extends FormRequest
 {
@@ -38,17 +41,9 @@ final class ProductRequest extends FormRequest
             'sale_price' => ['nullable', 'numeric', 'min:0', 'lt:price'],
             'sale_starts_at' => ['nullable', 'date'],
             'sale_ends_at' => ['nullable', 'date', 'after:sale_starts_at'],
-            'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'low_stock_threshold' => ['nullable', 'integer', 'min:0', 'max:100000'],
-            'warranty_months' => ['nullable', 'integer', 'min:0', 'max:240'],
-            'weight_grams' => ['nullable', 'integer', 'min:0'],
-            'length_mm' => ['nullable', 'integer', 'min:0'],
-            'width_mm' => ['nullable', 'integer', 'min:0'],
-            'height_mm' => ['nullable', 'integer', 'min:0'],
             'status' => ['required', Rule::enum(ProductStatus::class)],
             'is_featured' => ['boolean'],
-            'meta_title' => ['nullable', 'string', 'max:255'],
-            'meta_description' => ['nullable', 'string', 'max:500'],
 
             'variants' => ['nullable', 'array', 'max:50'],
             'variants.*.id' => ['nullable', 'integer'],
@@ -68,9 +63,9 @@ final class ProductRequest extends FormRequest
         ];
     }
 
-    public function withValidator(\Illuminate\Validation\Validator $validator): void
+    public function withValidator(Validator $validator): void
     {
-        $validator->after(function (\Illuminate\Validation\Validator $v): void {
+        $validator->after(function (Validator $v): void {
             $this->validateVariantSkus($v);
             $this->validateSpecificationTypes($v);
         });
@@ -82,7 +77,7 @@ final class ProductRequest extends FormRequest
      * included), so anything that would violate it must fail validation.
      * A trashed variant of THIS product is fine — SaveProduct restores it.
      */
-    private function validateVariantSkus(\Illuminate\Validation\Validator $v): void
+    private function validateVariantSkus(Validator $v): void
     {
         $productId = $this->route('product')?->id;
 
@@ -96,7 +91,7 @@ final class ProductRequest extends FormRequest
             // Conflicts: any row holding the sku (trashed rows still occupy the
             // unique index) except the variant itself and trashed variants of
             // this same product — those SaveProduct restores instead.
-            $taken = \App\Models\ProductVariant::withTrashed()
+            $taken = ProductVariant::withTrashed()
                 ->where('sku', $sku)
                 ->when(isset($variant['id']), fn ($q) => $q->whereKeyNot((int) $variant['id']))
                 ->when($productId !== null, fn ($q) => $q->where(fn ($qq) => $qq
@@ -114,7 +109,7 @@ final class ProductRequest extends FormRequest
     }
 
     /** Number-type specification attributes must actually receive numbers. */
-    private function validateSpecificationTypes(\Illuminate\Validation\Validator $v): void
+    private function validateSpecificationTypes(Validator $v): void
     {
         $specs = $this->input('specifications', []) ?? [];
 
@@ -122,7 +117,7 @@ final class ProductRequest extends FormRequest
             return;
         }
 
-        $types = \App\Models\SpecificationAttribute::query()
+        $types = SpecificationAttribute::query()
             ->whereIn('id', array_keys($specs))
             ->pluck('type', 'id');
 
@@ -169,17 +164,9 @@ final class ProductRequest extends FormRequest
             'sale_price_cents' => isset($v['sale_price']) ? Money::fromDecimal($v['sale_price']) : null,
             'sale_starts_at' => $v['sale_starts_at'] ?? null,
             'sale_ends_at' => $v['sale_ends_at'] ?? null,
-            'tax_rate' => $v['tax_rate'] ?? 0,
             'low_stock_threshold' => $v['low_stock_threshold'] ?? 5,
-            'warranty_months' => $v['warranty_months'] ?? null,
-            'weight_grams' => $v['weight_grams'] ?? null,
-            'length_mm' => $v['length_mm'] ?? null,
-            'width_mm' => $v['width_mm'] ?? null,
-            'height_mm' => $v['height_mm'] ?? null,
             'status' => $v['status'],
             'is_featured' => (bool) ($v['is_featured'] ?? false),
-            'meta_title' => $v['meta_title'] ?? null,
-            'meta_description' => $v['meta_description'] ?? null,
             // First activation stamps the publish date; after that it never
             // moves — editing a live product must not push it back to the top
             // of "Newest", and deactivating must not erase its history.

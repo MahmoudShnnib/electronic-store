@@ -40,18 +40,12 @@ it('walks the happy path through the status state machine', function (): void {
     $user = customer();
     $order = placedOrder($user, $product);
 
-    $action = app(UpdateOrderStatus::class);
+    expect($order->status)->toBe(OrderStatus::InProgress);
 
-    foreach ([
-        OrderStatus::Confirmed, OrderStatus::Processing, OrderStatus::ReadyForShipping,
-        OrderStatus::Shipped, OrderStatus::Delivered, OrderStatus::Completed,
-    ] as $status) {
-        $order = $action->handle($order, $status);
-    }
+    $order = app(UpdateOrderStatus::class)->handle($order, OrderStatus::Completed);
 
     expect($order->status)->toBe(OrderStatus::Completed)
-        ->and($order->statusHistories()->count())->toBe(7)
-        ->and($order->confirmed_at)->not->toBeNull()
+        ->and($order->statusHistories()->count())->toBe(2)
         ->and($order->completed_at)->not->toBeNull();
 });
 
@@ -60,22 +54,18 @@ it('rejects invalid status transitions', function (): void {
     giveStock($product, 10);
     $order = placedOrder(customer(), $product);
 
-    app(UpdateOrderStatus::class)->handle($order, OrderStatus::Delivered);
+    // Money can only go back on an order that was finished first.
+    app(UpdateOrderStatus::class)->handle($order, OrderStatus::Refunded);
 })->throws(ValidationException::class);
 
-it('clears the physical reservation when the order ships', function (): void {
+it('clears the physical reservation when the order completes', function (): void {
     $product = Product::factory()->create();
     giveStock($product, 10);
     $order = placedOrder(customer(), $product, 4);
 
-    $action = app(UpdateOrderStatus::class);
-    $order = $action->handle($order, OrderStatus::Confirmed);
-    $order = $action->handle($order, OrderStatus::Processing);
-    $order = $action->handle($order, OrderStatus::ReadyForShipping);
-
     expect(StockLevel::query()->sole()->reserved)->toBe(4);
 
-    $action->handle($order, OrderStatus::Shipped);
+    app(UpdateOrderStatus::class)->handle($order, OrderStatus::Completed);
 
     $stock = StockLevel::query()->sole();
     expect($stock->reserved)->toBe(0)->and($stock->quantity)->toBe(6);
@@ -97,16 +87,12 @@ it('restores stock via the ledger when an order is cancelled', function (): void
         ->and(InventoryMovement::query()->where('type', MovementType::OrderCancellation)->count())->toBe(1);
 });
 
-it('refuses to cancel a shipped order', function (): void {
+it('refuses to cancel a completed order', function (): void {
     $product = Product::factory()->create();
     giveStock($product, 10);
     $order = placedOrder(customer(), $product);
 
-    $action = app(UpdateOrderStatus::class);
-    $order = $action->handle($order, OrderStatus::Confirmed);
-    $order = $action->handle($order, OrderStatus::Processing);
-    $order = $action->handle($order, OrderStatus::ReadyForShipping);
-    $order = $action->handle($order, OrderStatus::Shipped);
+    $order = app(UpdateOrderStatus::class)->handle($order, OrderStatus::Completed);
 
     app(CancelOrder::class)->handle($order);
 })->throws(ValidationException::class);

@@ -21,9 +21,7 @@ defineProps<{
         shipping_address: Address;
         payment_method: string;
         items: { name: string; sku: string; quantity: number; unit_price_formatted: string; line_total_formatted: string }[];
-        subtotal_formatted: string;
         discount_formatted: string;
-        tax_formatted: string;
         total_formatted: string;
     };
     store: { name: string; details: string | null };
@@ -96,16 +94,8 @@ function printInvoice(): void {
             <div class="mb-12 flex justify-end">
                 <dl class="w-64 space-y-1 text-sm">
                     <div class="flex justify-between">
-                        <dt class="text-gray-500">{{ t('admin.common.subtotal') }}</dt>
-                        <dd>{{ order.subtotal_formatted }}</dd>
-                    </div>
-                    <div class="flex justify-between">
                         <dt class="text-gray-500">{{ t('admin.common.discount') }}</dt>
                         <dd>−{{ order.discount_formatted }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-gray-500">{{ t('admin.common.tax') }}</dt>
-                        <dd>{{ order.tax_formatted }}</dd>
                     </div>
                     <div class="flex justify-between border-t-2 border-gray-900 pt-2 text-base font-bold">
                         <dt>{{ t('admin.common.total') }}</dt>

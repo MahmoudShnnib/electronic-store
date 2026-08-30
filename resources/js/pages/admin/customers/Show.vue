@@ -35,7 +35,6 @@ const props = defineProps<{
         joined_at: string;
         addresses: AddressRow[];
         orders: { id: number; number: string; status_label: string; total_formatted: string; created_at: string }[];
-        returns_count: number;
         reviews_count: number;
     };
 }>();
@@ -86,10 +85,6 @@ function toggleActive(): void {
                     <div class="flex justify-between">
                         <dt>{{ t('admin.common.status') }}</dt>
                         <dd><StatusBadge :status="customer.is_active ? 'active' : 'inactive'" /></dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.nav.returns') }}</dt>
-                        <dd>{{ customer.returns_count }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt>{{ t('admin.nav.reviews') }}</dt>

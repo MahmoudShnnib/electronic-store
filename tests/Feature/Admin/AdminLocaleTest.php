@@ -29,8 +29,8 @@ it('translates enum labels sent to the admin UI', function (): void {
         ->assertInertia(function ($page) {
             $labels = collect($page->toArray()['props']['statuses'])->pluck('label');
 
-            expect($labels)->toContain('قيد الانتظار')
-                ->and($labels)->not->toContain('Pending');
+            expect($labels)->toContain('قيد التنفيذ')
+                ->and($labels)->not->toContain('In progress');
         });
 });
 
@@ -44,7 +44,7 @@ it('keeps English for a staff user with the en locale', function (): void {
         ->assertInertia(function ($page) {
             $labels = collect($page->toArray()['props']['statuses'])->pluck('label');
 
-            expect($labels)->toContain('Pending');
+            expect($labels)->toContain('In progress');
         });
 });
 

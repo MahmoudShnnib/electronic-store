@@ -36,16 +36,19 @@ return [
     ],
 
     'order_status' => [
+        'in_progress' => 'In progress',
+        'completed' => 'Completed',
+        'cancelled' => 'Cancelled',
+        'refunded' => 'Refunded',
+
+        // Retired states — kept so old timeline entries still read properly.
         'pending' => 'Pending',
         'confirmed' => 'Confirmed',
         'processing' => 'Processing',
         'ready_for_shipping' => 'Ready for shipping',
         'shipped' => 'Shipped',
         'delivered' => 'Delivered',
-        'completed' => 'Completed',
-        'cancelled' => 'Cancelled',
         'returned' => 'Returned',
-        'refunded' => 'Refunded',
     ],
 
     'payment_method' => [
@@ -85,11 +88,20 @@ return [
         'cancelled' => 'Cancelled',
     ],
 
+    'treasury_account' => [
+        'cash' => 'Cash',
+        'bank' => 'Bank',
+    ],
+
+    'treasury_direction' => [
+        'in' => 'In',
+        'out' => 'Out',
+    ],
+
     'refund_method' => [
         'cash' => 'Cash',
         'bank_transfer' => 'Bank transfer',
         'store_credit' => 'Store credit',
-        'original' => 'Original method',
     ],
 
     'return_status' => [

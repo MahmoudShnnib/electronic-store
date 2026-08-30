@@ -9,6 +9,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * The audit trail of an order's movements. Statuses are kept as plain strings,
+ * not cast to OrderStatus: rows written before the pipeline was collapsed hold
+ * retired values ("shipped", "delivered"), and casting those would throw. What
+ * happened, happened — the history renders it verbatim.
+ */
 final class OrderStatusHistory extends Model
 {
     use HasFactory;
@@ -17,12 +23,14 @@ final class OrderStatusHistory extends Model
 
     protected $fillable = ['order_id', 'from_status', 'to_status', 'comment', 'user_id'];
 
-    protected function casts(): array
+    /** Label for a stored status, falling back to retired ones by key. */
+    public static function labelFor(?string $status): ?string
     {
-        return [
-            'from_status' => OrderStatus::class,
-            'to_status' => OrderStatus::class,
-        ];
+        if ($status === null) {
+            return null;
+        }
+
+        return OrderStatus::tryFrom($status)?->label() ?? __('enums.order_status.'.$status);
     }
 
     public function order(): BelongsTo

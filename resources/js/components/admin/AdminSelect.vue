@@ -30,6 +30,11 @@ const props = withDefaults(
 
 const emit = defineEmits<{ (e: 'update:modelValue', value: OptionValue): void }>();
 
+// SelectRoot is a renderless provider, so anything the caller puts on
+// <AdminSelect> (a width override, a title, an id) would be dropped on the
+// floor. Forward it to the trigger — the only element a caller can mean.
+defineOptions({ inheritAttrs: false });
+
 /** Radix works in strings; '' is the "nothing selected" sentinel. */
 const EMPTY = '__empty__';
 
@@ -59,6 +64,7 @@ const selectedLabel = computed(() => entries.value.find((entry) => entry.value =
 <template>
     <SelectRoot v-model="inner" :disabled="disabled">
         <SelectTrigger
+            v-bind="$attrs"
             class="flex w-full items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-start text-sm text-gray-900 shadow-sm transition-colors hover:border-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:shadow-none dark:hover:border-gray-600 dark:focus:ring-blue-500/40 dark:disabled:bg-gray-900/50"
         >
             <!-- Rendered directly rather than through SelectValue: a slot inside

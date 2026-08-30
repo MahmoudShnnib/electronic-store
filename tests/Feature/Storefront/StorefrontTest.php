@@ -107,7 +107,7 @@ it('allows reviews only for verified purchasers and moderates them', function ()
     ), $buyer);
 
     $action = app(UpdateOrderStatus::class);
-    foreach ([OrderStatus::Confirmed, OrderStatus::Processing, OrderStatus::ReadyForShipping, OrderStatus::Shipped, OrderStatus::Delivered] as $status) {
+    foreach ([OrderStatus::Completed] as $status) {
         $order = $action->handle($order, $status);
     }
 

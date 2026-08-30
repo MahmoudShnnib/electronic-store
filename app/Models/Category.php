@@ -20,7 +20,7 @@ final class Category extends Model
 
     protected $fillable = [
         'parent_id', 'name', 'name_ar', 'slug', 'description', 'image_path',
-        'position', 'is_active', 'meta_title', 'meta_description',
+        'position', 'is_active',
     ];
 
     protected function casts(): array

@@ -7,7 +7,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class OrderItem extends Model
 {
@@ -16,7 +15,7 @@ final class OrderItem extends Model
     protected $fillable = [
         'order_id', 'product_id', 'product_variant_id', 'warehouse_id',
         'product_name', 'variant_name', 'sku', 'unit_price_cents', 'quantity',
-        'discount_cents', 'tax_cents', 'line_total_cents',
+        'discount_cents', 'line_total_cents',
     ];
 
     protected function casts(): array
@@ -25,7 +24,6 @@ final class OrderItem extends Model
             'unit_price_cents' => 'integer',
             'quantity' => 'integer',
             'discount_cents' => 'integer',
-            'tax_cents' => 'integer',
             'line_total_cents' => 'integer',
         ];
     }
@@ -48,22 +46,5 @@ final class OrderItem extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
-    }
-
-    public function returnItems(): HasMany
-    {
-        return $this->hasMany(ReturnItem::class);
-    }
-
-    /**
-     * Quantity already covered by return requests. Only a rejected request
-     * frees its quantities for another attempt — a closed return is a
-     * *finished* one (received/refunded), so its items stay counted.
-     */
-    public function returnedQuantity(): int
-    {
-        return (int) $this->returnItems()
-            ->whereHas('productReturn', fn ($q) => $q->where('status', '!=', 'rejected'))
-            ->sum('quantity');
     }
 }

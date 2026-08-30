@@ -22,7 +22,7 @@ final class Order extends Model
         'number', 'user_id', 'customer', 'billing_address', 'shipping_address',
         'status', 'payment_status', 'payment_method',
         'currency', 'subtotal_cents', 'discount_cents', 'coupon_code',
-        'tax_cents', 'total_cents', 'customer_note',
+        'total_cents', 'customer_note',
         'internal_note', 'idempotency_key', 'placed_via', 'confirmed_at',
         'shipped_at', 'delivered_at', 'completed_at', 'cancelled_at',
     ];
@@ -38,7 +38,6 @@ final class Order extends Model
             'payment_method' => PaymentMethod::class,
             'subtotal_cents' => 'integer',
             'discount_cents' => 'integer',
-            'tax_cents' => 'integer',
             'total_cents' => 'integer',
             'confirmed_at' => 'immutable_datetime',
             'shipped_at' => 'immutable_datetime',
@@ -66,11 +65,6 @@ final class Order extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
-    }
-
-    public function returns(): HasMany
-    {
-        return $this->hasMany(ProductReturn::class);
     }
 
     public function refunds(): HasMany

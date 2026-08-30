@@ -35,7 +35,6 @@ interface PurchaseOrderPayload {
     supplier_id: number;
     warehouse_id: number;
     discount: number;
-    tax: number;
     shipping: number;
     expected_at: string | null;
     notes: string | null;
@@ -63,7 +62,6 @@ const form = useForm({
     supplier_id: (props.purchaseOrder?.supplier_id ?? '') as number | '',
     warehouse_id: (props.purchaseOrder?.warehouse_id ?? '') as number | '',
     discount: props.purchaseOrder?.discount ?? 0,
-    tax: props.purchaseOrder?.tax ?? 0,
     shipping: props.purchaseOrder?.shipping ?? 0,
     expected_at: props.purchaseOrder?.expected_at ?? '',
     notes: props.purchaseOrder?.notes ?? '',
@@ -133,7 +131,7 @@ function applySelection(item: ItemRow, encoded: string): void {
 
 const subtotal = computed(() => form.items.reduce((sum, item) => sum + item.quantity * (item.unit_cost || 0), 0));
 
-const total = computed(() => Math.max(0, subtotal.value - (form.discount || 0)) + (form.tax || 0) + (form.shipping || 0));
+const total = computed(() => Math.max(0, subtotal.value - (form.discount || 0)) + (form.shipping || 0));
 
 function submit(): void {
     const transformed = form.transform((data) => ({
@@ -230,18 +228,11 @@ function submit(): void {
                     <Field :label="t('admin.common.discount')" :error="form.errors.discount">
                         <input v-model.number="form.discount" type="number" step="0.01" min="0" :class="inputClass" />
                     </Field>
-                    <Field :label="t('admin.common.tax')" :error="form.errors.tax">
-                        <input v-model.number="form.tax" type="number" step="0.01" min="0" :class="inputClass" />
-                    </Field>
                     <Field :label="t('admin.common.shipping')" :error="form.errors.shipping">
                         <input v-model.number="form.shipping" type="number" step="0.01" min="0" :class="inputClass" />
                     </Field>
                 </div>
                 <dl class="mt-4 space-y-1 border-t border-gray-100 pt-3 text-sm dark:border-gray-800">
-                    <div class="flex justify-between text-gray-500 dark:text-gray-400">
-                        <dt>{{ t('admin.common.subtotal') }}</dt>
-                        <dd>{{ subtotal.toFixed(2) }}</dd>
-                    </div>
                     <div class="flex justify-between text-base font-semibold text-gray-900 dark:text-gray-100">
                         <dt>{{ t('admin.common.total') }}</dt>
                         <dd>{{ total.toFixed(2) }}</dd>
