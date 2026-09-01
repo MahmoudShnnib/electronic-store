@@ -3,6 +3,145 @@
 @tailwind utilities;
 
 /*
+ * Tajawal, self-declared so its vertical metrics can be corrected.
+ *
+ * The shipped font sets hhea ascent/descent to 643/-357 while its capitals are
+ * 633 units tall. A typeface only looks vertically centred inside a line box
+ * when `ascent - descent == capHeight`; here that difference is 286, so every
+ * glyph renders 173/1000 em — about 2.4px at 14px, 4px at 24px — above the
+ * centre of its own line. That is what made labels, button text, pill text and
+ * card figures sit high next to their icons all over the dashboard.
+ *
+ * Blink only reads hhea when the OS/2 USE_TYPO_METRICS bit is set, which this
+ * font leaves off, so it falls back to hhea on Linux and to the (correctly
+ * centred) usWin* pair on Windows — the same page looked fine on one machine
+ * and wrong on another.
+ *
+ * The overrides below rebuild the metrics around the cap band: ascent and
+ * descent still sum to 1em and the line gap is unchanged, so `line-height:
+ * normal` stays 1.2 and no box changes height. Only the glyphs move down into
+ * the middle of the line where they belong.
+ *
+ *   ascent  = (1 + 633/1000) / 2 = 81.65%
+ *   descent = (1 - 633/1000) / 2 = 18.35%
+ *
+ * Sources are Bunny's own subset files; the `<link>` that used to pull their
+ * stylesheet is gone from `app.blade.php` because a second set of @font-face
+ * rules for the same family would have raced this one.
+ */
+
+/* latin */
+@font-face {
+    font-family: 'Tajawal';
+    font-style: normal;
+    font-weight: 400;
+    ascent-override: 81.65%;
+    descent-override: 18.35%;
+    line-gap-override: 20%;
+    font-display: swap;
+    src:
+        url(https://fonts.bunny.net/tajawal/files/tajawal-latin-400-normal.woff2) format('woff2'),
+        url(https://fonts.bunny.net/tajawal/files/tajawal-latin-400-normal.woff) format('woff');
+    unicode-range:
+        U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+        U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* arabic */
+@font-face {
+    font-family: 'Tajawal';
+    font-style: normal;
+    font-weight: 400;
+    ascent-override: 81.65%;
+    descent-override: 18.35%;
+    line-gap-override: 20%;
+    font-display: swap;
+    src:
+        url(https://fonts.bunny.net/tajawal/files/tajawal-arabic-400-normal.woff2) format('woff2'),
+        url(https://fonts.bunny.net/tajawal/files/tajawal-arabic-400-normal.woff) format('woff');
+    unicode-range:
+        U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF,
+        U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24,
+        U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57,
+        U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E,
+        U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+}
+
+/* latin */
+@font-face {
+    font-family: 'Tajawal';
+    font-style: normal;
+    font-weight: 500;
+    ascent-override: 81.65%;
+    descent-override: 18.35%;
+    line-gap-override: 20%;
+    font-display: swap;
+    src:
+        url(https://fonts.bunny.net/tajawal/files/tajawal-latin-500-normal.woff2) format('woff2'),
+        url(https://fonts.bunny.net/tajawal/files/tajawal-latin-500-normal.woff) format('woff');
+    unicode-range:
+        U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+        U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* arabic */
+@font-face {
+    font-family: 'Tajawal';
+    font-style: normal;
+    font-weight: 500;
+    ascent-override: 81.65%;
+    descent-override: 18.35%;
+    line-gap-override: 20%;
+    font-display: swap;
+    src:
+        url(https://fonts.bunny.net/tajawal/files/tajawal-arabic-500-normal.woff2) format('woff2'),
+        url(https://fonts.bunny.net/tajawal/files/tajawal-arabic-500-normal.woff) format('woff');
+    unicode-range:
+        U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF,
+        U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24,
+        U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57,
+        U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E,
+        U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+}
+
+/* latin */
+@font-face {
+    font-family: 'Tajawal';
+    font-style: normal;
+    font-weight: 700;
+    ascent-override: 81.65%;
+    descent-override: 18.35%;
+    line-gap-override: 20%;
+    font-display: swap;
+    src:
+        url(https://fonts.bunny.net/tajawal/files/tajawal-latin-700-normal.woff2) format('woff2'),
+        url(https://fonts.bunny.net/tajawal/files/tajawal-latin-700-normal.woff) format('woff');
+    unicode-range:
+        U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+        U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* arabic */
+@font-face {
+    font-family: 'Tajawal';
+    font-style: normal;
+    font-weight: 700;
+    ascent-override: 81.65%;
+    descent-override: 18.35%;
+    line-gap-override: 20%;
+    font-display: swap;
+    src:
+        url(https://fonts.bunny.net/tajawal/files/tajawal-arabic-700-normal.woff2) format('woff2'),
+        url(https://fonts.bunny.net/tajawal/files/tajawal-arabic-700-normal.woff) format('woff');
+    unicode-range:
+        U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF,
+        U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24,
+        U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57,
+        U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E,
+        U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+}
+
+/*
  * Tajawal for both languages. It carries a full Latin set, so English no longer
  * renders in a different (lighter) typeface than Arabic — which is what made the
  * two sides of the site look like two different products.
@@ -247,7 +386,2409 @@ html {
         }
     }
 
+    /* The admin dashboard opts out of that scaling. Its chrome is Ant Design,
+       whose tokens are px and do not scale, so a 20px root made every rem
+       utility 25% larger than the AntD component it was decorating — a 256px
+       Sider under a 320px `ms-64`, 17.5px labels beside 14px table text,
+       20px icons in 14px icon slots. Pinning the root back to 16px inside the
+       admin shell puts both systems on one scale. */
+    html:has(.admin-shell) {
+        font-size: 16px;
+    }
+
     body {
         @apply bg-background text-foreground;
     }
+}
+
+/*
+ * Ant Design ⇄ Tailwind preflight reconciliation.
+ *
+ * Preflight sets `svg { display: block }`. AntD's controls are inline-block and
+ * expect an inline icon, so a lucide `<svg>` in an icon slot forces a line
+ * break: the label drops under the icon and out of the control's fixed height.
+ * Making the controls flex puts icon and label back on one line and gives them
+ * spacing (AntD's own `.anticon + span` margin never matches a lucide svg).
+ *
+ * Selectors are doubled because AntD injects its CSS-in-JS at runtime, i.e.
+ * after this stylesheet — a single class would lose the cascade.
+ */
+.ant-btn.ant-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.ant-btn.ant-btn.ant-btn-block {
+    display: flex;
+}
+
+/* Icon-only buttons have no label to space out, and AntD sizes them square. */
+.ant-btn.ant-btn.ant-btn-icon-only {
+    gap: 0;
+}
+
+/*
+ * AntD scopes `.ant-table-thead > tr > th { text-align: start }` at a higher
+ * specificity than a Tailwind utility, so a column's `text-end` aligned the
+ * body cells but left their header stranded on the other side of the column.
+ */
+.ant-table-thead > tr > th.text-end,
+.ant-table-tbody > tr > td.text-end {
+    text-align: end;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Admin dashboard chrome.
+ *
+ * It finishes the Ant Design migration: AntD ships correct components but
+ * leaves the surfaces, scrollbars and table edges to the app. Selectors are
+ * doubled where they have to outrank AntD's runtime CSS-in-JS (see the note
+ * above).
+ *
+ * Rules that describe *content* — table interiors, card edges, overlay
+ * scrollbars, bidi isolation — are scoped to `:has(.admin-shell, .store-shell)`
+ * and shared with the storefront, because a table cell full of digits reads
+ * the same wrong way in Arabic on either side of the product. Rules that
+ * describe the dashboard's own chrome stay on `.admin-*` class hooks.
+ * ---------------------------------------------------------------------------
+ */
+
+/* Thin, themed scrollbars. The native 15px bar rendered as a bright grey strip
+   down the sidebar's inner edge and stole 15px of the 256px it was given. */
+.overlay-scroll,
+html:has(.admin-shell, .store-shell) .ant-drawer-body,
+html:has(.admin-shell, .store-shell) .ant-modal-body {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    scrollbar-gutter: stable;
+}
+
+.overlay-scroll:hover,
+html:has(.admin-shell, .store-shell) .ant-drawer-body:hover,
+html:has(.admin-shell, .store-shell) .ant-modal-body:hover {
+    scrollbar-color: rgb(0 0 0 / 0.25) transparent;
+}
+
+.dark .overlay-scroll:hover,
+html.dark:has(.admin-shell, .store-shell) .ant-drawer-body:hover,
+html.dark:has(.admin-shell, .store-shell) .ant-modal-body:hover {
+    scrollbar-color: rgb(255 255 255 / 0.22) transparent;
+}
+
+.overlay-scroll::-webkit-scrollbar,
+html:has(.admin-shell, .store-shell) .ant-drawer-body::-webkit-scrollbar,
+html:has(.admin-shell, .store-shell) .ant-modal-body::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.overlay-scroll::-webkit-scrollbar-track,
+html:has(.admin-shell, .store-shell) .ant-drawer-body::-webkit-scrollbar-track,
+html:has(.admin-shell, .store-shell) .ant-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.overlay-scroll::-webkit-scrollbar-thumb,
+html:has(.admin-shell, .store-shell) .ant-drawer-body::-webkit-scrollbar-thumb,
+html:has(.admin-shell, .store-shell) .ant-modal-body::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+    background-color: transparent;
+    transition: background-color 0.15s ease;
+}
+
+.overlay-scroll:hover::-webkit-scrollbar-thumb,
+html:has(.admin-shell, .store-shell) .ant-drawer-body:hover::-webkit-scrollbar-thumb,
+html:has(.admin-shell, .store-shell) .ant-modal-body:hover::-webkit-scrollbar-thumb {
+    background-color: rgb(0 0 0 / 0.25);
+}
+
+.dark .overlay-scroll:hover::-webkit-scrollbar-thumb,
+html.dark:has(.admin-shell, .store-shell) .ant-drawer-body:hover::-webkit-scrollbar-thumb,
+html.dark:has(.admin-shell, .store-shell) .ant-modal-body:hover::-webkit-scrollbar-thumb {
+    background-color: rgb(255 255 255 / 0.22);
+}
+
+/* AntD wraps the Sider's slot content in its own div, so the column layout that
+   pins the brand row and scrolls only the nav has to live one level down. */
+.admin-sider .ant-layout-sider-children {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+}
+
+/* The header is the only chrome that content scrolls beneath, so it is the only
+   surface that gets the translucent treatment. Opaque fallback first. */
+.admin-header.admin-header {
+    background-color: rgb(255 255 255 / 0.92);
+}
+
+.dark .admin-header.admin-header {
+    background-color: rgb(20 20 20 / 0.92);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .admin-header.admin-header {
+        background-color: rgb(255 255 255 / 0.8);
+        -webkit-backdrop-filter: saturate(180%) blur(16px);
+        backdrop-filter: saturate(180%) blur(16px);
+    }
+
+    .dark .admin-header.admin-header {
+        background-color: rgb(20 20 20 / 0.8);
+    }
+}
+
+/*
+ * Standalone tables read as one raised card: a single outer border with real
+ * corners. Only tables that sit directly on the page opt in via `.admin-table`
+ * (DataTable adds it) — a table filling a Card body already has an edge.
+ * Everything below the `.admin-table` block is the shared interior treatment
+ * and applies to every table in the dashboard: horizontal rules only, no
+ * spreadsheet grid. AntD's `bordered` prop is deliberately unused.
+ */
+.admin-table .ant-table {
+    border: 1px solid rgb(0 0 0 / 0.1);
+    border-radius: 10px;
+}
+
+.dark .admin-table .ant-table {
+    border-color: rgb(255 255 255 / 0.08);
+}
+
+.admin-table .ant-table-container,
+.admin-table .ant-table-content {
+    border-radius: inherit;
+}
+
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-thead > tr > th {
+    border-bottom-color: rgb(0 0 0 / 0.12);
+    font-weight: 600;
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-thead > tr > th {
+    border-bottom-color: rgb(255 255 255 / 0.08);
+}
+
+/* AntD draws a divider between header cells; without the full grid it reads as
+   a stray tick mark hanging off the header. */
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-thead > tr > th::before {
+    display: none;
+}
+
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-tbody > tr > td {
+    border-bottom-color: rgb(0 0 0 / 0.06);
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-tbody > tr > td {
+    border-bottom-color: rgb(255 255 255 / 0.06);
+}
+
+/* The card's own border already closes the table off. */
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-tbody > tr:last-child > td {
+    border-bottom: 0;
+}
+
+.admin-table .ant-table-container {
+    overflow: hidden;
+}
+
+/* Breathing room where the grid meets the card edge — AntD's 8px side padding
+   was measured for a table that had a full border on every cell. */
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-thead > tr > th:first-child,
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-tbody > tr > td:first-child {
+    padding-inline-start: 16px;
+}
+
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-thead > tr > th:last-child,
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-tbody > tr > td:last-child {
+    padding-inline-end: 16px;
+}
+
+/* Light mode had white cards on a white page, so nothing read as a surface.
+   The content field steps back; sidebar, header and cards stay white on top of
+   it. Dark mode already had this separation (#0a0a0a page, #141414 chrome). */
+.admin-shell.admin-shell {
+    background-color: #f5f6f8;
+}
+
+.dark .admin-shell.admin-shell {
+    background-color: #0a0a0a;
+}
+
+/* Cards match the table's card treatment so every surface in the dashboard has
+   the same edge. AntD's default #f0f0f0 border disappeared against the field. */
+html:has(.admin-shell, .store-shell) .ant-card {
+    border-color: rgb(0 0 0 / 0.1);
+    border-radius: 10px;
+}
+
+/* The shop's cards ride on the warm ground, so they take the surface token and
+   a slightly softer corner than the dashboard's. */
+html:has(.store-shell) .ant-card {
+    background: var(--st-surface);
+    border-color: var(--st-line);
+    border-radius: 14px;
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-card {
+    border-color: rgb(255 255 255 / 0.08);
+}
+
+html:has(.admin-shell, .store-shell) .ant-card-head {
+    border-bottom-color: rgb(0 0 0 / 0.1);
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-card-head {
+    border-bottom-color: rgb(255 255 255 / 0.08);
+}
+
+/* AntD puts a 2px gap in front of the descriptions colon, which reads as
+   "Name : value". Close it up. */
+html:has(.admin-shell, .store-shell) .ant-descriptions-item-label::after {
+    margin-inline-start: 0;
+}
+
+/* A totals block only reads as a totals block when the figures line up with the
+   right edge of the table above it. */
+.admin-totals .ant-descriptions-item-container {
+    width: 100%;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+/* AntD renders the content cell as an inline-flex box, so text-align does
+   nothing — the figures have to be pushed with justify-content. */
+.admin-totals .ant-descriptions-item-content {
+    justify-content: flex-end;
+    text-align: end;
+}
+
+/* A wide table scrolls inside its own card; give that scrollbar the same
+   overlay treatment as the sidebar instead of the raw OS one. */
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-content {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+html:has(.admin-shell, .store-shell) .ant-table-wrapper:hover .ant-table-content {
+    scrollbar-color: rgb(0 0 0 / 0.25) transparent;
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-table-wrapper:hover .ant-table-content {
+    scrollbar-color: rgb(255 255 255 / 0.22) transparent;
+}
+
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-content::-webkit-scrollbar {
+    height: 8px;
+}
+
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-content::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+    background-color: transparent;
+}
+
+html:has(.admin-shell, .store-shell) .ant-table-wrapper:hover .ant-table-content::-webkit-scrollbar-thumb {
+    background-color: rgb(0 0 0 / 0.25);
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-table-wrapper:hover .ant-table-content::-webkit-scrollbar-thumb {
+    background-color: rgb(255 255 255 / 0.22);
+}
+
+/*
+ * Bidi isolation for tabular data.
+ *
+ * A cell like "2026-08-23 23:57:35" is all neutral characters and digits, so
+ * inside the RTL dashboard the space between the two digit runs takes the
+ * paragraph direction and the browser renders "23:57:35 2026-08-23". Resolving
+ * each cell's direction from its own content (what `dir="auto"` does) puts
+ * timestamps, SKUs and order numbers back in reading order while Arabic cells
+ * stay right-to-left. Alignment is unaffected: `text-align: start` still
+ * resolves against the table's own direction.
+ */
+html:has(.admin-shell, .store-shell) .ant-table-tbody > tr > td,
+html:has(.admin-shell, .store-shell) .ant-descriptions-item-content {
+    unicode-bidi: plaintext;
+}
+
+/*
+ * `plaintext` also makes `text-align: start` resolve against the *cell's* own
+ * resolved direction, so an English value in an Arabic table jumped to the left
+ * while its Arabic neighbours stayed right — one column, two alignments.
+ * Alignment has to follow the table, not the cell content, so it is restated
+ * physically per document direction.
+ */
+html[dir='rtl']:has(.admin-shell, .store-shell) .ant-table-tbody > tr:not(.ant-table-placeholder) > td {
+    text-align: right;
+}
+
+html[dir='rtl']:has(.admin-shell, .store-shell) .ant-table-tbody > tr:not(.ant-table-placeholder) > td.text-end {
+    text-align: left;
+}
+
+html[dir='ltr']:has(.admin-shell, .store-shell) .ant-table-tbody > tr:not(.ant-table-placeholder) > td {
+    text-align: left;
+}
+
+html[dir='ltr']:has(.admin-shell, .store-shell) .ant-table-tbody > tr:not(.ant-table-placeholder) > td.text-end {
+    text-align: right;
+}
+
+/* AntD stamps `direction: rtl` on its Typography under an RTL ConfigProvider,
+   and the CSS property outranks the element's own `dir="auto"`. `plaintext`
+   resolves direction from the content regardless, which is the whole point of
+   marking those nodes auto: they carry user data in an unknown language. */
+html:has(.admin-shell, .store-shell) [dir='auto'] {
+    unicode-bidi: plaintext;
+}
+
+/* Same trade-off as the table cells: the content decides reading order, the
+   container decides which edge the block hugs. */
+html[dir='rtl']:has(.admin-shell, .store-shell) [dir='auto'] {
+    text-align: right;
+}
+
+html[dir='ltr']:has(.admin-shell, .store-shell) [dir='auto'] {
+    text-align: left;
+}
+
+/* Form fields hold user data in either language. Under RTL the browser was
+   rendering "+218-91-0000000" as "218-91-0000000+" and moving the full stop to
+   the front of English paragraphs. Resolving each field's direction from what
+   is actually in it is both correct and what a bilingual editor should do:
+   Arabic values stay right-to-left, Latin ones read left-to-right. */
+html:has(.admin-shell, .store-shell) input,
+html:has(.admin-shell, .store-shell) textarea,
+html:has(.admin-shell, .store-shell) .ant-select-selection-item,
+html:has(.admin-shell, .store-shell) .ant-select-selection-placeholder {
+    unicode-bidi: plaintext;
+}
+
+/* The "no records" row is a single full-width cell; it stays centred. */
+html:has(.admin-shell, .store-shell) .ant-table-placeholder > td {
+    padding-block: 40px;
+    text-align: center;
+}
+
+/*
+ * Theme swap.
+ *
+ * The toggle runs inside a view transition (see `useAppearance`), so the whole
+ * page cross-fades once instead of repainting while Tailwind and AntD catch up
+ * with each other. Only the timing is customised — the default root animation
+ * is already the cross-fade we want.
+ */
+@media (prefers-reduced-motion: no-preference) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation-duration: 260ms;
+        animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+}
+
+/*
+ * Status pills.
+ *
+ * AntD's preset tag colours are built for its own surfaces and read badly on
+ * ours at both ends: in dark mode `success` sat at rgb(22,35,18) against a
+ * rgb(20,20,20) card, so the pill had no edge at all, and in light mode the
+ * same preset was a near-white wash with a pastel border. These are one system
+ * instead: a tint carrying enough of the hue to read as a chip, a border a step
+ * stronger, and label text dark-and-saturated on light / bright on dark. Every
+ * pair clears 4.5:1 — these are 12px labels, so AA counts them as small text.
+ *
+ * `blue` and `green` are the static presets used directly by a few call sites;
+ * they share the `processing` and `success` families on purpose.
+ */
+/* Shared with the storefront: `:has()` takes a selector list, so one palette
+   covers both shells at the same specificity a single one had. AntD's presets
+   are as unreadable on a product page as they were on a dashboard. */
+html:has(.admin-shell, .store-shell) .ant-tag {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+html:has(.admin-shell, .store-shell) .ant-tag-success,
+html:has(.admin-shell, .store-shell) .ant-tag-green {
+    border-color: #b4e0c4;
+    background: #e6f6ec;
+    color: #0f7a3d;
+}
+
+html:has(.admin-shell, .store-shell) .ant-tag-processing,
+html:has(.admin-shell, .store-shell) .ant-tag-blue {
+    border-color: #bcd4fb;
+    background: #e7f0fe;
+    color: #1653b8;
+}
+
+html:has(.admin-shell, .store-shell) .ant-tag-geekblue {
+    border-color: #c8c5fa;
+    background: #ecebfd;
+    color: #3b32b5;
+}
+
+html:has(.admin-shell, .store-shell) .ant-tag-warning {
+    border-color: #f0d3a0;
+    background: #fdf2de;
+    color: #8a5300;
+}
+
+html:has(.admin-shell, .store-shell) .ant-tag-error {
+    border-color: #f6c4c4;
+    background: #fdeaea;
+    color: #b02121;
+}
+
+html:has(.admin-shell, .store-shell) .ant-tag-purple {
+    border-color: #e2c3f2;
+    background: #f6ebfb;
+    color: #7b2fa8;
+}
+
+html:has(.admin-shell, .store-shell) .ant-tag-default,
+html:has(.admin-shell, .store-shell) .ant-tag:not([class*='ant-tag-']) {
+    border-color: #d9dbe0;
+    background: #f0f1f3;
+    color: #4a5058;
+}
+
+/* Dark: a translucent tint over the card so the chip keeps its hue whatever it
+   sits on, with the label bright enough to carry at 12px. */
+html.dark:has(.admin-shell, .store-shell) .ant-tag-success,
+html.dark:has(.admin-shell, .store-shell) .ant-tag-green {
+    border-color: rgb(45 190 110 / 0.34);
+    background: rgb(45 190 110 / 0.16);
+    color: #4ade80;
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-tag-processing,
+html.dark:has(.admin-shell, .store-shell) .ant-tag-blue {
+    border-color: rgb(59 130 246 / 0.36);
+    background: rgb(59 130 246 / 0.18);
+    color: #7cb0ff;
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-tag-geekblue {
+    border-color: rgb(129 120 255 / 0.36);
+    background: rgb(129 120 255 / 0.18);
+    color: #aaa3ff;
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-tag-warning {
+    border-color: rgb(245 169 60 / 0.36);
+    background: rgb(245 169 60 / 0.18);
+    color: #f7c264;
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-tag-error {
+    border-color: rgb(248 90 90 / 0.36);
+    background: rgb(248 90 90 / 0.18);
+    color: #ff9494;
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-tag-purple {
+    border-color: rgb(180 110 240 / 0.36);
+    background: rgb(180 110 240 / 0.18);
+    color: #cfa4f7;
+}
+
+html.dark:has(.admin-shell, .store-shell) .ant-tag-default,
+html.dark:has(.admin-shell, .store-shell) .ant-tag:not([class*='ant-tag-']) {
+    border-color: rgb(255 255 255 / 0.18);
+    background: rgb(255 255 255 / 0.09);
+    color: rgb(255 255 255 / 0.75);
+}
+
+/*
+ * Inline help affordance (`HelpHint`).
+ *
+ * Sits next to a label, a column heading or a figure whose meaning is not
+ * obvious from its name. Muted until you go looking for it, so a screen full of
+ * them never competes with the data.
+ */
+.admin-hint {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    color: rgb(0 0 0 / 0.35);
+    cursor: help;
+    transition:
+        color 0.15s ease,
+        background-color 0.15s ease;
+    vertical-align: middle;
+}
+
+html.dark .admin-hint {
+    color: rgb(255 255 255 / 0.4);
+}
+
+.admin-hint:hover,
+.admin-hint:focus-visible {
+    background-color: rgb(0 0 0 / 0.06);
+    color: rgb(0 0 0 / 0.75);
+}
+
+html.dark .admin-hint:hover,
+html.dark .admin-hint:focus-visible {
+    background-color: rgb(255 255 255 / 0.1);
+    color: rgb(255 255 255 / 0.85);
+}
+
+.admin-hint:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 1px;
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Storefront chrome.
+ *
+ * Same arrangement as the admin block above: Ant Design supplies the controls,
+ * the app supplies the surfaces. Scoped through `html:has(.store-shell)` rather
+ * than a descendant of `.store-shell`, because AntD portals its Drawer, Select
+ * and Dropdown panels to `<body>` — outside the shell element. `.dark` and
+ * `dir` live on `<html>`, so they are compounded onto it, never used as an
+ * ancestor (see the scoping note in docs/agents/admin-ui.md).
+ * ---------------------------------------------------------------------------
+ */
+
+/* The storefront scales its root font (16 / 17 / 20px) but AntD's tokens are
+   px and don't scale with it. Left alone, a 20px root made every rem utility a
+   quarter larger than the AntD control beside it — the same mismatch the admin
+   shell had, which is why `max-w-7xl` measured 1600px on a 1536px viewport and
+   let the promo rail bleed off both edges. Pin it, and both systems agree. */
+html:has(.store-shell) {
+    font-size: 16px;
+}
+
+/* The shop runs wider than Tailwind's 1280px `max-w-7xl`, retuned in one place
+   rather than at 20 call sites across 15 files, and scoped to the store shell so
+   the dashboard keeps 1280.
+
+   Width alone is a trap, though: widening the container without also raising the
+   column count just stretches the same cards over more pixels — 4-up at 1536px
+   produced 367x541px product cards, which is what "everything is mega big and
+   far apart" was. Width and density have to move together: this went 90rem →
+   100rem to kill the side gaps on 1920px monitors, and the catalogue grid grew
+   a 2xl:grid-cols-5 step in the same change. The homepage grid's `:xl` span is
+   the other half of the pairing. */
+html:has(.store-shell) .max-w-7xl {
+    max-width: 100rem;
+}
+
+/*
+ * Storefront palette.
+ *
+ * Both themes are defined as tokens on the shell so a surface is described once
+ * and the two modes stay in step. Light mode is deliberately *not* pure white:
+ * white cards on a white page have no edge, which is the same flatness the
+ * dashboard had before its content field was stepped back. The ground is a warm
+ * off-white, cards sit on top of it, and the accent green is the only saturated
+ * colour on the page.
+ *
+ * `--st-slab` is the full-bleed surface behind the hero, the sale banner and the
+ * footer. It follows the theme: a tinted bright panel in light mode, a near
+ * black one in dark. Pinning it dark in both was what left a black band across
+ * an otherwise light page.
+ */
+.store-shell {
+    --st-ground: #f1f1ec;
+    --st-ground-alt: #e4e6dd;
+    --st-surface: #ffffff;
+    --st-ink: #14161a;
+    --st-ink-soft: rgb(20 22 26 / 0.62);
+    --st-ink-faint: rgb(20 22 26 / 0.45);
+    --st-line: rgb(20 22 26 / 0.1);
+    --st-lift: 0 1px 2px rgb(20 22 26 / 0.04), 0 12px 28px -18px rgb(20 22 26 / 0.28);
+
+    --st-slab:
+        radial-gradient(115% 85% at 78% 12%, rgb(15 157 88 / 0.16) 0%, transparent 58%),
+        linear-gradient(160deg, #edf4ef 0%, #f6f6f3 55%, #e6f0ea 100%);
+    --st-slab-ink: #14161a;
+    --st-slab-ink-soft: rgb(20 22 26 / 0.6);
+    --st-slab-line: rgb(20 22 26 / 0.16);
+    --st-slab-well: rgb(20 22 26 / 0.05);
+
+    background: var(--st-ground);
+    color: var(--st-ink);
+}
+
+/* Three surfaces, each a real step apart.
+ *
+ * The previous set measured 1.045:1 between the ground and a banded section —
+ * invisible. Contrast *ratio* is the wrong tool down here: near black it
+ * compresses, so two colours can look four points apart on paper and still read
+ * as one flat sheet. Perceptual lightness is what matters, so these are spaced
+ * about five points of L* each:
+ *
+ *   ground  #0a0c0d   L* ~4    the page itself
+ *   band    #151a1c   L* ~10   a section that steps forward (.store-band)
+ *   surface #202629   L* ~15   cards, which must read as objects on both
+ *
+ * Keep the steps if you retune. Closing them is what made the page look flat.
+ */
+html.dark .store-shell {
+    --st-ground: #0a0c0d;
+    --st-ground-alt: #151a1c;
+    --st-surface: #202629;
+    --st-ink: #f2f2f3;
+    --st-ink-soft: rgb(242 242 243 / 0.64);
+    --st-ink-faint: rgb(242 242 243 / 0.44);
+    --st-line: rgb(255 255 255 / 0.14);
+    --st-lift: 0 1px 2px rgb(0 0 0 / 0.5), 0 16px 34px -20px rgb(0 0 0 / 0.9);
+
+    --st-slab:
+        radial-gradient(115% 90% at 76% 10%, rgb(15 157 88 / 0.28) 0%, transparent 60%),
+        linear-gradient(160deg, #1b2124 0%, #0d1011 58%, #12241a 100%);
+    --st-slab-ink: #f2f2f3;
+    --st-slab-ink-soft: rgb(242 242 243 / 0.6);
+    --st-slab-line: rgb(255 255 255 / 0.28);
+    --st-slab-well: rgb(255 255 255 / 0.06);
+}
+
+/* The header is the only chrome content scrolls beneath, so it is the only
+   surface that gets the translucent treatment. */
+.store-header {
+    background: rgb(255 255 255 / 0.92);
+    border-bottom: 1px solid rgb(0 0 0 / 0.07);
+}
+
+html.dark .store-header {
+    background: rgb(11 11 12 / 0.92);
+    border-bottom-color: rgb(255 255 255 / 0.09);
+}
+
+@supports (backdrop-filter: blur(12px)) {
+    .store-header {
+        background: rgb(255 255 255 / 0.72);
+        backdrop-filter: saturate(180%) blur(14px);
+    }
+
+    html.dark .store-header {
+        background: rgb(11 11 12 / 0.68);
+    }
+}
+
+.store-wordmark {
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: lowercase;
+    line-height: 1;
+    color: inherit;
+}
+
+.store-wordmark-lg {
+    font-size: 1.5rem;
+}
+
+.store-wordmark-glyph {
+    font-size: 1.15em;
+    line-height: 1;
+    color: #0f9d58;
+}
+
+/* AntD's text button is 32px and sized for a toolbar; the storefront's chrome
+   wants a 40px tap target that still clears the 44px guidance with its gap. */
+html:has(.store-shell) .store-icon-btn.ant-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 10px;
+    color: inherit;
+}
+
+html:has(.store-shell) .store-nav-btn.ant-btn {
+    height: 40px;
+    padding-inline: 0.875rem;
+    border-radius: 10px;
+    font-weight: 500;
+    color: inherit;
+}
+
+html:has(.store-shell) .store-nav-btn-active.ant-btn {
+    background: rgb(0 0 0 / 0.06);
+    font-weight: 600;
+}
+
+html.dark:has(.store-shell) .store-nav-btn-active.ant-btn {
+    background: rgb(255 255 255 / 0.1);
+}
+
+/* Drawer rows are plain links, not an `ant-menu` — the drawer mixes links,
+   buttons and badges, which Menu's item API makes awkward to express. */
+html:has(.store-shell) .store-drawer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.625rem;
+    border-radius: 10px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: inherit;
+    transition: background-color 0.15s ease;
+}
+
+html:has(.store-shell) .store-drawer-row:hover {
+    background: rgb(0 0 0 / 0.05);
+}
+
+html.dark:has(.store-shell) .store-drawer-row:hover {
+    background: rgb(255 255 255 / 0.08);
+}
+
+html:has(.store-shell) .store-drawer-row-active {
+    background: rgb(15 157 88 / 0.12);
+    color: #0b7c45;
+}
+
+html.dark:has(.store-shell) .store-drawer-row-active {
+    background: rgb(15 157 88 / 0.18);
+    color: #4ade9b;
+}
+
+.store-drawer-brand {
+    border-bottom: 1px solid rgb(0 0 0 / 0.07);
+}
+
+html.dark .store-drawer-brand {
+    border-bottom-color: rgb(255 255 255 / 0.09);
+}
+
+/*
+ * The footer is a structural clone of the reference site's gc-footer-v2 —
+ * see components/store/StoreFooter.vue for the markup and the particle
+ * canvas. Deliberately dark in BOTH themes: it is the page's closing
+ * statement, and the neon treatment only reads against darkness. It owns its
+ * own palette below instead of the --st-* tokens for that reason.
+ */
+.gc-footer-v2 {
+    position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(90% 120% at 85% 0%, rgb(15 157 88 / 0.12) 0%, transparent 55%),
+        linear-gradient(180deg, #0c0f0e 0%, #080a09 100%);
+    color: #eef1ef;
+}
+
+#gc-particles {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* CRT scanlines across the whole footer. */
+.gc-scanlines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.02) 0 1px, transparent 1px 3px);
+}
+
+/* Faint cyber grid behind the content, fading upward. */
+.gc-grid-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgb(74 222 155 / 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgb(74 222 155 / 0.05) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: linear-gradient(to top, #000 30%, transparent 90%);
+}
+
+.gc-footer-container {
+    position: relative;
+    margin-inline: auto;
+    max-width: 90rem;
+    padding: 2.25rem 1rem 7rem;
+}
+
+@media (min-width: 1024px) {
+    .gc-footer-container {
+        padding-bottom: 1.25rem;
+    }
+}
+
+.gc-footer-row {
+    display: grid;
+    gap: 1.75rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .gc-footer-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .gc-footer-row {
+        grid-template-columns: 1.2fr 1fr 1fr 1.3fr;
+    }
+}
+
+/* Logo column: the wordmark sits in a pulsing accent glow. */
+.gc-logo-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.gc-logo {
+    position: relative;
+    z-index: 1;
+    color: #eef1ef;
+}
+
+.gc-logo-glow {
+    position: absolute;
+    inset: -1.25rem -2rem;
+    pointer-events: none;
+    background: radial-gradient(closest-side, rgb(15 157 88 / 0.35), transparent 75%);
+    animation: gc-logo-pulse 3.2s ease-in-out infinite;
+}
+
+@keyframes gc-logo-pulse {
+    0%,
+    100% {
+        opacity: 0.5;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.12);
+    }
+}
+
+.gc-brand-text {
+    margin-top: 1rem;
+    max-width: 20rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: rgb(238 241 239 / 0.65);
+}
+
+.gc-social-icons {
+    display: flex;
+    gap: 0.625rem;
+    margin-top: 1.25rem;
+}
+
+.gc-social-link {
+    position: relative;
+    display: flex;
+    height: 2.5rem;
+    width: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    border: 1px solid rgb(255 255 255 / 0.14);
+    color: rgb(238 241 239 / 0.75);
+    transition:
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.gc-social-link:hover {
+    color: #4ade9b;
+    border-color: #0f9d58;
+    transform: translateY(-3px);
+}
+
+.gc-social-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0;
+    box-shadow: 0 0 18px rgb(15 157 88 / 0.65);
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.gc-social-link:hover .gc-social-glow {
+    opacity: 1;
+}
+
+/* Column headings: label + accent underline; a chevron appears only when the
+   heading acts as a mobile accordion toggle. */
+.gc-footer-heading {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.75rem;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #eef1ef;
+}
+
+.gc-heading-line {
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline-start: 0;
+    height: 3px;
+    width: 3.75rem;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #0f9d58, transparent);
+}
+
+[dir='rtl'] .gc-heading-line {
+    background: linear-gradient(-90deg, #0f9d58, transparent);
+}
+
+.gc-accordion-icon {
+    display: none;
+    transition: transform 0.25s ease;
+}
+
+/* The accordion's control is a real button inside the heading, so it has to be
+   stripped back to the heading's own typography and fill the row. */
+.gc-accordion-trigger {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: 0;
+    background: none;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-align: start;
+    cursor: default;
+}
+
+.gc-accordion-trigger:focus-visible {
+    outline: 2px solid #4ade9b;
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+.gc-footer-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.125rem;
+    font-size: 0.875rem;
+    list-style: none;
+    padding: 0;
+}
+
+.gc-footer-links a {
+    color: rgb(238 241 239 / 0.65);
+    transition:
+        color 0.2s ease,
+        padding-inline-start 0.2s ease;
+}
+
+.gc-footer-links a:hover {
+    color: #4ade9b;
+    padding-inline-start: 0.375rem;
+}
+
+/* Below lg the link columns collapse into accordions, like the original. */
+@media (max-width: 1023px) {
+    .gc-accordion-heading {
+        user-select: none;
+    }
+
+    .gc-accordion-trigger {
+        cursor: pointer;
+    }
+
+    .gc-accordion-icon {
+        display: block;
+    }
+
+    .gc-accordion-heading.active .gc-accordion-icon {
+        transform: rotate(180deg);
+    }
+
+    .gc-accordion-content {
+        display: none;
+    }
+
+    .gc-accordion-content.open {
+        display: flex;
+    }
+}
+
+/* Newsletter */
+.gc-newsletter-text {
+    margin-top: 1.125rem;
+    font-size: 0.875rem;
+    color: rgb(238 241 239 / 0.65);
+}
+
+.gc-input-wrapper {
+    display: flex;
+    margin-top: 1rem;
+    border-radius: 12px;
+    border: 1px solid rgb(255 255 255 / 0.16);
+    background: rgb(255 255 255 / 0.05);
+    padding: 0.25rem;
+    transition: border-color 0.2s ease;
+}
+
+.gc-input-wrapper:focus-within {
+    border-color: #0f9d58;
+    box-shadow: 0 0 14px rgb(15 157 88 / 0.35);
+}
+
+.gc-email-input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: #eef1ef;
+    /* The wrapper's :focus-within ring is the focus indicator for this field; the
+       input's own outline would draw a second box inside it. */
+    outline: none;
+}
+
+.gc-email-input:focus-visible {
+    outline: 2px solid #4ade9b;
+    outline-offset: -2px;
+}
+
+.gc-email-input::placeholder {
+    color: rgb(238 241 239 / 0.4);
+}
+
+.gc-submit-btn {
+    position: relative;
+    overflow: hidden;
+    border: 0;
+    border-radius: 9px;
+    background: #0f9d58;
+    padding: 0.5rem 1.125rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #ffffff;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.gc-submit-btn:hover {
+    background: #12b465;
+}
+
+.gc-submit-btn:disabled {
+    opacity: 0.7;
+    cursor: default;
+}
+
+.gc-btn-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(120deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%);
+    transform: translateX(-120%);
+    animation: gc-btn-sheen 2.8s ease-in-out infinite;
+}
+
+@keyframes gc-btn-sheen {
+    0%,
+    55% {
+        transform: translateX(-120%);
+    }
+    85%,
+    100% {
+        transform: translateX(120%);
+    }
+}
+
+.gc-newsletter-error {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #f87171;
+}
+
+.gc-payment-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+}
+
+.gc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 9999px;
+    border: 1px solid rgb(255 255 255 / 0.14);
+    padding: 0.3125rem 0.875rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgb(238 241 239 / 0.8);
+}
+
+.gc-badge svg {
+    color: #4ade9b;
+}
+
+/* Copyright bar with the line–dot–line decor. */
+.gc-footer-bottom {
+    margin-top: 1.75rem;
+    border-top: 1px solid rgb(255 255 255 / 0.08);
+    padding-top: 1rem;
+    text-align: center;
+}
+
+.gc-copyright {
+    font-size: 0.75rem;
+    color: rgb(238 241 239 / 0.55);
+}
+
+/* The stop control for the particle field. Quiet by default — it is a comfort
+   affordance, not a call to action — but a real focusable button. */
+.gc-motion-toggle {
+    margin-top: 0.75rem;
+    border: 0;
+    background: none;
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    color: rgb(238 241 239 / 0.4);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.gc-motion-toggle:hover {
+    color: #4ade9b;
+}
+
+.gc-motion-toggle:focus-visible {
+    outline: 2px solid #4ade9b;
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+
+.gc-footer-decor {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.gc-decor-line {
+    height: 1px;
+    width: 5rem;
+    background: linear-gradient(90deg, transparent, rgb(15 157 88 / 0.6), transparent);
+}
+
+.gc-decor-dot {
+    height: 6px;
+    width: 6px;
+    border-radius: 9999px;
+    background: #0f9d58;
+    box-shadow: 0 0 10px rgb(15 157 88 / 0.9);
+    animation: gc-dot-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes gc-dot-pulse {
+    0%,
+    100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.35);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gc-logo-glow,
+    .gc-btn-glow,
+    .gc-decor-dot {
+        animation: none;
+    }
+}
+
+/* Section titles carry a short accent underline (the reference site's section
+   rhythm) so each block opens with the same stamp instead of a bare heading. */
+.store-section-title {
+    position: relative;
+    padding-bottom: 0.625rem;
+}
+
+.store-section-title::after {
+    content: '';
+    position: absolute;
+    inset-block-end: 0;
+    inset-inline-start: 0;
+    height: 3px;
+    width: 2.5rem;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #0f9d58, rgb(15 157 88 / 0.15));
+}
+
+[dir='rtl'] .store-section-title::after {
+    background: linear-gradient(-90deg, #0f9d58, rgb(15 157 88 / 0.15));
+}
+
+/* Trust strip: the compact service-promises band under the hero. */
+.store-trust-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 14px;
+    border: 1px solid var(--st-line);
+    background: var(--st-surface);
+    padding: 0.875rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.store-trust-item svg {
+    flex-shrink: 0;
+    color: #0f9d58;
+}
+
+
+
+/*
+ * Storefront components.
+ *
+ * The product card is the storefront's unit of work — it appears on the home
+ * page, the catalogue, the wishlist and every "related products" rail, so it
+ * carries its own class hooks rather than repeating a dozen utilities at four
+ * call sites.
+ */
+html:has(.store-shell) .store-product-card.ant-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--st-lift);
+    transition:
+        transform 0.25s ease,
+        box-shadow 0.25s ease,
+        border-color 0.25s ease;
+}
+
+/* A card needs an edge to read as a surface. Dark mode had #141416 sitting on a
+   #0b0b0c ground — four points of luminance apart, so the grid looked like
+   floating photos rather than cards. The shadow does the separating; the hover
+   lift is what makes the whole grid feel alive rather than printed. */
+html:has(.store-shell) .store-product-card.ant-card:hover {
+    transform: translateY(-4px);
+    border-color: rgb(15 157 88 / 0.45);
+    box-shadow:
+        var(--st-lift),
+        0 0 0 1px rgb(15 157 88 / 0.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html:has(.store-shell) .store-product-card.ant-card,
+    html:has(.store-shell) .store-product-card.ant-card:hover {
+        transform: none;
+        transition: none;
+    }
+}
+
+html:has(.store-shell) .store-product-card .ant-card-cover {
+    margin: 0;
+}
+
+.store-product-media {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.store-product-frame {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+}
+
+.store-product-img {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.store-product-card:hover .store-product-img {
+    transform: scale(1.05);
+}
+
+html:has(.store-shell) .store-product-flag.ant-tag {
+    position: absolute;
+    inset-block-start: 0.625rem;
+    inset-inline-start: 0.625rem;
+    z-index: 2;
+    margin: 0;
+    font-weight: 600;
+}
+
+/* The wishlist button only appears on hover on pointer devices; on touch there
+   is no hover, so it stays visible rather than being unreachable. */
+html:has(.store-shell) .store-product-wish.ant-btn {
+    position: absolute;
+    inset-block-start: 0.5rem;
+    inset-inline-end: 0.5rem;
+    z-index: 2;
+    background: rgb(255 255 255 / 0.85);
+    color: rgb(0 0 0 / 0.55);
+    transition:
+        opacity 0.2s ease,
+        color 0.2s ease;
+}
+
+html.dark:has(.store-shell) .store-product-wish.ant-btn {
+    background: rgb(20 20 22 / 0.8);
+    color: rgb(255 255 255 / 0.65);
+}
+
+html:has(.store-shell) .store-product-wish.ant-btn:hover {
+    color: #e0245e;
+}
+
+/* Always on screen — it is the only way to tell a saved product from an unsaved
+   one at a glance, and hiding it until hover meant it did not exist at all on
+   touch. Unsaved it is a quiet outline on a translucent chip; saved it fills. */
+html:has(.store-shell) .store-product-wish.ant-btn {
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+/* Saved is a state, not a hover affordance: once a product is on the wishlist
+   the heart fills, turns red and stops hiding itself. Fading it out again the
+   moment the pointer left was what made a just-saved product look like the
+   click had done nothing. */
+html:has(.store-shell) .store-product-wish-on.ant-btn {
+    color: #e0245e;
+}
+
+html.dark:has(.store-shell) .store-product-wish-on.ant-btn {
+    color: #ff5c8a;
+}
+
+/* The heart is re-keyed when the state flips, so this plays on the swap and
+   gives the toggle a beat of feedback. */
+.store-heart {
+    animation: store-heart-pop 0.28s ease-out;
+}
+
+@keyframes store-heart-pop {
+    0% {
+        transform: scale(0.6);
+    }
+
+    60% {
+        transform: scale(1.18);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+html:has(.store-shell) .store-wish-on.ant-btn {
+    border-color: #e0245e;
+    color: #e0245e;
+}
+
+html.dark:has(.store-shell) .store-wish-on.ant-btn {
+    border-color: #ff5c8a;
+    color: #ff5c8a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .store-heart {
+        animation: none;
+    }
+}
+
+.store-product-brand {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.55;
+}
+
+.store-product-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    min-height: 2.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.35;
+    color: inherit;
+    transition: opacity 0.15s ease;
+}
+
+.store-product-name:hover {
+    opacity: 0.65;
+    color: inherit;
+}
+
+.store-product-price {
+    font-size: 1rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.store-product-was {
+    font-size: 0.75rem;
+    text-decoration: line-through;
+    opacity: 0.5;
+    font-variant-numeric: tabular-nums;
+}
+
+.store-product-save {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #0f9d58;
+}
+
+html.dark .store-product-save {
+    color: #4ade9b;
+}
+
+/* AntD's Rate is sized by font-size; the card needs a smaller one than a
+   product page's summary line. */
+html:has(.store-shell) .store-rate.ant-rate {
+    color: #f5a623;
+    line-height: 1;
+}
+
+html:has(.store-shell) .store-rate-sm.ant-rate {
+    font-size: 0.8125rem;
+}
+
+html:has(.store-shell) .store-rate-md.ant-rate {
+    font-size: 1.125rem;
+}
+
+html:has(.store-shell) .store-rate .ant-rate-star:not(:last-child) {
+    margin-inline-end: 2px;
+}
+
+.store-rate-count {
+    font-size: 0.75rem;
+    opacity: 0.55;
+}
+
+/* Search suggestions are portalled to <body>, so they are scoped through the
+   dropdown's own class rather than the shell. */
+.store-search-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding-block: 0.125rem;
+}
+
+.store-search-thumb {
+    height: 2.5rem;
+    width: 2.5rem;
+    flex: none;
+    border-radius: 8px;
+    object-fit: contain;
+}
+
+.store-search-thumb-empty {
+    background: rgb(128 128 128 / 0.15);
+}
+
+.store-search-panel .ant-select-item {
+    padding-block: 0.5rem;
+}
+
+.store-empty {
+    padding-block: 3rem;
+}
+
+html:has(.store-shell) .store-qty .store-qty-field.ant-input-number {
+    width: 4rem;
+}
+
+html:has(.store-shell) .store-qty .ant-input-number-input {
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Filter chips. `Tag.CheckableTag` is AntD's own two-state chip, so selection
+   state lives in the component rather than in a pair of class-name constants;
+   only the shape is ours — a pill big enough to be a comfortable tap target. */
+html:has(.store-shell) .store-filter-tag.ant-tag {
+    margin: 0;
+    border-radius: 9999px;
+    border: 1px solid rgb(0 0 0 / 0.12);
+    padding: 0.3125rem 0.875rem;
+    font-size: 0.8125rem;
+    line-height: 1.25rem;
+    background: transparent;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+html.dark:has(.store-shell) .store-filter-tag.ant-tag {
+    border-color: rgb(255 255 255 / 0.16);
+}
+
+html:has(.store-shell) .store-filter-tag.ant-tag:hover {
+    border-color: #0f9d58;
+    color: #0f9d58;
+}
+
+/* The chips are keyboard-operable checkboxes, so they need a focus ring — AntD's
+   CheckableTag ships as a bare span with none. */
+html:has(.store-shell) .store-filter-tag.ant-tag:focus-visible {
+    outline: 2px solid #0f9d58;
+    outline-offset: 2px;
+}
+
+html:has(.store-shell) .store-filter-tag.ant-tag-checkable-checked {
+    border-color: #0f9d58;
+    background: #0f9d58;
+    color: #ffffff;
+}
+
+html:has(.store-shell) .store-filter-tag.ant-tag-checkable-checked:hover {
+    background: #0c8a4d;
+    color: #ffffff;
+}
+
+.store-filters-heading {
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+/* The bottom drawer is a sheet: round its leading corners and let the filter
+   panel own the padding. */
+.store-filter-drawer .ant-drawer-content {
+    border-start-start-radius: 20px;
+    border-start-end-radius: 20px;
+}
+
+/* Cart and totals. `.store-money` and `.store-totals` are shared by the cart,
+   checkout and order pages so a figure lines up the same way wherever it is
+   read — tabular digits, and the amount pushed to the trailing edge. */
+.store-money {
+    font-variant-numeric: tabular-nums;
+}
+
+.store-cart-thumb {
+    display: flex;
+    height: 5rem;
+    width: 5rem;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 10px;
+    background: rgb(128 128 128 / 0.1);
+    color: inherit;
+}
+
+@media (min-width: 640px) {
+    .store-cart-thumb {
+        height: 6rem;
+        width: 6rem;
+    }
+}
+
+.store-totals {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.store-totals-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.store-totals-discount {
+    color: #0f9d58;
+}
+
+html.dark .store-totals-discount {
+    color: #4ade9b;
+}
+
+.store-totals-grand {
+    margin-top: 0.25rem;
+    border-top: 1px solid rgb(0 0 0 / 0.1);
+    padding-top: 0.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+html.dark .store-totals-grand {
+    border-top-color: rgb(255 255 255 / 0.12);
+}
+
+html:has(.store-shell) .store-coupon-field.ant-input {
+    text-transform: uppercase;
+}
+
+/* Product page. */
+/* Square, but capped: on a wide viewport an uncapped 1:1 gallery grew to the
+   full column width and pushed the description, specs and reviews a screen and
+   a half down the page. */
+.store-gallery {
+    display: flex;
+    aspect-ratio: 1 / 1;
+    max-height: 30rem;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
+html:has(.store-shell) .store-gallery .ant-image {
+    height: 100%;
+    width: 100%;
+}
+
+html:has(.store-shell) .store-gallery .ant-image img {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+.store-thumb {
+    height: 4rem;
+    width: 4rem;
+    flex: none;
+    overflow: hidden;
+    border-radius: 10px;
+    border: 2px solid rgb(0 0 0 / 0.1);
+    padding: 2px;
+    transition: border-color 0.15s ease;
+}
+
+html.dark .store-thumb {
+    border-color: rgb(255 255 255 / 0.14);
+}
+
+.store-thumb:hover {
+    border-color: rgb(15 157 88 / 0.6);
+}
+
+.store-thumb-active,
+html.dark .store-thumb-active {
+    border-color: #0f9d58;
+}
+
+.store-detail-price {
+    font-size: 1.875rem;
+    font-weight: 800;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.store-detail-price-sale {
+    color: #d93025;
+}
+
+html.dark .store-detail-price-sale {
+    color: #ff6b5e;
+}
+
+/* Variants wrap on narrow viewports; AntD's radio group is a single line by
+   default and would otherwise overflow the column. */
+html:has(.store-shell) .store-variants.ant-radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+html:has(.store-shell) .store-variants .ant-radio-button-wrapper {
+    height: auto;
+    border-radius: 10px;
+    border-inline-start-width: 1px;
+    padding: 0.375rem 0.875rem;
+}
+
+html:has(.store-shell) .store-variants .ant-radio-button-wrapper::before {
+    display: none;
+}
+
+/* Checkout. The step number is part of the card title rather than a separate
+   `Steps` bar: all three sections are on one screen, so a progress indicator
+   would be describing a journey the shopper is not actually taking. */
+.store-step {
+    display: inline-flex;
+    height: 1.5rem;
+    width: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    margin-inline-end: 0.5rem;
+    border-radius: 9999px;
+    background: #0f9d58;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Payment methods read as cards, not a bare radio list — each one is a choice
+   with weight, and the hit area should match. */
+html:has(.store-shell) .store-payment.ant-radio-group {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+html:has(.store-shell) .store-payment-option.ant-radio-wrapper {
+    margin: 0;
+    border: 1px solid rgb(0 0 0 / 0.12);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    font-weight: 500;
+    transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease;
+}
+
+html.dark:has(.store-shell) .store-payment-option.ant-radio-wrapper {
+    border-color: rgb(255 255 255 / 0.16);
+}
+
+html:has(.store-shell) .store-payment-option.ant-radio-wrapper-checked {
+    border-color: #0f9d58;
+    background: rgb(15 157 88 / 0.08);
+}
+
+/* Return request: each line is a selectable row, so the whole row carries the
+   selected state rather than just the checkbox. */
+.store-return-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid rgb(0 0 0 / 0.12);
+    border-radius: 10px;
+    padding: 0.75rem;
+    transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease;
+}
+
+html.dark .store-return-row {
+    border-color: rgb(255 255 255 / 0.16);
+}
+
+.store-return-row-on {
+    border-color: #0f9d58;
+    background: rgb(15 157 88 / 0.08);
+}
+
+/* A form label that carries a trailing link ("Forgot password?") needs the
+   whole row to lay out against; AntD sizes its `<label>` to its text. */
+html:has(.store-shell) .store-label-wide .ant-form-item-label > label {
+    width: 100%;
+}
+
+/* Settings rail. AntD's inline menu paints its own surface; the settings page
+   wants it to read as a list of links beside the content, not a second panel. */
+html:has(.store-shell) .store-settings-nav.ant-menu {
+    border-inline-end: 0;
+    background: transparent;
+}
+
+html:has(.store-shell) .store-settings-nav.ant-menu .ant-menu-item {
+    border-radius: 10px;
+    margin-inline: 0;
+    width: 100%;
+}
+
+/* "Saved." confirmations fade rather than pop. */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fade-enter-active,
+    .fade-leave-active {
+        transition: none;
+    }
+}
+
+/* Marquee rails run edge to edge; without a fade the tiles look clipped by the
+   viewport rather than moving through it. */
+.store-marquee-mask {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
+}
+
+/* The hero and the sale banner are the storefront's two full-bleed statements.
+   Same slab as the footer, so the page repeats one surface instead of inventing
+   three — and it follows the theme rather than staying dark under a light page. */
+.store-slab {
+    background: var(--st-slab);
+    color: var(--st-slab-ink);
+}
+
+/* Banded sections. The page was one uninterrupted sheet of ground from the hero
+   to the footer, which is most of why it read as flat — there was nothing for
+   the eye to use as a break. Alternating a section onto a second ground gives
+   the scroll a rhythm without inventing a third colour. */
+.store-band {
+    background: var(--st-ground-alt);
+}
+
+/* Abstract shapes on the two slabs: one outlined ring drifting off the top
+   start corner, one soft accent blob rising from the bottom end. They sit at
+   z-index -1 under an isolated stacking context, so slab content never has to
+   care that they exist. (A hairline grid was tried here once and removed — it
+   read as graph paper. Shapes are loose geometry, not texture.) */
+.store-slab-deco {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.store-slab-deco::before,
+.store-slab-deco::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.store-slab-deco::before {
+    inset-block-start: -170px;
+    inset-inline-start: -130px;
+    width: 440px;
+    height: 440px;
+    border: 1.5px solid rgb(15 157 88 / 0.22);
+    animation: slab-drift 14s ease-in-out infinite alternate;
+}
+
+.store-slab-deco::after {
+    inset-block-end: -200px;
+    inset-inline-end: -150px;
+    width: 560px;
+    height: 560px;
+    background: radial-gradient(closest-side, rgb(15 157 88 / 0.18), transparent 72%);
+    animation: slab-drift 18s ease-in-out infinite alternate-reverse;
+}
+
+html.dark .store-slab-deco::before {
+    border-color: rgb(15 157 88 / 0.32);
+}
+
+html.dark .store-slab-deco::after {
+    background: radial-gradient(closest-side, rgb(15 157 88 / 0.26), transparent 72%);
+}
+
+@keyframes slab-drift {
+    to {
+        transform: translateY(26px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .store-slab-deco::before,
+    .store-slab-deco::after {
+        animation: none;
+    }
+}
+
+.store-slab-ink-soft {
+    color: var(--st-slab-ink-soft);
+}
+
+/* The snake-border CTA — the reference site's gc-snake-btn CSS verbatim
+   (fetched from the live page), with only the red remapped to this shop's
+   green (#ec1d24 → #0f9d58, #ff3439 → #4ade9b) and the label taking the slab
+   ink so it stays readable on the light theme's bright panel. Markup lives in
+   components/store/SnakeButton.vue. */
+.gc-snake-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 32px;
+    background: rgba(15, 157, 88, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(15, 157, 88, 0.3);
+    color: var(--st-slab-ink);
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition:
+        transform 0.3s ease,
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease,
+        box-shadow 0.3s ease;
+    box-shadow:
+        0 4px 20px rgba(15, 157, 88, 0.2),
+        inset 0 0 20px rgba(15, 157, 88, 0.1);
+    z-index: 1;
+}
+
+.gc-snake-btn-text {
+    position: relative;
+    z-index: 2;
+    color: inherit;
+    text-shadow: 0 0 10px rgba(15, 157, 88, 0.6);
+    transition:
+        color 0.3s ease,
+        text-shadow 0.3s ease;
+}
+
+/* Snake border elements - 4 sides with BRIGHTER glow */
+.gc-snake-btn-border {
+    position: absolute;
+    background: linear-gradient(90deg, transparent, #0f9d58, #4ade9b);
+    pointer-events: none;
+    box-shadow:
+        0 0 10px #0f9d58,
+        0 0 20px #0f9d58;
+}
+
+.gc-snake-btn-border:nth-child(1) {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #0f9d58, #4ade9b);
+    animation: gc-snake-top 2s linear infinite;
+}
+
+.gc-snake-btn-border:nth-child(2) {
+    top: 0;
+    right: 0;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent, #0f9d58, #4ade9b);
+    animation: gc-snake-right 2s linear infinite;
+    animation-delay: 0.5s;
+}
+
+.gc-snake-btn-border:nth-child(3) {
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(270deg, transparent, #0f9d58, #4ade9b);
+    animation: gc-snake-bottom 2s linear infinite;
+    animation-delay: 1s;
+}
+
+.gc-snake-btn-border:nth-child(4) {
+    bottom: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(0deg, transparent, #0f9d58, #4ade9b);
+    animation: gc-snake-left 2s linear infinite;
+    animation-delay: 1.5s;
+}
+
+@keyframes gc-snake-top {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes gc-snake-right {
+    0% {
+        transform: translateY(-100%);
+    }
+    100% {
+        transform: translateY(100%);
+    }
+}
+
+@keyframes gc-snake-bottom {
+    0% {
+        transform: translateX(100%);
+    }
+    100% {
+        transform: translateX(-100%);
+    }
+}
+
+@keyframes gc-snake-left {
+    0% {
+        transform: translateY(100%);
+    }
+    100% {
+        transform: translateY(-100%);
+    }
+}
+
+/* ENHANCED Glow effect on borders */
+.gc-snake-btn-border::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    filter: blur(12px);
+    opacity: 1;
+}
+
+/* Hover state - MORE VISIBLE */
+.gc-snake-btn:hover {
+    background: rgba(15, 157, 88, 0.2);
+    border-color: rgba(15, 157, 88, 0.6);
+    box-shadow:
+        0 6px 30px rgba(15, 157, 88, 0.5),
+        inset 0 0 30px rgba(15, 157, 88, 0.2),
+        0 0 40px rgba(15, 157, 88, 0.3);
+    transform: translateY(-2px);
+}
+
+.gc-snake-btn:hover .gc-snake-btn-text {
+    color: #4ade9b;
+    text-shadow:
+        0 0 10px rgba(15, 157, 88, 1),
+        0 0 20px rgba(15, 157, 88, 0.8),
+        0 0 30px rgba(15, 157, 88, 0.6);
+}
+
+/* Speed up animation on hover */
+.gc-snake-btn:hover .gc-snake-btn-border:nth-child(1),
+.gc-snake-btn:hover .gc-snake-btn-border:nth-child(2),
+.gc-snake-btn:hover .gc-snake-btn-border:nth-child(3),
+.gc-snake-btn:hover .gc-snake-btn-border:nth-child(4) {
+    animation-duration: 1s;
+}
+
+/* Active/Click state */
+.gc-snake-btn:active {
+    transform: translateY(0px);
+    box-shadow:
+        0 2px 15px rgba(15, 157, 88, 0.5),
+        inset 0 0 20px rgba(15, 157, 88, 0.3);
+}
+
+/* Inner glow effect - BRIGHTER */
+.gc-snake-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 0%;
+    height: 0%;
+    background: radial-gradient(circle, rgba(15, 157, 88, 0.4) 0%, transparent 70%);
+    border-radius: 50%;
+    transition:
+        width 0.5s ease,
+        height 0.5s ease,
+        opacity 0.5s ease;
+    pointer-events: none;
+}
+
+.gc-snake-btn:hover::before {
+    width: 120%;
+    height: 300%;
+}
+
+/* Tech grid pattern overlay */
+.gc-snake-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(15, 157, 88, 0.05) 2px, rgba(15, 157, 88, 0.05) 4px),
+        repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(15, 157, 88, 0.05) 2px, rgba(15, 157, 88, 0.05) 4px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.gc-snake-btn:hover::after {
+    opacity: 1;
+}
+
+/* The reference recipe assumes a dark panel — pale-green text over a bright
+   slab just washes out. In light mode the hover fills the button solid and
+   flips the label to white; the snakes, lift and grid overlay stay as-is. */
+html:not(.dark) .gc-snake-btn .gc-snake-btn-text {
+    text-shadow: 0 0 10px rgba(15, 157, 88, 0.25);
+}
+
+html:not(.dark) .gc-snake-btn:hover {
+    background: #0f9d58;
+    border-color: #0b7c45;
+}
+
+html:not(.dark) .gc-snake-btn:hover .gc-snake-btn-text {
+    color: #ffffff;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
+}
+
+html:not(.dark) .gc-snake-btn:hover::before {
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+}
+
+@media (max-width: 768px) {
+    .gc-snake-btn {
+        padding: 12px 24px;
+        font-size: 13px;
+        letter-spacing: 0.8px;
+    }
+}
+
+html[dir='rtl'] .gc-snake-btn {
+    letter-spacing: 0.5px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gc-snake-btn-border {
+        animation: none;
+    }
+
+    .gc-snake-btn::before,
+    .gc-snake-btn::after {
+        transition: none;
+    }
+}
+
+/* Carousel arrows sit on the slab too. */
+html:has(.store-shell) .store-slab-arrow.ant-btn {
+    border: 0;
+    background: var(--st-slab-well);
+    color: var(--st-slab-ink);
+}
+
+html:has(.store-shell) .store-slab-arrow.ant-btn:hover {
+    background: var(--st-slab-line);
+    color: var(--st-slab-ink);
+}
+
+.store-slab-well {
+    background: var(--st-slab-well);
+}
+
+/* Category cards, the reference site's way: a WHITE tile holding the product
+   photo (white in both themes — that's what makes the row pop on a dark page),
+   with the category name on a strip beneath it. Icon fallback for categories
+   nobody has photographed yet. */
+.store-category-card {
+    display: flex;
+    aspect-ratio: 1 / 1;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 0.75rem;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.store-category-card img {
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+}
+
+.group:hover .store-category-card {
+    transform: translateY(-4px);
+    box-shadow:
+        0 0 0 2px rgb(15 157 88 / 0.55),
+        0 0 24px rgb(15 157 88 / 0.35),
+        0 14px 28px -14px rgb(15 157 88 / 0.5);
+}
+
+/* AntD styles `.ant-btn > span { display: inline-block }` at higher specificity
+   than Tailwind's `.flex`, so a flex span inside any Button silently stacks its
+   icon and label. Honour the utility's intent wherever both shells use it. */
+html:has(.admin-shell, .store-shell) .ant-btn > span.flex {
+    display: inline-flex;
+}
+
+/* Header "All categories" pill — the loudest control in the chrome. */
+html:has(.store-shell) .store-cats-btn.ant-btn {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    height: 40px;
+    padding-inline: 1.125rem;
+    border: 0;
+    border-radius: 9999px;
+    background: #0f9d58;
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 0 16px rgb(15 157 88 / 0.35);
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+html:has(.store-shell) .store-cats-btn.ant-btn:hover {
+    background: #12b465;
+    color: #ffffff;
+    box-shadow: 0 0 22px rgb(18 180 101 / 0.5);
+}
+
+
+/* Mobile tab bar. Kept as bespoke chrome rather than an AntD component — AntD
+   has no floating pill nav — but it takes the storefront accent so the active
+   destination matches every other selected state in the shop. */
+.store-tabbar-item-on {
+    background: #0f9d58;
+    color: #ffffff;
+}
+
+.store-tabbar-item-off {
+    background: rgb(0 0 0 / 0.06);
+    color: inherit;
+}
+
+html.dark .store-tabbar-item-off {
+    background: rgb(255 255 255 / 0.1);
+}
+
+.store-tabbar-badge {
+    position: absolute;
+    inset-block-start: -2px;
+    inset-inline-end: -2px;
+    display: flex;
+    height: 1rem;
+    min-width: 1rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: #d93025;
+    padding-inline: 0.25rem;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    color: #ffffff;
+}
+
+/* AntD Typography sets its own colour, so headings on the slab have to be told
+   which ink to take — otherwise they stay dashboard-grey on a tinted panel. */
+html:has(.store-shell) .store-slab-title.ant-typography {
+    color: var(--st-slab-ink);
+}
+
+
+/* ---------------------------------------------------------------------------
+   Interaction hygiene, shared by both shells.
+
+   Four separate defects, one block because they are all "the platform's default
+   is wrong for an app-shaped page": the 300ms double-tap delay, the grey iOS
+   tap flash over controls that already have their own press state, scroll
+   chaining out of an open overlay, and headings anchored under a sticky header.
+   --------------------------------------------------------------------------- */
+
+html:has(.admin-shell, .store-shell) a,
+html:has(.admin-shell, .store-shell) button,
+html:has(.admin-shell, .store-shell) label,
+html:has(.admin-shell, .store-shell) summary,
+html:has(.admin-shell, .store-shell) [role='button'],
+html:has(.admin-shell, .store-shell) .ant-btn,
+html:has(.admin-shell, .store-shell) .ant-tag,
+html:has(.admin-shell, .store-shell) .ant-menu-item,
+html:has(.admin-shell, .store-shell) .ant-select-item,
+html:has(.admin-shell, .store-shell) .ant-pagination-item {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Overlays own their scroll: a flick past the end of a drawer, modal, dropdown
+   or the checkout summary used to carry on scrolling the page behind it. */
+html:has(.admin-shell, .store-shell) .ant-drawer-body,
+html:has(.admin-shell, .store-shell) .ant-modal-body,
+html:has(.admin-shell, .store-shell) .ant-select-dropdown,
+html:has(.admin-shell, .store-shell) .ant-dropdown-menu,
+html:has(.admin-shell, .store-shell) .overlay-scroll {
+    overscroll-behavior: contain;
+}
+
+/* Both shells put a sticky bar at the top, so an in-page anchor lands with its
+   heading underneath it without this. */
+html:has(.admin-shell, .store-shell) :is(h1, h2, h3, h4, h5, h6)[id],
+html:has(.admin-shell, .store-shell) :target {
+    scroll-margin-top: 5rem;
+}
+
+/* Headings set their own line breaks rather than leaving a one-word last line. */
+html:has(.admin-shell, .store-shell) :is(h1, h2, h3, h4, h5, h6),
+html:has(.admin-shell, .store-shell) .ant-typography h1,
+html:has(.admin-shell, .store-shell) .ant-typography h2,
+html:has(.admin-shell, .store-shell) .ant-typography h3 {
+    text-wrap: balance;
+}
+
+/* Safe areas. The tab bar, the toast stack and the drawer footer are the three
+   things that sit against a phone's bottom edge, where the home indicator is. */
+html:has(.store-shell) .store-tabbar-safe {
+    bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+html:has(.store-shell) .store-toast-safe {
+    bottom: calc(6rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 1024px) {
+    html:has(.store-shell) .store-toast-safe {
+        bottom: max(1.5rem, env(safe-area-inset-bottom));
+    }
+}
+
+html:has(.admin-shell, .store-shell) .ant-drawer-content {
+    padding-bottom: env(safe-area-inset-bottom);
 }
