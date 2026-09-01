@@ -50,6 +50,6 @@ final class Warehouse extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnly(['name', 'code', 'is_default', 'is_active'])->logOnlyDirty();
+        return LogOptions::defaults()->logOnly(['name', 'code', 'is_default', 'is_active'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

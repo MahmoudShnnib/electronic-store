@@ -81,6 +81,6 @@ final class Coupon extends Model
     {
         return LogOptions::defaults()
             ->logOnly(['code', 'type', 'value_cents', 'percent', 'is_active', 'usage_limit'])
-            ->logOnlyDirty();
+            ->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

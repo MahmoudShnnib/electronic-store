@@ -15,7 +15,9 @@
         "register": "إنشاء حساب",
         "logout": "تسجيل الخروج",
         "admin": "لوحة التحكم",
-        "search_placeholder": "ابحث عن هواتف، حواسيب، إكسسوارات…"
+        "search_placeholder": "ابحث عن هواتف، حواسيب، إكسسوارات…",
+        "all_categories": "كل الأقسام",
+        "primary": "التنقل الرئيسي"
     },
     "home": {
         "featured": "منتجات مميزة",
@@ -43,7 +45,13 @@
         "game_score": "النقاط: {score}",
         "game_best": "الأفضل: {best}",
         "game_over": "انتهت الجولة!",
-        "game_play_again": "العب مجدداً"
+        "game_play_again": "العب مجدداً",
+        "sale_banner_title": "تخفيضات الموسم",
+        "sale_banner_subtitle": "خصومات مباشرة على كامل الكتالوج — حتى نفاد الكمية.",
+        "trust_cod": "الدفع عند الاستلام",
+        "trust_delivery": "توصيل سريع لكل ليبيا",
+        "trust_genuine": "منتجات أصلية 100%",
+        "trust_returns": "إرجاع سهل"
     },
     "catalog": {
         "filters": "التصفية",
@@ -85,7 +93,11 @@
         "review_body": "تقييمك",
         "submit_review": "إرسال التقييم",
         "no_reviews": "لا توجد تقييمات بعد.",
-        "percent_off": "خصم {percent}%"
+        "percent_off": "خصم {percent}%",
+        "decrease_quantity": "إنقاص الكمية",
+        "increase_quantity": "زيادة الكمية",
+        "save_to_wishlist": "أضف إلى المفضلة",
+        "remove_from_wishlist": "محفوظ — اضغط للإزالة"
     },
     "cart": {
         "title": "سلة التسوق",
@@ -100,7 +112,9 @@
         "coupon_placeholder": "رمز الخصم",
         "apply_coupon": "تطبيق",
         "remove_coupon": "إزالة الرمز",
-        "unavailable": "لم يعد متوفراً"
+        "unavailable": "لم يعد متوفراً",
+        "remove_confirm": "هل تريد إزالة هذا المنتج من السلة؟",
+        "remove_coupon_confirm": "هل تريد إزالة هذا الكوبون؟"
     },
     "checkout": {
         "title": "إتمام الشراء",
@@ -156,7 +170,8 @@
         "return_photos_type": "يُقبل فقط JPG أو PNG أو WebP.",
         "return_photos_max": "يمكنك إرفاق {max} صور كحد أقصى.",
         "submit_return": "إرسال طلب الإرجاع",
-        "returnable": "{count} قابل للإرجاع"
+        "returnable": "{count} قابل للإرجاع",
+        "no_addresses": "ليس لديك عناوين محفوظة بعد."
     },
     "wishlist": {
         "title": "مفضلتي",
@@ -202,7 +217,21 @@
         "create_account": "إنشاء الحساب",
         "no_account": "ليس لديك حساب؟",
         "sign_up": "سجل الآن",
-        "have_account": "لديك حساب بالفعل؟"
+        "have_account": "لديك حساب بالفعل؟",
+        "forgot_title": "نسيت كلمة المرور",
+        "forgot_description": "أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة التعيين",
+        "send_reset_link": "إرسال رابط إعادة التعيين",
+        "return_to": "أو العودة إلى",
+        "reset_title": "إعادة تعيين كلمة المرور",
+        "reset_description": "أدخل كلمة المرور الجديدة أدناه",
+        "reset_password": "إعادة تعيين كلمة المرور",
+        "confirm_title": "تأكيد كلمة المرور",
+        "confirm_description": "هذه منطقة آمنة. يرجى تأكيد كلمة المرور قبل المتابعة.",
+        "verify_title": "تأكيد البريد الإلكتروني",
+        "verify_description": "اضغط على الرابط الذي أرسلناه إلى بريدك لتأكيد عنوانك.",
+        "verify_sent": "تم إرسال رابط تحقق جديد إلى بريدك الإلكتروني.",
+        "resend_verification": "إعادة إرسال رسالة التحقق",
+        "logout": "تسجيل الخروج"
     },
     "footer": {
         "about": "من نحن",
@@ -211,7 +240,17 @@
         "terms": "الشروط والأحكام",
         "return_policy": "سياسة الإرجاع",
         "rights": "جميع الحقوق محفوظة.",
-        "tagline": "وجهتك الواحدة للهواتف والحواسيب المحمولة والألعاب والإكسسوارات."
+        "tagline": "وجهتك الواحدة للهواتف والحواسيب المحمولة والألعاب والإكسسوارات.",
+        "quick_links": "روابط سريعة",
+        "customer_service": "خدمة العملاء",
+        "newsletter": "النشرة البريدية",
+        "newsletter_hint": "احصل على أحدث العروض والخصومات أولاً.",
+        "email_placeholder": "بريدك الإلكتروني",
+        "subscribe": "اشتراك",
+        "cod": "الدفع عند الاستلام",
+        "bank_transfer": "تحويل مصرفي",
+        "pause_motion": "إيقاف الحركة في الخلفية",
+        "resume_motion": "استئناف الحركة في الخلفية"
     },
     "admin": {
         "nav": {
@@ -266,12 +305,15 @@
             "choose": "اختر…",
             "active": "نشط",
             "inactive": "غير نشط",
+            "deleted": "محذوف",
             "deactivated": "معطّل",
             "activate": "تفعيل",
             "deactivate": "تعطيل",
             "status": "الحالة",
             "actions": "الإجراءات",
             "none": "بدون",
+            "yes": "نعم",
+            "no": "لا",
             "date": "التاريخ",
             "total": "الإجمالي",
             "subtotal": "المجموع الفرعي",
@@ -359,6 +401,8 @@
             "are_you_sure": "هل أنت متأكد؟",
             "no_records": "لا توجد سجلات.",
             "search_default": "بحث…",
+            "hide_trash": "إخفاء المحذوفات",
+            "show_trash": "عرض المحذوفات",
             "showing": "عرض {from}–{to} من {total}",
             "close": "إغلاق",
             "before": "قبل",
@@ -387,6 +431,19 @@
             "approved": "مقبول",
             "rejected": "مرفوض",
             "resellable": "قابل لإعادة البيع"
+        },
+        "help": {
+            "stock_available": "وحدات على الرف وجاهزة للبيع. المحجوز والتالف والوارد تُتابَع في أعمدة مستقلة.",
+            "stock_reserved": "مخصّصة لطلبات تم تسجيلها ولم تُشحن بعد.",
+            "stock_damaged": "مشطوبة كغير صالحة للبيع، وغير محتسبة ضمن المتاح.",
+            "stock_incoming": "محجوزة على أوامر شراء أُرسلت إلى المورّد ولم تُستلم بعد.",
+            "low_stock_threshold": "عند وصول المخزون المتاح إلى هذا الرقم يُعلَّم المنتج كمخزون منخفض في لوحة التحكم.",
+            "avg_order_value": "الإيراد مقسومًا على عدد الطلبات في هذه الفترة.",
+            "discounts_given": "إجمالي خصومات القسائم المطبَّقة على طلبات هذه الفترة.",
+            "est_profit": "إيراد هذه الفترة مطروحًا منه تكلفة شراء الأصناف المباعة. لا يشمل الشحن أو المبالغ المستردة أو المصاريف العامة.",
+            "inventory_cost_value": "تكلفة شراء المخزون المتوفّر حاليًا — المتاح والمحجوز معًا.",
+            "inventory_retail_value": "قيمة المخزون نفسه بأسعار البيع الحالية.",
+            "outstanding": "إجمالي الطلب مطروحًا منه الدفعات المؤكَّدة. المبالغ المستردة معروضة بشكل منفصل."
         },
         "dashboard": {
             "title": "لوحة التحكم",
@@ -442,7 +499,9 @@
                 "settings_updated": "تحديث الإعدادات",
                 "staff_created": "إنشاء حساب موظف",
                 "staff_updated": "تعديل حساب موظف",
-                "updated": "تعديل"
+                "updated": "تعديل",
+                "account_activated": "تفعيل حساب عميل",
+                "account_deactivated": "تعطيل حساب عميل"
             },
             "fields": {
                 "barcode": "الباركود",
@@ -468,8 +527,51 @@
                 "status": "الحالة",
                 "supplier_id": "المورّد",
                 "tax_rate": "نسبة الضريبة",
-                "warranty_months": "الضمان (أشهر)"
-            }
+                "warranty_months": "الضمان (أشهر)",
+                "reason": "السبب",
+                "from": "من",
+                "to": "إلى",
+                "amount_cents": "المبلغ",
+                "reference": "المرجع",
+                "note": "ملاحظة",
+                "keys": "الإعدادات المعدّلة",
+                "received": "الكميات المستلمة",
+                "conditions": "حالة الأصناف",
+                "method": "الطريقة",
+                "return": "المرتجع",
+                "permissions": "الصلاحيات",
+                "parent_id": "الفئة الأم",
+                "is_default": "افتراضي",
+                "code": "الرمز",
+                "key": "المفتاح",
+                "value": "القيمة",
+                "po_number": "رقم أمر الشراء",
+                "total_cents": "الإجمالي",
+                "company_name": "اسم الشركة",
+                "value_cents": "قيمة الخصم",
+                "percent": "نسبة الخصم",
+                "usage_limit": "حد الاستخدام"
+            },
+            "subjects": {
+                "Product": "منتج",
+                "ProductVariant": "متغير منتج",
+                "Order": "طلب",
+                "User": "مستخدم",
+                "Coupon": "كوبون",
+                "Category": "فئة",
+                "Brand": "علامة تجارية",
+                "Supplier": "مورّد",
+                "ProductReturn": "مرتجع",
+                "Setting": "إعداد",
+                "Warehouse": "مستودع",
+                "PurchaseOrder": "أمر شراء"
+            },
+            "field": "الحقل",
+            "details": "التفاصيل",
+            "no_details": "لا توجد تفاصيل إضافية لهذا القيد.",
+            "no_changes": "لم تتغير أي حقول مسجلة.",
+            "ip": "عنوان IP",
+            "browser": "المتصفح"
         },
         "brands": {
             "title": "العلامات التجارية",
@@ -538,7 +640,7 @@
             "shipping": "الشحن",
             "billing": "الفوترة",
             "last_login": "آخر دخول",
-            "joined": "انضم في {date}",
+            "joined": "انضم في ⁦{date}⁩",
             "deactivate_confirm": "تعطيل حساب {name}؟ سيتم تسجيل خروجه ولن يتمكن من الدخول.",
             "reactivate_confirm": "إعادة تفعيل حساب {name}؟"
         },
@@ -594,7 +696,7 @@
             "store_credit": "رصيد المتجر",
             "original_method": "طريقة الدفع الأصلية",
             "invoice_number": "فاتورة {number}",
-            "placed": "تم الطلب في {date} عبر {via}",
+            "placed": "تم الطلب في ⁦{date}⁩ عبر {via}",
             "payment_label": "الدفع: {method}",
             "transition_arrow": "←"
         },
@@ -668,7 +770,7 @@
             "expected_date": "التاريخ المتوقع",
             "receive_hint": "أدخل الكمية المستلمة لكل سطر (الاستلام الجزئي مدعوم). يُنشئ الاستلام حركات مخزون تلقائيًا.",
             "receive": "استلام",
-            "created": "أُنشئ في {date} بواسطة {by}",
+            "created": "أُنشئ في ⁦{date}⁩ بواسطة {by}",
             "cancel_confirm": "إلغاء {number}؟ لا يمكن التراجع عن هذا الإجراء.",
             "outstanding_n": "المتبقي: {count}"
         },
@@ -723,9 +825,9 @@
             "refunded_so_far": "المسترد حتى الآن",
             "suggested_amount": "المبلغ المقترح",
             "issue_refund_on_order": "إصدار الاسترداد من صفحة الطلب",
-            "requested_at": "طُلب في {date}",
+            "requested_at": "طُلب في ⁦{date}⁩",
             "order_link": "الطلب {number}",
-            "reviewed_by": "روجع بواسطة {name} · {date}",
+            "reviewed_by": "روجع بواسطة {name} · ⁦{date}⁩",
             "photo_alt": "صورة المرتجع"
         },
         "reviews": {
@@ -796,7 +898,7 @@
             "unit_hint": "مثال: جيجابايت، هرتز",
             "delete_group_message": "حذف «{name}» وجميع خصائصها؟ ستُحذف قيم المنتجات المرتبطة بها.",
             "delete_attribute_message": "حذف «{name}»؟ ستُحذف قيمها على المنتجات.",
-            "uses_n": "{count} استخدام",
+            "uses_n": "استخدام واحد | {count} استخدام",
             "categories_label": "ينطبق على الفئات",
             "categories_hint": "اتركه فارغاً لعرض هذه الخاصية لكل الفئات.",
             "all_categories": "كل الفئات"
@@ -834,5 +936,39 @@
             "delete_title": "حذف المستودع",
             "delete_message": "حذف «{name}»؟ لا يمكن حذف المستودعات التي تحتوي على مخزون."
         }
+    },
+    "settings": {
+        "title": "الإعدادات",
+        "description": "إدارة ملفك الشخصي وإعدادات حسابك",
+        "profile": "الملف الشخصي",
+        "password": "كلمة المرور",
+        "appearance": "المظهر",
+        "profile_title": "معلومات الملف الشخصي",
+        "profile_description": "حدّث اسمك وبريدك الإلكتروني ورقم هاتفك",
+        "name": "الاسم",
+        "name_placeholder": "الاسم الكامل",
+        "email": "البريد الإلكتروني",
+        "phone": "الهاتف",
+        "unverified": "لم يتم تأكيد بريدك الإلكتروني.",
+        "resend_verification": "إعادة إرسال رسالة التحقق",
+        "verification_sent": "تم إرسال رابط تحقق جديد إلى بريدك الإلكتروني.",
+        "saved": "تم الحفظ.",
+        "password_title": "تحديث كلمة المرور",
+        "password_description": "استخدم كلمة مرور طويلة وعشوائية للحفاظ على أمان حسابك",
+        "current_password": "كلمة المرور الحالية",
+        "new_password": "كلمة المرور الجديدة",
+        "confirm_password": "تأكيد كلمة المرور",
+        "save_password": "حفظ كلمة المرور",
+        "appearance_title": "المظهر",
+        "appearance_description": "اختر شكل المتجر على هذا الجهاز",
+        "theme_light": "فاتح",
+        "theme_dark": "داكن",
+        "theme_system": "النظام",
+        "delete_title": "حذف الحساب",
+        "delete_description": "حذف حسابك وكل ما فيه نهائيًا",
+        "delete_warning": "لا يمكن التراجع عن هذا الإجراء.",
+        "delete_button": "حذف الحساب",
+        "delete_confirm_title": "حذف حسابك؟",
+        "delete_confirm_body": "سيتم حذف حسابك وجميع بياناته نهائيًا. أدخل كلمة المرور للتأكيد."
     }
 }

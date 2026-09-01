@@ -215,6 +215,6 @@ final class Product extends Model
                 'name', 'sku', 'status', 'price_cents', 'sale_price_cents',
                 'cost_price_cents', 'category_id', 'brand_id', 'is_featured',
             ])
-            ->logOnlyDirty();
+            ->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

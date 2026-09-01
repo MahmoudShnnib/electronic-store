@@ -5,28 +5,42 @@ import Pagination from '@/components/admin/Pagination.vue';
 import type { Paginator } from '@/components/admin/types';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head } from '@inertiajs/vue3';
+import type { TableColumnType } from 'ant-design-vue';
+import { Table, Typography } from 'ant-design-vue';
 import { ChevronDown, ChevronRight } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
 
 const { t, te } = useI18n();
 
+const { Text } = Typography;
+
 /**
  * Activity rows store machine keys (`po_received`) and raw DB columns
  * (`price_cents`). Both were rendered verbatim, so the page stayed English on
  * the Arabic site and read like debug output. Unknown keys fall back to a
  * humanized version of the key rather than showing a missing-translation path.
+ * Values (money, enum labels, booleans) arrive already localized from the
+ * controller.
  */
-function eventLabel(event: string | null): string {
-    if (!event) return '—';
+function eventLabel(event: string | null, description: string): string {
+    if (!event) return description;
 
     return te(`admin.audit.events.${event}`) ? t(`admin.audit.events.${event}`) : humanize(event);
 }
 
 function fieldLabel(field: string): string {
     return te(`admin.audit.fields.${field}`) ? t(`admin.audit.fields.${field}`) : humanize(field);
+}
+
+function subjectLabel(row: LogRow): string {
+    if (!row.subject_type) return '—';
+
+    const type = te(`admin.audit.subjects.${row.subject_type}`) ? t(`admin.audit.subjects.${row.subject_type}`) : row.subject_type;
+
+    return `${type} · ${row.subject_label ?? `#${row.subject_id}`}`;
 }
 
 function humanize(key: string): string {
@@ -44,9 +58,12 @@ interface LogRow {
     event: string | null;
     subject_type: string | null;
     subject_id: number | null;
+    subject_label: string | null;
     causer: string;
-    properties: Record<string, unknown>;
     changes: { field: string; old: unknown; new: unknown }[];
+    details: { field: string; value: unknown }[];
+    ip: string | null;
+    user_agent: string | null;
     created_at: string;
 }
 
@@ -65,6 +82,8 @@ defineProps<{
 
 const expanded = ref<Set<number>>(new Set());
 
+const expandedKeys = computed(() => [...expanded.value]);
+
 function toggle(id: number): void {
     if (expanded.value.has(id)) {
         expanded.value.delete(id);
@@ -74,9 +93,18 @@ function toggle(id: number): void {
     expanded.value = new Set(expanded.value);
 }
 
-function pretty(properties: Record<string, unknown>): string {
-    return JSON.stringify(properties, null, 2);
-}
+const columns: TableColumnType[] = [
+    { key: 'description', dataIndex: 'description', title: t('admin.audit.event') },
+    { key: 'subject', dataIndex: 'subject_type', title: t('admin.audit.subject') },
+    { key: 'causer', dataIndex: 'causer', title: t('admin.common.user') },
+    { key: 'created_at', dataIndex: 'created_at', title: t('admin.common.date') },
+];
+
+const changeColumns: TableColumnType[] = [
+    { key: 'field', dataIndex: 'field', title: t('admin.audit.field') },
+    { key: 'old', dataIndex: 'old', title: t('admin.audit.before') },
+    { key: 'new', dataIndex: 'new', title: t('admin.audit.after') },
+];
 </script>
 
 <template>
@@ -91,66 +119,84 @@ function pretty(properties: Record<string, unknown>): string {
         :selects="[{ key: 'subject_type', label: t('admin.common.all_subjects'), options: subjectTypes }]"
     />
 
-    <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-            <thead class="bg-gray-50 dark:bg-gray-950/50">
-                <tr class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                    <th class="w-8 px-3 py-2.5" />
-                    <th class="px-3 py-2.5 text-start">{{ t('admin.audit.description') }}</th>
-                    <th class="px-3 py-2.5 text-start">{{ t('admin.audit.event') }}</th>
-                    <th class="px-3 py-2.5 text-start">{{ t('admin.audit.subject') }}</th>
-                    <th class="px-3 py-2.5 text-start">{{ t('admin.common.user') }}</th>
-                    <th class="px-3 py-2.5 text-start">{{ t('admin.common.date') }}</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                <template v-for="log in logs.data" :key="log.id">
-                    <tr class="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50" @click="toggle(log.id)">
-                        <td class="px-3 py-2.5 text-gray-400">
-                            <ChevronDown v-if="expanded.has(log.id)" class="h-4 w-4" />
-                            <ChevronRight v-else class="h-4 w-4" />
-                        </td>
-                        <td class="px-3 py-2.5 text-gray-800 dark:text-gray-200">
-                            {{ te(`admin.audit.events.${log.description}`) ? t(`admin.audit.events.${log.description}`) : log.description }}
-                        </td>
-                        <td class="px-3 py-2.5 text-gray-500">{{ eventLabel(log.event) }}</td>
-                        <td class="px-3 py-2.5 text-gray-500">
-                            <template v-if="log.subject_type">{{ log.subject_type }} #{{ log.subject_id }}</template>
-                            <template v-else>—</template>
-                        </td>
-                        <td class="px-3 py-2.5 text-gray-500">{{ log.causer }}</td>
-                        <td class="px-3 py-2.5 text-gray-400">{{ log.created_at }}</td>
-                    </tr>
-                    <tr v-if="expanded.has(log.id)">
-                        <td colspan="6" class="bg-gray-50 px-6 py-3 dark:bg-gray-950/50">
-                            <table v-if="log.changes.length > 0" class="w-full max-w-2xl text-xs">
-                                <thead>
-                                    <tr class="text-start text-gray-400">
-                                        <th class="py-1 pe-4 text-start font-medium">{{ t('admin.audit.description') }}</th>
-                                        <th class="py-1 pe-4 text-start font-medium">{{ t('admin.audit.before') }}</th>
-                                        <th class="py-1 text-start font-medium">{{ t('admin.audit.after') }}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="change in log.changes" :key="change.field" class="border-t border-gray-200 dark:border-gray-800">
-                                        <td class="py-1.5 pe-4 font-medium text-gray-600 dark:text-gray-300">{{ fieldLabel(change.field) }}</td>
-                                        <td class="py-1.5 pe-4 text-gray-500 line-through decoration-red-400/60">{{ display(change.old) }}</td>
-                                        <td class="py-1.5 text-gray-800 dark:text-gray-100">{{ display(change.new) }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <pre v-else class="max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs text-gray-100">{{
-                                pretty(log.properties)
-                            }}</pre>
-                        </td>
-                    </tr>
-                </template>
-                <tr v-if="logs.data.length === 0">
-                    <td colspan="6" class="px-3 py-10 text-center text-gray-400">{{ t('admin.audit.empty') }}</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <!-- The whole row is the expand affordance, as before: `customRow` owns the
+         toggle and the custom expand icon deliberately never calls `onExpand`,
+         so a click on the chevron bubbles up instead of toggling twice. -->
+    <Table
+        :columns="columns"
+        :data-source="logs.data"
+        row-key="id"
+        :pagination="false"
+        size="middle"
+        :scroll="{ x: 'max-content' }"
+        :expanded-row-keys="expandedKeys"
+        :custom-row="(record: LogRow) => ({ onClick: () => toggle(record.id), style: { cursor: 'pointer' } })"
+    >
+        <template #expandIcon="{ expanded: isExpanded }">
+            <ChevronDown v-if="isExpanded" class="inline-block h-4 w-4 align-middle text-gray-400" />
+            <ChevronRight v-else class="inline-block h-4 w-4 align-middle text-gray-400" />
+        </template>
 
-    <Pagination :links="logs.links" :total="logs.total" :from="logs.from" :to="logs.to" />
+        <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'description'">
+                {{ eventLabel(record.event, record.description) }}
+            </template>
+            <template v-else-if="column.key === 'subject'">
+                <Text type="secondary">{{ subjectLabel(record as LogRow) }}</Text>
+            </template>
+            <template v-else-if="column.key === 'causer'">
+                <Text type="secondary">{{ record.causer }}</Text>
+            </template>
+            <template v-else-if="column.key === 'created_at'">
+                <Text type="secondary">{{ record.created_at }}</Text>
+            </template>
+        </template>
+
+        <template #expandedRowRender="{ record }">
+            <div class="space-y-3">
+                <Table
+                    v-if="record.changes.length > 0"
+                    :columns="changeColumns"
+                    :data-source="record.changes"
+                    row-key="field"
+                    :pagination="false"
+                    size="small"
+                    class="max-w-2xl"
+                >
+                    <template #bodyCell="{ column, record: change }">
+                        <template v-if="column.key === 'field'">
+                            <span class="font-medium">{{ fieldLabel(change.field) }}</span>
+                        </template>
+                        <template v-else-if="column.key === 'old'">
+                            <Text type="secondary" :delete="change.new !== null">{{ display(change.old) }}</Text>
+                        </template>
+                        <template v-else-if="column.key === 'new'">
+                            {{ display(change.new) }}
+                        </template>
+                    </template>
+                </Table>
+
+                <dl v-if="record.details.length > 0" class="max-w-2xl space-y-1 text-sm">
+                    <div v-for="detail in record.details" :key="detail.field" class="flex gap-2">
+                        <dt class="font-medium">{{ fieldLabel(detail.field) }}:</dt>
+                        <dd>{{ display(detail.value) }}</dd>
+                    </div>
+                </dl>
+
+                <Text v-if="record.changes.length === 0 && record.details.length === 0" type="secondary">
+                    {{ record.event === 'updated' ? t('admin.audit.no_changes') : t('admin.audit.no_details') }}
+                </Text>
+
+                <div v-if="record.ip || record.user_agent" class="text-xs text-gray-400">
+                    <template v-if="record.ip">{{ t('admin.audit.ip') }}: {{ record.ip }}</template>
+                    <template v-if="record.ip && record.user_agent"> · </template>
+                    <template v-if="record.user_agent">{{ t('admin.audit.browser') }}: {{ record.user_agent }}</template>
+                </div>
+            </div>
+        </template>
+
+        <template #emptyText>{{ t('admin.audit.empty') }}</template>
+    </Table>
+
+    <Pagination :paginator="logs" />
 </template>

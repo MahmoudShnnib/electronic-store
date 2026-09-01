@@ -38,6 +38,6 @@ final class Supplier extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnly(['company_name', 'status'])->logOnlyDirty();
+        return LogOptions::defaults()->logOnly(['company_name', 'status'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }
