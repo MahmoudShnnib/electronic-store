@@ -248,9 +248,7 @@
         "email_placeholder": "Your email address",
         "subscribe": "Subscribe",
         "cod": "Cash on delivery",
-        "bank_transfer": "Bank transfer",
-        "pause_motion": "Pause background motion",
-        "resume_motion": "Resume background motion"
+        "bank_transfer": "Bank transfer"
     },
     "admin": {
         "nav": {

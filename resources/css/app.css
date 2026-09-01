@@ -1561,29 +1561,6 @@ html.dark .store-drawer-brand {
     color: rgb(238 241 239 / 0.55);
 }
 
-/* The stop control for the particle field. Quiet by default — it is a comfort
-   affordance, not a call to action — but a real focusable button. */
-.gc-motion-toggle {
-    margin-top: 0.75rem;
-    border: 0;
-    background: none;
-    font-size: 0.6875rem;
-    letter-spacing: 0.04em;
-    color: rgb(238 241 239 / 0.4);
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-
-.gc-motion-toggle:hover {
-    color: #4ade9b;
-}
-
-.gc-motion-toggle:focus-visible {
-    outline: 2px solid #4ade9b;
-    outline-offset: 3px;
-    border-radius: 4px;
-}
-
 .gc-footer-decor {
     display: flex;
     align-items: center;

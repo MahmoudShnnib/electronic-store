@@ -248,9 +248,7 @@
         "email_placeholder": "بريدك الإلكتروني",
         "subscribe": "اشتراك",
         "cod": "الدفع عند الاستلام",
-        "bank_transfer": "تحويل مصرفي",
-        "pause_motion": "إيقاف الحركة في الخلفية",
-        "resume_motion": "استئناف الحركة في الخلفية"
+        "bank_transfer": "تحويل مصرفي"
     },
     "admin": {
         "nav": {
