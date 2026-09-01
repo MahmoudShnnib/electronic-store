@@ -396,7 +396,7 @@ function categoryLabel(category: NavCategory): string {
                 </div>
             </Drawer>
 
-            <main class="min-h-[calc(100vh-4rem)] w-full flex-1">
+            <main class="min-h-[calc(75vh-4rem)] w-full flex-1">
                 <slot />
             </main>
 
