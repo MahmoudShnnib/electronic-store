@@ -286,7 +286,9 @@
             "open_menu": "Open menu",
             "close_menu": "Close menu",
             "log_out": "Log out",
-            "switch_language": "Switch language"
+            "switch_language": "Switch language",
+            "account_settings": "My account",
+            "change_password": "Change password"
         },
         "common": {
             "id": "ID",

@@ -286,7 +286,9 @@
             "open_menu": "فتح القائمة",
             "close_menu": "إغلاق القائمة",
             "log_out": "تسجيل الخروج",
-            "switch_language": "تغيير اللغة"
+            "switch_language": "تغيير اللغة",
+            "account_settings": "حسابي",
+            "change_password": "تغيير كلمة المرور"
         },
         "common": {
             "id": "المعرّف",
