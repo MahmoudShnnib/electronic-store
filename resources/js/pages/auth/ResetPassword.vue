@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useMediaQuery } from '@/composables/useMediaQuery';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { Button, Form, FormItem, Input, InputPassword } from 'ant-design-vue';
+import { useI18n } from 'vue-i18n';
+
+/**
+ * Autofocus is a desktop-only convenience: on a phone it throws the on-screen
+ * keyboard up over the page before the person has read it.
+ */
+const autofocus = useMediaQuery('(min-width: 768px) and (pointer: fine)');
 
 interface Props {
     token: string;
@@ -13,6 +17,8 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const { t } = useI18n();
 
 const form = useForm({
     token: props.token,
@@ -31,51 +37,40 @@ const submit = () => {
 </script>
 
 <template>
-    <AuthLayout title="Reset password" description="Please enter your new password below">
-        <Head title="Reset password" />
+    <AuthLayout :title="t('auth.reset_title')" :description="t('auth.reset_description')">
+        <Head :title="t('auth.reset_title')" />
 
-        <form @submit.prevent="submit">
-            <div class="grid gap-6">
-                <div class="grid gap-2">
-                    <Label for="email">Email</Label>
-                    <Input id="email" type="email" name="email" autocomplete="email" v-model="form.email" class="mt-1 block w-full" readonly />
-                    <InputError :message="form.errors.email" class="mt-2" />
-                </div>
+        <Form layout="vertical" @submit.prevent="submit">
+            <FormItem :label="t('auth.email')" :validate-status="form.errors.email ? 'error' : undefined" :help="form.errors.email">
+                <Input v-model:value="form.email" type="email" size="large" autocomplete="email" dir="ltr" readonly />
+            </FormItem>
 
-                <div class="grid gap-2">
-                    <Label for="password">Password</Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        name="password"
-                        autocomplete="new-password"
-                        v-model="form.password"
-                        class="mt-1 block w-full"
-                        autofocus
-                        placeholder="Password"
-                    />
-                    <InputError :message="form.errors.password" />
-                </div>
+            <FormItem :label="t('auth.password')" :validate-status="form.errors.password ? 'error' : undefined" :help="form.errors.password">
+                <InputPassword
+                    v-model:value="form.password"
+                    size="large"
+                    :autofocus="autofocus"
+                    autocomplete="new-password"
+                    dir="ltr"
+                    :placeholder="t('auth.password')"
+                />
+            </FormItem>
 
-                <div class="grid gap-2">
-                    <Label for="password_confirmation"> Confirm Password </Label>
-                    <Input
-                        id="password_confirmation"
-                        type="password"
-                        name="password_confirmation"
-                        autocomplete="new-password"
-                        v-model="form.password_confirmation"
-                        class="mt-1 block w-full"
-                        placeholder="Confirm password"
-                    />
-                    <InputError :message="form.errors.password_confirmation" />
-                </div>
+            <FormItem
+                :label="t('auth.confirm_password')"
+                :validate-status="form.errors.password_confirmation ? 'error' : undefined"
+                :help="form.errors.password_confirmation"
+            >
+                <InputPassword
+                    v-model:value="form.password_confirmation"
+                    size="large"
+                    autocomplete="new-password"
+                    dir="ltr"
+                    :placeholder="t('auth.confirm_password')"
+                />
+            </FormItem>
 
-                <Button type="submit" class="mt-4 w-full" :disabled="form.processing">
-                    <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    Reset password
-                </Button>
-            </div>
-        </form>
+            <Button type="primary" size="large" block html-type="submit" :loading="form.processing">{{ t('auth.reset_password') }}</Button>
+        </Form>
     </AuthLayout>
 </template>

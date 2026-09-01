@@ -1,23 +1,40 @@
 <script setup lang="ts">
-defineProps<{
+import { Card, Statistic } from 'ant-design-vue';
+import { computed } from 'vue';
+import HelpHint from './HelpHint.vue';
+
+const props = defineProps<{
     label: string;
     value: string | number;
     hint?: string;
+    /** How the figure is derived, for the ones that are not self-explanatory. */
+    help?: string;
     tone?: 'default' | 'success' | 'warning' | 'danger';
 }>();
 
-const toneClasses: Record<string, string> = {
-    default: 'text-gray-900 dark:text-gray-100',
-    success: 'text-emerald-600 dark:text-emerald-400',
-    warning: 'text-amber-600 dark:text-amber-400',
-    danger: 'text-red-600 dark:text-red-400',
+/** AntD's Statistic takes a colour rather than a class, so map the tone to one. */
+const toneColors: Record<string, string | undefined> = {
+    default: undefined,
+    success: '#059669',
+    warning: '#d97706',
+    danger: '#dc2626',
 };
+
+const valueStyle = computed(() => ({
+    fontSize: '1.5rem',
+    fontWeight: '600',
+    color: toneColors[props.tone ?? 'default'],
+}));
 </script>
 
 <template>
-    <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <p class="truncate text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ label }}</p>
-        <p class="mt-1 text-2xl font-semibold" :class="toneClasses[tone ?? 'default']">{{ value }}</p>
+    <Card size="small" class="h-full" :body-style="{ padding: '16px' }">
+        <Statistic :value="value" :value-style="valueStyle">
+            <template #title>
+                {{ label }}
+                <HelpHint v-if="help" :text="help" class="ms-1" />
+            </template>
+        </Statistic>
         <p v-if="hint" class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ hint }}</p>
-    </div>
+    </Card>
 </template>

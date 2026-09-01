@@ -5,9 +5,9 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
-import { btnPrimary } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { Button } from 'ant-design-vue';
 import { Plus } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
@@ -51,9 +51,12 @@ const columns: Column[] = [
 
     <PageHeader :title="t('admin.purchase_orders.title')" :subtitle="t('admin.purchase_orders.count', { count: orders.total })">
         <template #actions>
-            <Link :href="route('admin.purchase-orders.create')" :class="btnPrimary"
-                ><Plus class="h-4 w-4" />{{ t('admin.purchase_orders.new') }}</Link
-            >
+            <Link :href="route('admin.purchase-orders.create')">
+                <Button type="primary">
+                    <template #icon><Plus class="h-4 w-4" /></template>
+                    {{ t('admin.purchase_orders.new') }}
+                </Button>
+            </Link>
         </template>
     </PageHeader>
 
@@ -82,5 +85,5 @@ const columns: Column[] = [
         </template>
     </DataTable>
 
-    <Pagination :links="orders.links" :total="orders.total" :from="orders.from" :to="orders.to" />
+    <Pagination :paginator="orders" />
 </template>

@@ -6,12 +6,15 @@ import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { Check, Star, X } from 'lucide-vue-next';
+import { Button, Card, Empty, Rate, Space, Tag, Typography } from 'ant-design-vue';
+import { Check, X } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
 
 const { t } = useI18n();
+
+const { Title, Text } = Typography;
 
 interface ReviewRow {
     id: number;
@@ -50,32 +53,17 @@ function moderate(review: ReviewRow, status: 'approved' | 'rejected'): void {
     />
 
     <div class="space-y-4">
-        <article
-            v-for="review in reviews.data"
-            :key="review.id"
-            class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900"
-        >
+        <Card v-for="review in reviews.data" :key="review.id" size="small">
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                    <div class="flex items-center gap-2">
-                        <span class="flex items-center gap-0.5">
-                            <Star
-                                v-for="i in 5"
-                                :key="i"
-                                class="h-4 w-4"
-                                :class="i <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300 dark:text-gray-600'"
-                            />
-                        </span>
+                    <Space :size="8" align="center">
+                        <Rate :value="review.rating" :count="5" disabled class="!text-sm" />
                         <StatusBadge :status="review.status" />
-                        <span
-                            v-if="review.verified"
-                            class="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium uppercase text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300"
-                            >{{ t('admin.reviews.verified_purchase') }}</span
-                        >
-                    </div>
-                    <h3 v-if="review.title" class="mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100">{{ review.title }}</h3>
-                    <p v-if="review.body" class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ review.body }}</p>
-                    <p class="mt-2 text-xs text-gray-400">
+                        <Tag v-if="review.verified" color="green">{{ t('admin.reviews.verified_purchase') }}</Tag>
+                    </Space>
+                    <Title v-if="review.title" :level="5" class="!mb-0 !mt-2 !text-sm">{{ review.title }}</Title>
+                    <p v-if="review.body" class="mb-0 mt-1 text-sm">{{ review.body }}</p>
+                    <Text type="secondary" class="mt-2 block !text-xs">
                         {{ t('admin.reviews.reviewed_on', { name: review.customer?.name ?? t('admin.reviews.unknown') }) }}
                         <Link
                             v-if="review.product"
@@ -85,34 +73,27 @@ function moderate(review: ReviewRow, status: 'approved' | 'rejected'): void {
                             {{ review.product.name }}
                         </Link>
                         · {{ review.created_at }}
-                    </p>
+                    </Text>
                 </div>
-                <div v-if="review.status === 'pending'" class="flex gap-2">
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700"
-                        @click="moderate(review, 'approved')"
-                    >
-                        <Check class="h-4 w-4" />{{ t('admin.reviews.approve') }}
-                    </button>
-                    <button
-                        type="button"
-                        class="inline-flex items-center gap-1 rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
-                        @click="moderate(review, 'rejected')"
-                    >
-                        <X class="h-4 w-4" />{{ t('admin.reviews.reject') }}
-                    </button>
-                </div>
+                <Space v-if="review.status === 'pending'">
+                    <Button type="primary" @click="moderate(review, 'approved')">
+                        <template #icon><Check class="h-4 w-4" /></template>
+                        {{ t('admin.reviews.approve') }}
+                    </Button>
+                    <Button danger @click="moderate(review, 'rejected')">
+                        <template #icon><X class="h-4 w-4" /></template>
+                        {{ t('admin.reviews.reject') }}
+                    </Button>
+                </Space>
             </div>
-        </article>
+        </Card>
 
-        <p
-            v-if="reviews.data.length === 0"
-            class="rounded-lg border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-400 dark:border-gray-700 dark:bg-gray-900"
-        >
-            {{ t('admin.reviews.empty') }}
-        </p>
+        <!-- The list is made of cards, so the empty state is one too — otherwise it
+             floats on the page background with nothing holding it. -->
+        <Card v-if="reviews.data.length === 0" size="small">
+            <Empty :description="t('admin.reviews.empty')" class="!my-6" />
+        </Card>
     </div>
 
-    <Pagination :links="reviews.links" :total="reviews.total" :from="reviews.from" :to="reviews.to" />
+    <Pagination :paginator="reviews" />
 </template>

@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
+use App\Services\Storefront\HomePageService;
 use App\Support\HomeCache;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
 use Spatie\Activitylog\Models\Activity;
 
 class AppServiceProvider extends ServiceProvider
@@ -48,6 +50,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('access-admin', fn (User $user) => $user->isStaff());
 
         $this->configureRateLimiting();
+
+        // The storefront header's "All categories" menu — same 10-minute cache
+        // the homepage rail uses, so the list costs nothing per request.
+        Inertia::share('navCategories', fn () => app(HomePageService::class)->categoryCards());
 
         // Anything the homepage renders busts its cache, so dashboard edits show
         // up immediately instead of after the 10-minute TTL.

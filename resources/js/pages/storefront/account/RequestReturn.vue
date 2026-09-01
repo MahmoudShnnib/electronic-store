@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import StoreLayout from '@/layouts/StoreLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft } from 'lucide-vue-next';
+import { Alert, Button, Card, Checkbox, Form, FormItem, InputNumber, Select, Textarea, Typography, Upload } from 'ant-design-vue';
+import { ArrowLeft, Paperclip } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -18,6 +19,8 @@ const props = defineProps<{
     order: { id: number; number: string; items: ReturnableItem[] };
     reasons: { value: string; label: string }[];
 }>();
+
+const { Title, Text } = Typography;
 
 const { t } = useI18n();
 
@@ -49,22 +52,24 @@ const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const photoError = ref<string | null>(null);
 
 /**
- * `accept` on the input is only a hint — the file dialog's "All files" option
- * walks right past it. Rejecting here (instead of silently truncating) is what
- * turns a dead form into an explained one.
+ * `accept` is only a hint — the file dialog's "All files" option walks right
+ * past it. Rejecting here (instead of silently truncating) is what turns a dead
+ * form into an explained one. `Upload` is told never to upload: the files ride
+ * along with the Inertia form post, so `beforeUpload` always returns false.
  */
-function onFiles(event: Event) {
-    const picked = Array.from((event.target as HTMLInputElement).files ?? []);
-    const accepted = picked.filter((file) => ALLOWED_PHOTO_TYPES.includes(file.type));
+function onFiles(file: File, fileList: File[]): boolean {
+    const accepted = fileList.filter((candidate) => ALLOWED_PHOTO_TYPES.includes(candidate.type));
 
     photoError.value =
-        accepted.length < picked.length
+        accepted.length < fileList.length
             ? t('account.return_photos_type')
-            : picked.length > MAX_PHOTOS
+            : fileList.length > MAX_PHOTOS
               ? t('account.return_photos_max', { max: MAX_PHOTOS })
               : null;
 
     form.images = accepted.slice(0, MAX_PHOTOS);
+
+    return false;
 }
 
 /** Laravel reports per-file failures as `images.0`, `images.1`, … */
@@ -81,88 +86,84 @@ function submit() {
     <div class="mx-auto w-full max-w-7xl px-4 py-8">
         <div class="mx-auto max-w-2xl">
             <div class="mb-6 flex items-center gap-3">
-                <Link
-                    :href="route('account.orders.show', order.id)"
-                    class="rounded-lg border border-border p-2 hover:bg-muted"
-                    :aria-label="t('common.back')"
-                >
-                    <ArrowLeft class="h-4 w-4 rtl:rotate-180" />
+                <Link :href="route('account.orders.show', order.id)">
+                    <Button shape="circle" :aria-label="t('common.back')">
+                        <template #icon><ArrowLeft class="h-4 w-4 rtl:rotate-180" /></template>
+                    </Button>
                 </Link>
-                <h1 class="text-xl font-bold">{{ t('account.request_return') }} — {{ order.number }}</h1>
+                <Title :level="1" class="!mb-0 !text-xl !font-bold">{{ t('account.request_return') }} — {{ order.number }}</Title>
             </div>
 
-            <form class="space-y-6" @submit.prevent="submit">
+            <Form layout="vertical" class="space-y-6" @submit.prevent="submit">
                 <!-- Items -->
-                <section class="rounded-xl border border-border bg-card p-5">
-                    <h2 class="mb-3 font-semibold">{{ t('account.items') }}</h2>
-                    <p v-if="form.errors.items" class="mb-2 text-sm text-red-500">{{ form.errors.items }}</p>
+                <Card :title="t('account.items')">
+                    <Alert v-if="form.errors.items" type="error" show-icon class="!mb-3" :message="form.errors.items" />
 
                     <div class="space-y-2">
                         <div
                             v-for="item in order.items"
                             :key="item.id"
-                            class="flex items-center gap-3 rounded-lg border p-3"
-                            :class="[
-                                isSelected(item.id) ? 'border-black bg-neutral-100 dark:border-white dark:bg-neutral-800' : 'border-border',
-                                item.returnable === 0 ? 'opacity-50' : '',
-                            ]"
+                            class="store-return-row"
+                            :class="{
+                                'store-return-row-on': isSelected(item.id),
+                                'opacity-50': item.returnable === 0,
+                            }"
                         >
-                            <input
-                                type="checkbox"
-                                class="h-4 w-4 rounded border-input text-black dark:text-white"
-                                :checked="isSelected(item.id)"
-                                :disabled="item.returnable === 0"
-                                @change="toggleItem(item)"
-                            />
+                            <Checkbox :checked="isSelected(item.id)" :disabled="item.returnable === 0" @change="toggleItem(item)" />
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-sm font-medium">{{ item.name }}</p>
-                                <p class="text-xs text-muted-foreground">{{ t('account.returnable', { count: item.returnable }) }}</p>
+                                <Text class="!text-xs opacity-55">{{ t('account.returnable', { count: item.returnable }) }}</Text>
                             </div>
-                            <input
+                            <InputNumber
                                 v-if="isSelected(item.id)"
-                                type="number"
-                                min="1"
-                                :max="item.returnable"
                                 :value="form.items.find((entry) => entry.order_item_id === item.id)?.quantity ?? 1"
-                                class="w-16 rounded-lg border border-input bg-background px-2 py-1.5 text-center text-sm"
-                                @change="setQuantity(item.id, Number(($event.target as HTMLInputElement).value), item.returnable)"
+                                :min="1"
+                                :max="item.returnable"
+                                class="w-20"
+                                @change="(value) => setQuantity(item.id, Number(value), item.returnable)"
                             />
                         </div>
                     </div>
-                </section>
+                </Card>
 
                 <!-- Reason -->
-                <section class="rounded-xl border border-border bg-card p-5">
-                    <h2 class="mb-3 font-semibold">{{ t('account.return_reason') }}</h2>
-                    <select v-model="form.reason" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
-                        <option v-for="reason in reasons" :key="reason.value" :value="reason.value">
-                            {{ reason.label }}
-                        </option>
-                    </select>
-                    <p v-if="form.errors.reason" class="mt-1 text-xs text-red-500">{{ form.errors.reason }}</p>
+                <Card :title="t('account.return_reason')">
+                    <FormItem :validate-status="form.errors.reason ? 'error' : undefined" :help="form.errors.reason">
+                        <Select v-model:value="form.reason" :options="reasons" class="w-full" />
+                    </FormItem>
 
-                    <label class="mb-1 mt-4 block text-sm">{{ t('account.return_details') }}</label>
-                    <textarea v-model="form.customer_note" rows="3" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
+                    <FormItem :label="t('account.return_details')">
+                        <Textarea v-model:value="form.customer_note" :rows="3" />
+                    </FormItem>
 
-                    <label class="mb-1 mt-4 block text-sm">{{ t('account.return_photos') }}</label>
-                    <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        multiple
-                        class="block w-full text-sm text-muted-foreground file:me-3 file:rounded-lg file:border-0 file:bg-neutral-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-black dark:file:bg-neutral-800 dark:file:text-white"
-                        @change="onFiles"
-                    />
-                    <p v-if="imageError" class="mt-1 text-xs text-red-500">{{ imageError }}</p>
-                </section>
+                    <FormItem :label="t('account.return_photos')" :validate-status="imageError ? 'error' : undefined" :help="imageError" class="!mb-0">
+                        <Upload
+                            accept="image/jpeg,image/png,image/webp"
+                            list-type="picture"
+                            multiple
+                            :max-count="MAX_PHOTOS"
+                            :before-upload="onFiles"
+                        >
+                            <Button>
+                                <template #icon><Paperclip class="h-4 w-4" /></template>
+                                {{ t('account.return_photos') }}
+                            </Button>
+                        </Upload>
+                    </FormItem>
+                </Card>
 
-                <button
-                    type="submit"
-                    :disabled="form.processing || form.items.length === 0"
-                    class="w-full rounded-xl bg-black py-3 font-semibold text-white transition hover:opacity-85 disabled:opacity-50 dark:bg-white dark:text-black"
+                <Button
+                    type="primary"
+                    size="large"
+                    shape="round"
+                    block
+                    html-type="submit"
+                    :loading="form.processing"
+                    :disabled="form.items.length === 0"
                 >
                     {{ t('account.submit_return') }}
-                </button>
-            </form>
+                </Button>
+            </Form>
         </div>
     </div>
 </template>

@@ -86,6 +86,8 @@ final class ProductPageService
                 'weight_grams' => $product->weight_grams,
                 'status' => $product->status->value,
                 'purchasable' => $product->status->isPurchasable(),
+                'wishlisted' => auth()->check()
+                    && auth()->user()->wishlistItems()->where('product_id', $product->id)->exists(),
                 'has_variants' => $product->has_variants,
                 'meta_title' => $product->meta_title,
                 'meta_description' => $product->meta_description,

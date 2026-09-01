@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
 import AuthLayout from '@/layouts/AuthLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Alert, Button } from 'ant-design-vue';
+import { useI18n } from 'vue-i18n';
 
 defineProps<{
     status?: string;
 }>();
+
+const { t } = useI18n();
 
 const form = useForm({});
 
@@ -17,20 +18,17 @@ const submit = () => {
 </script>
 
 <template>
-    <AuthLayout title="Verify email" description="Please verify your email address by clicking on the link we just emailed to you.">
-        <Head title="Email verification" />
+    <AuthLayout :title="t('auth.verify_title')" :description="t('auth.verify_description')">
+        <Head :title="t('auth.verify_title')" />
 
-        <div v-if="status === 'verification-link-sent'" class="mb-4 text-center text-sm font-medium text-green-600">
-            A new verification link has been sent to the email address you provided during registration.
-        </div>
+        <Alert v-if="status === 'verification-link-sent'" type="success" show-icon class="!mb-4" :message="t('auth.verify_sent')" />
 
-        <form @submit.prevent="submit" class="space-y-6 text-center">
-            <Button :disabled="form.processing" variant="secondary">
-                <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                Resend verification email
-            </Button>
+        <form class="space-y-4 text-center" @submit.prevent="submit">
+            <Button size="large" block html-type="submit" :loading="form.processing">{{ t('auth.resend_verification') }}</Button>
 
-            <TextLink :href="route('logout')" method="post" as="button" class="mx-auto block text-sm"> Log out </TextLink>
+            <Link :href="route('logout')" method="post" as="button" class="mx-auto block text-sm opacity-65 hover:underline">
+                {{ t('auth.logout') }}
+            </Link>
         </form>
     </AuthLayout>
 </template>

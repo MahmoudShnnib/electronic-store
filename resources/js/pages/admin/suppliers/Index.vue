@@ -9,9 +9,9 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
+import { Button, Input, Textarea, Tooltip } from 'ant-design-vue';
 import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -114,7 +114,10 @@ function destroy(): void {
 
     <PageHeader :title="t('admin.suppliers.title')" :subtitle="t('admin.suppliers.count', { count: suppliers.total })">
         <template #actions>
-            <button type="button" :class="btnPrimary" @click="openCreate"><Plus class="h-4 w-4" />{{ t('admin.suppliers.new') }}</button>
+            <Button type="primary" @click="openCreate">
+                <template #icon><Plus class="h-4 w-4" /></template>
+                {{ t('admin.suppliers.new') }}
+            </Button>
         </template>
     </PageHeader>
 
@@ -142,38 +145,42 @@ function destroy(): void {
             <StatusBadge :status="row.status" />
         </template>
         <template #row-actions="{ row }">
-            <button type="button" class="rounded p-1.5 text-gray-400 hover:text-blue-600" :title="t('admin.common.edit')" @click="openEdit(row)">
-                <Pencil class="h-4 w-4" />
-            </button>
-            <button type="button" class="rounded p-1.5 text-gray-400 hover:text-red-600" :title="t('admin.common.delete')" @click="deleting = row">
-                <Trash2 class="h-4 w-4" />
-            </button>
+            <Tooltip :title="t('admin.common.edit')">
+                <Button type="text" size="small" :aria-label="t('admin.common.edit')" @click="openEdit(row)">
+                    <template #icon><Pencil class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
+            <Tooltip :title="t('admin.common.delete')">
+                <Button type="text" size="small" danger :aria-label="t('admin.common.delete')" @click="deleting = row">
+                    <template #icon><Trash2 class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
         </template>
     </DataTable>
 
-    <Pagination :links="suppliers.links" :total="suppliers.total" :from="suppliers.from" :to="suppliers.to" />
+    <Pagination :paginator="suppliers" />
 
     <FormModal :open="modalOpen" :title="editing ? t('admin.suppliers.edit') : t('admin.suppliers.new')" @close="modalOpen = false">
         <form class="grid gap-4" @submit.prevent="submit">
             <Field :label="t('admin.suppliers.company_name')" required :error="form.errors.company_name">
-                <input v-model="form.company_name" type="text" :class="inputClass" />
+                <Input v-model:value="form.company_name" />
             </Field>
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.suppliers.contact_person')" :error="form.errors.contact_person">
-                    <input v-model="form.contact_person" type="text" :class="inputClass" />
+                    <Input v-model:value="form.contact_person" />
                 </Field>
                 <Field :label="t('admin.common.tax_number')" :error="form.errors.tax_number">
-                    <input v-model="form.tax_number" type="text" :class="inputClass" dir="ltr" />
+                    <Input v-model:value="form.tax_number" dir="ltr" />
                 </Field>
                 <Field :label="t('admin.common.email')" :error="form.errors.email">
-                    <input v-model="form.email" type="email" :class="inputClass" dir="ltr" />
+                    <Input v-model:value="form.email" type="email" dir="ltr" />
                 </Field>
                 <Field :label="t('admin.common.phone')" :error="form.errors.phone">
-                    <input v-model="form.phone" type="text" :class="inputClass" />
+                    <Input v-model:value="form.phone" />
                 </Field>
             </div>
             <Field :label="t('admin.common.address')" :error="form.errors.address">
-                <textarea v-model="form.address" rows="2" :class="inputClass" />
+                <Textarea v-model:value="form.address" :rows="2" />
             </Field>
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.common.status')" required :error="form.errors.status">
@@ -187,11 +194,11 @@ function destroy(): void {
                 </Field>
             </div>
             <Field :label="t('admin.common.notes')" :error="form.errors.notes">
-                <textarea v-model="form.notes" rows="2" :class="inputClass" />
+                <Textarea v-model:value="form.notes" :rows="2" />
             </Field>
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="modalOpen = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="form.processing" :class="btnPrimary">{{ t('admin.common.save') }}</button>
+                <Button @click="modalOpen = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="form.processing">{{ t('admin.common.save') }}</Button>
             </div>
         </form>
     </FormModal>

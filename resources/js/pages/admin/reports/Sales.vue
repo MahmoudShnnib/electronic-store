@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import AdminDateInput from '@/components/admin/AdminDateInput.vue';
+import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import StatCard from '@/components/admin/StatCard.vue';
-import { btnSecondary } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { Button, Card, Table } from 'ant-design-vue';
 import { ArcElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip } from 'chart.js';
 import { Download } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -46,6 +47,42 @@ function applyRange(): void {
     router.get(route('admin.reports.sales'), { from: from.value, to: to.value }, { preserveState: true });
 }
 
+/** These rows carry no id, so the row index stands in as the key (it was `:key="i"` before). */
+const rowIndexKey = (_: unknown, i: number): number => i;
+
+/** `text-end` rather than AntD's `align`, so the columns follow RTL. */
+const endCell = { customHeaderCell: () => ({ class: 'text-end' }), customCell: () => ({ class: 'text-end' }) };
+
+const productColumns = [
+    { key: 'name', dataIndex: 'name', title: t('admin.common.product') },
+    { key: 'units', dataIndex: 'units', title: t('admin.common.qty'), ...endCell },
+    { key: 'revenue_formatted', dataIndex: 'revenue_formatted', title: t('admin.common.revenue'), ...endCell },
+];
+
+const brandColumns = [
+    { key: 'name', dataIndex: 'name', title: t('admin.common.brand') },
+    { key: 'units', dataIndex: 'units', title: t('admin.common.qty'), ...endCell },
+    { key: 'revenue_formatted', dataIndex: 'revenue_formatted', title: t('admin.common.revenue'), ...endCell },
+];
+
+const customerColumns = [
+    { key: 'name', dataIndex: 'name', title: t('admin.common.customer') },
+    { key: 'orders', dataIndex: 'orders', title: t('admin.common.orders'), ...endCell },
+    { key: 'revenue_formatted', dataIndex: 'revenue_formatted', title: t('admin.common.revenue'), ...endCell },
+];
+
+const paymentColumns = [
+    { key: 'method', dataIndex: 'method', title: t('admin.common.method') },
+    { key: 'orders', dataIndex: 'orders', title: t('admin.common.orders'), ...endCell },
+    { key: 'revenue_formatted', dataIndex: 'revenue_formatted', title: t('admin.common.revenue'), ...endCell },
+];
+
+const statusColumns = [
+    { key: 'status', dataIndex: 'status', title: t('admin.common.status') },
+    { key: 'orders', dataIndex: 'orders', title: t('admin.common.orders'), ...endCell },
+    { key: 'revenue_formatted', dataIndex: 'revenue_formatted', title: t('admin.common.revenue'), ...endCell },
+];
+
 const revenueChart = computed(() => ({
     labels: props.daily.map((d) => d.day.slice(5)),
     datasets: [
@@ -67,6 +104,9 @@ const categoryChart = computed(() => ({
         {
             data: props.byCategory.map((c) => c.revenue),
             backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#64748b'],
+            // Chart.js separates arcs with a white border, which reads as a stray
+            // white slash across the ring on the dark theme.
+            borderWidth: 0,
         },
     ],
 }));
@@ -76,12 +116,23 @@ const lineOptions = {
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: { y: { beginAtZero: true } },
+    // A range with one day in it draws no line segment, so the point itself has
+    // to be visible or the chart looks empty.
+    elements: { point: { radius: 3, hoverRadius: 5 } },
 };
 
 const doughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: 'right' as const } },
+    // A ring rather than a pie, with dot legend keys — the default filled
+    // squares and edge-to-edge arc read as a placeholder next to the line chart.
+    cutout: '62%',
+    plugins: {
+        legend: {
+            position: 'right' as const,
+            labels: { usePointStyle: true, pointStyle: 'circle' as const, boxWidth: 8, boxHeight: 8, padding: 12 },
+        },
+    },
 };
 
 function exportUrl(report: string): string {
@@ -94,26 +145,32 @@ function exportUrl(report: string): string {
 
     <PageHeader :title="t('admin.reports.sales_title')">
         <template #actions>
-            <Link :href="route('admin.reports.invoices')" :class="btnSecondary">{{ t('admin.reports.invoices_title') }}</Link>
-            <Link :href="route('admin.reports.inventory')" :class="btnSecondary">{{ t('admin.reports.inventory_title') }}</Link>
+            <Link :href="route('admin.reports.invoices')"
+                ><Button>{{ t('admin.reports.invoices_title') }}</Button></Link
+            >
+            <Link :href="route('admin.reports.inventory')"
+                ><Button>{{ t('admin.reports.inventory_title') }}</Button></Link
+            >
         </template>
     </PageHeader>
 
     <!-- Date range -->
-    <div class="mb-6 flex flex-wrap items-end gap-3">
-        <label class="text-sm text-gray-600 dark:text-gray-300">{{ t('admin.common.from') }}<AdminDateInput v-model="from" class="mt-1" /> </label>
-        <label class="text-sm text-gray-600 dark:text-gray-300">{{ t('admin.common.to') }}<AdminDateInput v-model="to" class="mt-1" /> </label>
-        <button type="button" :class="btnSecondary" @click="applyRange">{{ t('admin.common.apply') }}</button>
+    <div class="flex flex-wrap items-end gap-3">
+        <Field :label="t('admin.common.from')"><AdminDateInput v-model="from" /></Field>
+        <Field :label="t('admin.common.to')"><AdminDateInput v-model="to" /></Field>
+        <!-- Matches Field's own bottom margin so the button lines up with the inputs. -->
+        <Button class="mb-4" @click="applyRange">{{ t('admin.common.apply') }}</Button>
     </div>
 
     <div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
         <StatCard :label="t('admin.common.orders')" :value="summary.orders" />
         <StatCard :label="t('admin.common.revenue')" :value="summary.revenue_formatted" tone="success" />
-        <StatCard :label="t('admin.common.avg_order_value')" :value="summary.avg_order_formatted" />
-        <StatCard :label="t('admin.reports.discounts_given')" :value="summary.discounts_formatted" />
+        <StatCard :label="t('admin.common.avg_order_value')" :value="summary.avg_order_formatted" :help="t('admin.help.avg_order_value')" />
+        <StatCard :label="t('admin.reports.discounts_given')" :value="summary.discounts_formatted" :help="t('admin.help.discounts_given')" />
         <StatCard
             :label="t('admin.reports.est_profit')"
             :value="summary.estimated_profit_formatted"
+            :help="t('admin.help.est_profit')"
             tone="success"
             :hint="t('admin.reports.cost', { amount: summary.estimated_cost_formatted })"
         />
@@ -123,128 +180,150 @@ function exportUrl(report: string): string {
     </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-3">
-        <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:col-span-2">
-            <div class="mb-3 flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.reports.revenue_by_day') }}</h2>
-                <a :href="exportUrl('sales_by_day')" class="text-sm text-blue-600 hover:underline dark:text-blue-400"
-                    ><Download class="inline h-4 w-4" />{{ t('admin.common.csv') }}</a
-                >
-            </div>
+        <Card size="small" class="lg:col-span-2" :title="t('admin.reports.revenue_by_day')">
+            <template #extra>
+                <Button type="link" size="small" :href="exportUrl('sales_by_day')">
+                    <template #icon><Download class="inline h-4 w-4" /></template>
+                    {{ t('admin.common.csv') }}
+                </Button>
+            </template>
             <div class="h-72"><Line :data="revenueChart" :options="lineOptions" /></div>
-        </div>
-        <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <div class="mb-3 flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.reports.revenue_by_category') }}</h2>
-                <a :href="exportUrl('sales_by_category')" class="text-sm text-blue-600 hover:underline dark:text-blue-400"
-                    ><Download class="inline h-4 w-4" />{{ t('admin.common.csv') }}</a
-                >
-            </div>
+        </Card>
+        <Card size="small" :title="t('admin.reports.revenue_by_category')">
+            <template #extra>
+                <Button type="link" size="small" :href="exportUrl('sales_by_category')">
+                    <template #icon><Download class="inline h-4 w-4" /></template>
+                    {{ t('admin.common.csv') }}
+                </Button>
+            </template>
             <div class="h-72"><Doughnut :data="categoryChart" :options="doughnutOptions" /></div>
-        </div>
+        </Card>
     </div>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-2">
         <!-- By product -->
-        <section class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <div class="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-                <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.reports.top_products') }}</h2>
-                <a :href="exportUrl('sales_by_product')" class="text-sm text-blue-600 hover:underline dark:text-blue-400"
-                    ><Download class="inline h-4 w-4" />{{ t('admin.common.csv') }}</a
-                >
-            </div>
-            <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-gray-800">
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                    <tr v-for="(row, i) in byProduct" :key="i">
-                        <td class="px-4 py-2">
-                            {{ row.name }} <span class="text-xs text-gray-400">{{ row.sku }}</span>
-                        </td>
-                        <td class="px-4 py-2 text-end">{{ t('admin.reports.units_n', { count: row.units }) }}</td>
-                        <td class="px-4 py-2 text-end font-medium">{{ row.revenue_formatted }}</td>
-                    </tr>
-                    <tr v-if="byProduct.length === 0">
-                        <td class="px-4 py-6 text-center text-gray-400" colspan="3">{{ t('admin.common.no_data') }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+        <Card size="small" :title="t('admin.reports.top_products')" :body-style="{ padding: 0 }">
+            <template #extra>
+                <Button type="link" size="small" :href="exportUrl('sales_by_product')">
+                    <template #icon><Download class="inline h-4 w-4" /></template>
+                    {{ t('admin.common.csv') }}
+                </Button>
+            </template>
+            <Table
+                :columns="productColumns"
+                :data-source="byProduct"
+                :row-key="rowIndexKey"
+                :pagination="false"
+                size="middle"
+                :scroll="{ x: 'max-content' }"
+            >
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'name'">
+                        {{ record.name }} <span class="text-xs text-gray-400">{{ record.sku }}</span>
+                    </template>
+                    <template v-else-if="column.key === 'units'">{{ t('admin.reports.units_n', { count: record.units }) }}</template>
+                    <span v-else-if="column.key === 'revenue_formatted'" class="font-medium">{{ record.revenue_formatted }}</span>
+                </template>
+                <template #emptyText>{{ t('admin.common.no_data') }}</template>
+            </Table>
+        </Card>
 
         <!-- By brand -->
-        <section class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <div class="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-                <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.reports.sales_by_brand') }}</h2>
-                <a :href="exportUrl('sales_by_brand')" class="text-sm text-blue-600 hover:underline dark:text-blue-400"
-                    ><Download class="inline h-4 w-4" />{{ t('admin.common.csv') }}</a
-                >
-            </div>
-            <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-gray-800">
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                    <tr v-for="(row, i) in byBrand" :key="i">
-                        <td class="px-4 py-2">{{ row.name }}</td>
-                        <td class="px-4 py-2 text-end">{{ t('admin.reports.units_n', { count: row.units }) }}</td>
-                        <td class="px-4 py-2 text-end font-medium">{{ row.revenue_formatted }}</td>
-                    </tr>
-                    <tr v-if="byBrand.length === 0">
-                        <td class="px-4 py-6 text-center text-gray-400" colspan="3">{{ t('admin.common.no_data') }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+        <Card size="small" :title="t('admin.reports.sales_by_brand')" :body-style="{ padding: 0 }">
+            <template #extra>
+                <Button type="link" size="small" :href="exportUrl('sales_by_brand')">
+                    <template #icon><Download class="inline h-4 w-4" /></template>
+                    {{ t('admin.common.csv') }}
+                </Button>
+            </template>
+            <Table
+                :columns="brandColumns"
+                :data-source="byBrand"
+                :row-key="rowIndexKey"
+                :pagination="false"
+                size="middle"
+                :scroll="{ x: 'max-content' }"
+            >
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'units'">{{ t('admin.reports.units_n', { count: record.units }) }}</template>
+                    <span v-else-if="column.key === 'revenue_formatted'" class="font-medium">{{ record.revenue_formatted }}</span>
+                </template>
+                <template #emptyText>{{ t('admin.common.no_data') }}</template>
+            </Table>
+        </Card>
 
         <!-- By customer -->
-        <section class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <div class="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-                <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.reports.top_customers') }}</h2>
-                <a :href="exportUrl('sales_by_customer')" class="text-sm text-blue-600 hover:underline dark:text-blue-400"
-                    ><Download class="inline h-4 w-4" />{{ t('admin.common.csv') }}</a
-                >
-            </div>
-            <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-gray-800">
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                    <tr v-for="row in byCustomer" :key="row.customer_id">
-                        <td class="px-4 py-2">
-                            {{ row.name }} <span class="text-xs text-gray-400">{{ row.email }}</span>
-                        </td>
-                        <td class="px-4 py-2 text-end">{{ t('admin.reports.orders_n', { count: row.orders }) }}</td>
-                        <td class="px-4 py-2 text-end font-medium">{{ row.revenue_formatted }}</td>
-                    </tr>
-                    <tr v-if="byCustomer.length === 0">
-                        <td class="px-4 py-6 text-center text-gray-400" colspan="3">{{ t('admin.common.no_data') }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+        <Card size="small" :title="t('admin.reports.top_customers')" :body-style="{ padding: 0 }">
+            <template #extra>
+                <Button type="link" size="small" :href="exportUrl('sales_by_customer')">
+                    <template #icon><Download class="inline h-4 w-4" /></template>
+                    {{ t('admin.common.csv') }}
+                </Button>
+            </template>
+            <Table
+                :columns="customerColumns"
+                :data-source="byCustomer"
+                row-key="customer_id"
+                :pagination="false"
+                size="middle"
+                :scroll="{ x: 'max-content' }"
+            >
+                <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'name'">
+                        {{ record.name }} <span class="text-xs text-gray-400">{{ record.email }}</span>
+                    </template>
+                    <template v-else-if="column.key === 'orders'">{{ t('admin.reports.orders_n', { count: record.orders }) }}</template>
+                    <span v-else-if="column.key === 'revenue_formatted'" class="font-medium">{{ record.revenue_formatted }}</span>
+                </template>
+                <template #emptyText>{{ t('admin.common.no_data') }}</template>
+            </Table>
+        </Card>
 
         <!-- Payment + status -->
-        <section class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-gray-800 dark:text-gray-300">
-                {{ t('admin.reports.payment_methods') }}
-            </h2>
-            <div class="grid grid-cols-2 divide-x divide-gray-100 dark:divide-gray-800">
-                <table class="min-w-0 text-sm">
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        <tr v-for="row in byPaymentMethod" :key="row.method">
-                            <td class="px-4 py-2 capitalize">{{ row.method.replaceAll('_', ' ') }}</td>
-                            <td class="px-4 py-2 text-end">{{ row.orders }}</td>
-                            <td class="px-4 py-2 text-end font-medium">{{ row.revenue_formatted }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <table class="min-w-0 text-sm">
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        <tr v-for="row in byStatus" :key="row.status">
-                            <td class="px-4 py-2 capitalize">{{ row.status.replaceAll('_', ' ') }}</td>
-                            <td class="px-4 py-2 text-end">{{ row.orders }}</td>
-                            <td class="px-4 py-2 text-end font-medium">{{ row.revenue_formatted }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <Card size="small" :title="t('admin.reports.payment_methods')" :body-style="{ padding: 0 }">
+            <div class="grid grid-cols-2">
+                <Table
+                    :columns="paymentColumns"
+                    :data-source="byPaymentMethod"
+                    row-key="method"
+                    :pagination="false"
+                    size="middle"
+                    :scroll="{ x: 'max-content' }"
+                >
+                    <template #bodyCell="{ column, record }">
+                        <span v-if="column.key === 'method'" class="capitalize">{{ record.method.replaceAll('_', ' ') }}</span>
+                        <span v-else-if="column.key === 'revenue_formatted'" class="font-medium">{{ record.revenue_formatted }}</span>
+                    </template>
+                </Table>
+                <Table
+                    :columns="statusColumns"
+                    :data-source="byStatus"
+                    row-key="status"
+                    :pagination="false"
+                    size="middle"
+                    :scroll="{ x: 'max-content' }"
+                >
+                    <template #bodyCell="{ column, record }">
+                        <span v-if="column.key === 'status'" class="capitalize">{{ record.status.replaceAll('_', ' ') }}</span>
+                        <span v-else-if="column.key === 'revenue_formatted'" class="font-medium">{{ record.revenue_formatted }}</span>
+                    </template>
+                </Table>
             </div>
-        </section>
+        </Card>
     </div>
 
     <div class="mt-6 flex flex-wrap gap-3">
-        <a :href="exportUrl('movements')" :class="btnSecondary"><Download class="h-4 w-4" />{{ t('admin.reports.movements_csv') }}</a>
-        <a :href="exportUrl('returns')" :class="btnSecondary"><Download class="h-4 w-4" />{{ t('admin.reports.returns_csv') }}</a>
-        <a :href="exportUrl('refunds')" :class="btnSecondary"><Download class="h-4 w-4" />{{ t('admin.reports.refunds_csv') }}</a>
+        <Button :href="exportUrl('movements')">
+            <template #icon><Download class="h-4 w-4" /></template>
+            {{ t('admin.reports.movements_csv') }}
+        </Button>
+        <Button :href="exportUrl('returns')">
+            <template #icon><Download class="h-4 w-4" /></template>
+            {{ t('admin.reports.returns_csv') }}
+        </Button>
+        <Button :href="exportUrl('refunds')">
+            <template #icon><Download class="h-4 w-4" /></template>
+            {{ t('admin.reports.refunds_csv') }}
+        </Button>
     </div>
 </template>

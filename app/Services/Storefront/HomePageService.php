@@ -57,7 +57,78 @@ final class HomePageService
             'newArrivals' => ProductCardResource::collection($sections['newArrivals']),
             'onSale' => ProductCardResource::collection($sections['onSale']),
             'bestSellers' => ProductCardResource::collection($sections['bestSellers']),
+            'categorySections' => $this->categorySections(),
         ];
+    }
+
+    /**
+     * Themed product rows for the two biggest root categories — the "gaming
+     * chairs" / "headsets" style sections, driven by whatever this catalogue
+     * actually sells most of rather than a hardcoded pair.
+     *
+     * @return list<array{category: array{name: string, name_ar: string|null, slug: string}, products: mixed}>
+     */
+    private function categorySections(): array
+    {
+        $sections = Cache::remember('home.category_sections', now()->addMinutes(10), function (): array {
+            $roots = collect($this->categoryCards())
+                ->sortByDesc('products_count')
+                ->take(2);
+
+            $categories = Category::query()->active()->get(['id', 'parent_id', 'name', 'name_ar', 'slug']);
+            $byParent = $categories->groupBy('parent_id');
+
+            $subtree = function (int $id) use (&$subtree, $byParent): array {
+                $ids = [$id];
+
+                foreach ($byParent->get($id, collect()) as $child) {
+                    $ids = [...$ids, ...$subtree($child->id)];
+                }
+
+                return $ids;
+            };
+
+            return $roots
+                ->map(function (array $card) use ($subtree, $categories): ?array {
+                    $root = $categories->firstWhere('id', $card['id']);
+
+                    if ($root === null) {
+                        return null;
+                    }
+
+                    $products = Product::query()
+                        ->visibleInStore()
+                        ->whereIn('category_id', $subtree($root->id))
+                        ->with(['brand:id,name,slug', 'images'])
+                        ->withAvg('approvedReviews as rating_avg', 'rating')
+                        ->withCount('approvedReviews as rating_count')
+                        ->withStock()
+                        ->latest('published_at')
+                        ->take(6)
+                        ->get();
+
+                    if ($products->count() < 4) {
+                        return null;
+                    }
+
+                    return [
+                        'category' => [
+                            'name' => $root->name,
+                            'name_ar' => $root->name_ar,
+                            'slug' => $root->slug,
+                        ],
+                        'products' => $products,
+                    ];
+                })
+                ->filter()
+                ->values()
+                ->all();
+        });
+
+        return array_map(fn (array $section): array => [
+            'category' => $section['category'],
+            'products' => ProductCardResource::collection($section['products']),
+        ], $sections);
     }
 
     /**
@@ -67,9 +138,12 @@ final class HomePageService
      * Categories with nothing to sell are dropped — a storefront tile that leads
      * to an empty listing is worse than no tile.
      *
-     * @return list<array{id: int, name: string, name_ar: string|null, slug: string, image: string|null, products_count: int}>
+     * Public because the layout's "All categories" header menu shares the same
+     * cached list via Inertia::share (see AppServiceProvider).
+     *
+     * @return list<array{id: int, name: string, name_ar: string|null, slug: string, image: string|null, products_count: int, max_discount: int}>
      */
-    private function categoryCards(): array
+    public function categoryCards(): array
     {
         return Cache::remember('home.category_cards', now()->addMinutes(10), function (): array {
             $categories = Category::query()->active()->orderBy('position')->get();

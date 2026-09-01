@@ -51,6 +51,25 @@ final class ProductCardResource extends JsonResource
             'is_featured' => $this->is_featured,
             'rating_avg' => isset($this->rating_avg) ? round((float) $this->rating_avg, 1) : null,
             'rating_count' => (int) ($this->rating_count ?? 0),
+            'wishlisted' => in_array($this->id, self::wishlistedIds(), true),
         ];
+    }
+
+    /**
+     * Product ids on the current customer's wishlist, fetched once per request.
+     *
+     * The card needs to render a filled heart for products already saved, and
+     * doing that per model would be an N+1 across a 24-product grid. `once()`
+     * is request-scoped, so the list is read a single time however many cards
+     * the page renders — and it stays out of the homepage's section cache,
+     * which holds models rather than rendered resources.
+     *
+     * @return list<int>
+     */
+    private static function wishlistedIds(): array
+    {
+        return once(fn (): array => auth()->check()
+            ? auth()->user()->wishlistItems()->pluck('product_id')->all()
+            : []);
     }
 }

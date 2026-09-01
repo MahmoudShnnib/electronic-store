@@ -1,16 +1,32 @@
 <script setup lang="ts">
 import AdminSelect from '@/components/admin/AdminSelect.vue';
+import DataTable, { type Column } from '@/components/admin/DataTable.vue';
 import Field from '@/components/admin/Field.vue';
+import HelpHint from '@/components/admin/HelpHint.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import {
+    Button,
+    Card,
+    Descriptions,
+    DescriptionsItem,
+    Divider,
+    Input,
+    InputNumber,
+    Textarea,
+    Timeline,
+    TimelineItem,
+    Typography,
+} from 'ant-design-vue';
 import { Printer } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
+
+const { Text } = Typography;
 
 const { t } = useI18n();
 
@@ -76,6 +92,17 @@ const props = defineProps<{
     };
 }>();
 
+/** `!text-end` beats AntD's own cell alignment; `end` keeps RTL honest. */
+const itemColumns: Column[] = [
+    { key: 'name', label: t('admin.common.item') },
+    { key: 'sku', label: t('admin.common.sku') },
+    { key: 'quantity', label: t('admin.common.qty'), class: '!text-end' },
+    { key: 'unit_price_formatted', label: t('admin.common.unit'), class: '!text-end' },
+    { key: 'discount_formatted', label: t('admin.common.discount'), class: '!text-end' },
+    { key: 'tax_formatted', label: t('admin.common.tax'), class: '!text-end' },
+    { key: 'line_total_formatted', label: t('admin.common.total'), class: '!text-end' },
+];
+
 const statusForm = useForm({ status: '', comment: '' });
 
 function submitStatus(): void {
@@ -134,214 +161,167 @@ function addressRows(address: Address): { label: string; value: string }[] {
 
     <PageHeader :title="order.number" :subtitle="t('admin.orders.placed', { date: order.created_at, via: order.placed_via })">
         <template #actions>
-            <Link :href="route('admin.orders.index')" :class="btnSecondary">{{ t('admin.common.back') }}</Link>
-            <Link :href="route('admin.orders.invoice', order.id)" :class="btnSecondary"
-                ><Printer class="h-4 w-4" />{{ t('admin.orders.invoice') }}</Link
+            <Link :href="route('admin.orders.index')"
+                ><Button>{{ t('admin.common.back') }}</Button></Link
             >
+            <Link :href="route('admin.orders.invoice', order.id)">
+                <Button>
+                    <template #icon><Printer class="h-4 w-4" /></template>
+                    {{ t('admin.orders.invoice') }}
+                </Button>
+            </Link>
         </template>
     </PageHeader>
 
     <div class="grid gap-6 xl:grid-cols-3">
         <!-- Left: items + notes + timeline -->
         <div class="space-y-6 xl:col-span-2">
-            <section class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="bg-gray-50 dark:bg-gray-950/50">
-                        <tr class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            <th class="px-3 py-2.5 text-start">{{ t('admin.common.item') }}</th>
-                            <th class="px-3 py-2.5 text-start">{{ t('admin.common.sku') }}</th>
-                            <th class="px-3 py-2.5 text-end">{{ t('admin.common.qty') }}</th>
-                            <th class="px-3 py-2.5 text-end">{{ t('admin.common.unit') }}</th>
-                            <th class="px-3 py-2.5 text-end">{{ t('admin.common.discount') }}</th>
-                            <th class="px-3 py-2.5 text-end">{{ t('admin.common.tax') }}</th>
-                            <th class="px-3 py-2.5 text-end">{{ t('admin.common.total') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        <tr v-for="item in order.items" :key="item.id">
-                            <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-gray-100">{{ item.name }}</td>
-                            <td class="px-3 py-2.5 text-gray-500">{{ item.sku }}</td>
-                            <td class="px-3 py-2.5 text-end">{{ item.quantity }}</td>
-                            <td class="px-3 py-2.5 text-end">{{ item.unit_price_formatted }}</td>
-                            <td class="px-3 py-2.5 text-end">{{ item.discount_formatted }}</td>
-                            <td class="px-3 py-2.5 text-end">{{ item.tax_formatted }}</td>
-                            <td class="px-3 py-2.5 text-end font-medium">{{ item.line_total_formatted }}</td>
-                        </tr>
-                    </tbody>
-                    <tfoot class="border-t border-gray-200 text-sm dark:border-gray-700">
-                        <tr>
-                            <td colspan="5" />
-                            <td class="px-3 py-1.5 pt-3 text-end text-gray-500">{{ t('admin.common.subtotal') }}</td>
-                            <td class="px-3 py-1.5 pt-3 text-end">{{ order.subtotal_formatted }}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="5" />
-                            <td class="px-3 py-1.5 text-end text-gray-500">
+            <div class="space-y-4">
+                <DataTable :columns="itemColumns" :rows="order.items" />
+
+                <!-- pe-4 matches the table's own cell inset so the totals sit in the
+                     same column as the figures in the Total column above. -->
+                <div class="flex justify-end pe-4">
+                    <Descriptions :column="1" size="small" class="admin-totals w-72">
+                        <DescriptionsItem :label="t('admin.common.subtotal')">{{ order.subtotal_formatted }}</DescriptionsItem>
+                        <DescriptionsItem>
+                            <template #label>
                                 {{ t('admin.common.discount') }}<span v-if="order.coupon_code" class="ms-1 text-xs">({{ order.coupon_code }})</span>
-                            </td>
-                            <td class="px-3 py-1.5 text-end">
-                                <bdi dir="ltr">−{{ order.discount_formatted }}</bdi>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td colspan="5" />
-                            <td class="px-3 py-1.5 text-end text-gray-500">{{ t('admin.common.tax') }}</td>
-                            <td class="px-3 py-1.5 text-end">{{ order.tax_formatted }}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="5" />
-                        </tr>
-                        <tr class="font-semibold text-gray-900 dark:text-gray-100">
-                            <td colspan="5" />
-                            <td class="px-3 py-2 text-end">{{ t('admin.common.total') }}</td>
-                            <td class="px-3 py-2 text-end">{{ order.total_formatted }}</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </section>
+                            </template>
+                            <bdi dir="ltr">−{{ order.discount_formatted }}</bdi>
+                        </DescriptionsItem>
+                        <DescriptionsItem :label="t('admin.common.tax')">{{ order.tax_formatted }}</DescriptionsItem>
+                        <DescriptionsItem :label="t('admin.common.total')">
+                            <span class="font-semibold">{{ order.total_formatted }}</span>
+                        </DescriptionsItem>
+                    </Descriptions>
+                </div>
+            </div>
 
             <div class="grid gap-6 md:grid-cols-2">
-                <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                    <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.customer') }}</h2>
+                <Card size="small" :title="t('admin.common.customer')">
                     <!-- Labelled rows: three bare lines made a mistyped city or a
                          swapped phone/email impossible to spot. -->
-                    <dl class="space-y-1 text-sm">
-                        <div class="flex gap-2">
-                            <dt class="w-24 shrink-0 text-gray-400">{{ t('admin.common.name') }}</dt>
-                            <dd class="font-medium text-gray-900 dark:text-gray-100">{{ order.customer.name || '—' }}</dd>
-                        </div>
-                        <div class="flex gap-2">
-                            <dt class="w-24 shrink-0 text-gray-400">{{ t('admin.common.email') }}</dt>
-                            <dd class="text-gray-600 dark:text-gray-300">
-                                <bdi dir="ltr">{{ order.customer.email || '—' }}</bdi>
-                            </dd>
-                        </div>
-                        <div class="flex gap-2">
-                            <dt class="w-24 shrink-0 text-gray-400">{{ t('admin.common.phone') }}</dt>
-                            <dd class="text-gray-600 dark:text-gray-300">
-                                <bdi dir="ltr">{{ order.customer.phone || '—' }}</bdi>
-                            </dd>
-                        </div>
-                    </dl>
+                    <Descriptions :column="1" size="small">
+                        <DescriptionsItem :label="t('admin.common.name')">{{ order.customer.name || '—' }}</DescriptionsItem>
+                        <DescriptionsItem :label="t('admin.common.email')">
+                            <bdi dir="ltr">{{ order.customer.email || '—' }}</bdi>
+                        </DescriptionsItem>
+                        <DescriptionsItem :label="t('admin.common.phone')">
+                            <bdi dir="ltr">{{ order.customer.phone || '—' }}</bdi>
+                        </DescriptionsItem>
+                    </Descriptions>
                     <Link
                         v-if="order.account"
                         :href="route('admin.customers.show', order.account.id)"
                         class="mt-2 inline-block text-sm text-blue-600 hover:underline dark:text-blue-400"
                         >{{ t('admin.orders.view_account') }}</Link
                     >
-                    <p v-else class="mt-2 text-xs text-gray-400">{{ t('admin.orders.guest_checkout') }}</p>
+                    <Text v-else type="secondary" class="mt-2 block !text-xs">{{ t('admin.orders.guest_checkout') }}</Text>
 
-                    <h3 class="mt-4 text-xs font-semibold uppercase text-gray-400">{{ t('admin.orders.shipping_address') }}</h3>
-                    <dl class="mt-1 space-y-1 text-sm">
-                        <div v-for="row in addressRows(order.shipping_address)" :key="row.label" class="flex gap-2">
-                            <dt class="w-24 shrink-0 text-gray-400">{{ row.label }}</dt>
-                            <dd class="text-gray-600 dark:text-gray-300">{{ row.value }}</dd>
-                        </div>
-                    </dl>
+                    <Descriptions :title="t('admin.orders.shipping_address')" :column="1" size="small" class="mt-4">
+                        <DescriptionsItem v-for="row in addressRows(order.shipping_address)" :key="row.label" :label="row.label">
+                            {{ row.value }}
+                        </DescriptionsItem>
+                    </Descriptions>
 
                     <template v-if="order.customer_note">
-                        <h3 class="mt-3 text-xs font-semibold uppercase text-gray-400">{{ t('admin.orders.customer_note') }}</h3>
-                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ order.customer_note }}</p>
+                        <Text strong class="mt-3 block !text-xs">{{ t('admin.orders.customer_note') }}</Text>
+                        <Text type="secondary" class="mt-1 block">{{ order.customer_note }}</Text>
                     </template>
-                </section>
+                </Card>
 
-                <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                    <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.orders.timeline') }}</h2>
-                    <ol class="space-y-3">
-                        <li v-for="(entry, i) in order.timeline" :key="i" class="relative ps-5">
-                            <span class="absolute start-0 top-1.5 h-2 w-2 rounded-full bg-blue-500" />
-                            <p class="text-sm text-gray-800 dark:text-gray-200">
-                                <template v-if="entry.from">{{ entry.from }} {{ t('admin.orders.transition_arrow') }} </template>{{ entry.to }}
+                <Card size="small" :title="t('admin.orders.timeline')">
+                    <Timeline>
+                        <TimelineItem v-for="(entry, i) in order.timeline" :key="i">
+                            <p class="text-sm">
+                                <!-- One interpolation: Vue condenses the whitespace-only text node
+                                     between a closing template tag and the next binding, which ate
+                                     the space after the arrow ("Pending →Cancelled"). -->
+                                {{
+                                    entry.from ? [entry.from, t('admin.orders.transition_arrow'), entry.to].join(' ') : entry.to
+                                }}
                             </p>
-                            <p v-if="entry.comment" class="text-xs text-gray-500">{{ entry.comment }}</p>
-                            <p class="text-xs text-gray-400">{{ entry.user }} · {{ entry.at }}</p>
-                        </li>
-                    </ol>
-                </section>
+                            <!-- dir="auto": comments and actor names come from the database in
+                                 whatever language they were written, and a Latin line inside the
+                                 RTL card otherwise has its trailing punctuation flipped. -->
+                            <Text v-if="entry.comment" dir="auto" type="secondary" class="block !text-xs">{{ entry.comment }}</Text>
+                            <Text type="secondary" dir="auto" class="block !text-xs">{{ entry.user }} · {{ entry.at }}</Text>
+                        </TimelineItem>
+                    </Timeline>
+                </Card>
             </div>
         </div>
 
         <!-- Right rail: actions -->
         <div class="space-y-6">
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <div class="mb-3 flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.orders.order_status') }}</h2>
-                    <StatusBadge :status="order.status" :label="order.status_label" />
-                </div>
-                <form v-if="order.allowed_transitions.length > 0" class="grid gap-3" @submit.prevent="submitStatus">
+            <Card size="small" :title="t('admin.orders.order_status')">
+                <template #extra><StatusBadge :status="order.status" :label="order.status_label" /></template>
+                <form v-if="order.allowed_transitions.length > 0" @submit.prevent="submitStatus">
                     <Field :label="t('admin.common.move_to')" :error="statusForm.errors.status">
                         <AdminSelect v-model="statusForm.status" :placeholder="t('admin.common.choose')" :options="order.allowed_transitions" />
                     </Field>
                     <Field :label="t('admin.common.comment')" :error="statusForm.errors.comment">
-                        <input v-model="statusForm.comment" type="text" :class="inputClass" />
+                        <Input v-model:value="statusForm.comment" />
                     </Field>
-                    <button type="submit" :disabled="statusForm.processing || statusForm.status === ''" :class="btnPrimary" class="justify-center">
+                    <Button type="primary" html-type="submit" block :loading="statusForm.processing" :disabled="statusForm.status === ''">
                         {{ t('admin.orders.update_status') }}
-                    </button>
+                    </Button>
                 </form>
-                <p v-else class="text-sm text-gray-400">{{ t('admin.orders.final_state') }}</p>
-            </section>
+                <Text v-else type="secondary">{{ t('admin.orders.final_state') }}</Text>
+            </Card>
 
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <div class="mb-3 flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.payment') }}</h2>
-                    <StatusBadge :status="order.payment_status" :label="order.payment_status_label" />
-                </div>
-                <dl class="mb-3 space-y-1 text-sm text-gray-600 dark:text-gray-300">
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.common.method') }}</dt>
-                        <dd>{{ order.payment_method }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.common.paid') }}</dt>
-                        <dd>{{ order.paid_formatted }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.common.outstanding') }}</dt>
-                        <dd>{{ order.outstanding_formatted }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.common.refunded') }}</dt>
-                        <dd>{{ order.refunded_formatted }}</dd>
-                    </div>
-                </dl>
-                <ul v-if="order.payments.length > 0" class="mb-3 space-y-1 border-t border-gray-100 pt-2 text-xs text-gray-500 dark:border-gray-800">
-                    <li v-for="p in order.payments" :key="p.id">
-                        {{ p.amount_formatted }} · {{ p.method }} · {{ p.reference ?? 'no ref' }} · {{ p.at }}
-                    </li>
-                </ul>
-                <form class="grid gap-3 border-t border-gray-100 pt-3 dark:border-gray-800" @submit.prevent="submitPayment">
+            <Card size="small" :title="t('admin.common.payment')">
+                <template #extra><StatusBadge :status="order.payment_status" :label="order.payment_status_label" /></template>
+                <Descriptions :column="1" size="small">
+                    <DescriptionsItem :label="t('admin.common.method')">{{ order.payment_method }}</DescriptionsItem>
+                    <DescriptionsItem :label="t('admin.common.paid')">{{ order.paid_formatted }}</DescriptionsItem>
+                    <DescriptionsItem>
+                        <template #label>
+                            {{ t('admin.common.outstanding') }}
+                            <HelpHint :text="t('admin.help.outstanding')" class="ms-1" />
+                        </template>
+                        {{ order.outstanding_formatted }}
+                    </DescriptionsItem>
+                    <DescriptionsItem :label="t('admin.common.refunded')">{{ order.refunded_formatted }}</DescriptionsItem>
+                </Descriptions>
+                <template v-if="order.payments.length > 0">
+                    <Divider class="!my-3" />
+                    <ul class="space-y-1">
+                        <li v-for="p in order.payments" :key="p.id">
+                            <Text type="secondary" class="!text-xs">
+                                {{ p.amount_formatted }} · {{ p.method }} · {{ p.reference ?? 'no ref' }} · {{ p.at }}
+                            </Text>
+                        </li>
+                    </ul>
+                </template>
+                <Divider class="!my-3" />
+                <form @submit.prevent="submitPayment">
                     <Field :label="t('admin.orders.record_payment')" :error="paymentForm.errors.amount">
-                        <input
-                            v-model.number="paymentForm.amount"
-                            type="number"
-                            step="0.01"
-                            min="0.01"
+                        <InputNumber
+                            v-model:value="paymentForm.amount"
+                            :min="0.01"
+                            :step="0.01"
                             :placeholder="t('admin.common.amount')"
-                            :class="inputClass"
+                            class="w-full"
                         />
                     </Field>
-                    <input
-                        v-model="paymentForm.reference"
-                        type="text"
-                        :placeholder="t('admin.common.reference_optional')"
-                        :class="inputClass"
-                        dir="ltr"
-                    />
-                    <button type="submit" :disabled="paymentForm.processing" :class="btnSecondary" class="justify-center">
+                    <Input v-model:value="paymentForm.reference" :placeholder="t('admin.common.reference_optional')" dir="ltr" class="mb-4" />
+                    <Button html-type="submit" block :loading="paymentForm.processing">
                         {{ t('admin.orders.record_payment') }}
-                    </button>
+                    </Button>
                 </form>
-            </section>
+            </Card>
 
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.refund') }}</h2>
-                <ul v-if="order.refunds.length > 0" class="mb-3 space-y-1 text-xs text-gray-500">
-                    <li v-for="r in order.refunds" :key="r.id">{{ r.amount_formatted }} · {{ r.method }} · {{ r.at }}</li>
+            <Card size="small" :title="t('admin.common.refund')">
+                <ul v-if="order.refunds.length > 0" class="mb-3 space-y-1">
+                    <li v-for="r in order.refunds" :key="r.id">
+                        <Text type="secondary" class="!text-xs">{{ r.amount_formatted }} · {{ r.method }} · {{ r.at }}</Text>
+                    </li>
                 </ul>
-                <form class="grid gap-3" @submit.prevent="submitRefund">
+                <form @submit.prevent="submitRefund">
                     <Field :label="t('admin.common.amount')" :error="refundForm.errors.amount">
-                        <input v-model.number="refundForm.amount" type="number" step="0.01" min="0.01" :class="inputClass" />
+                        <InputNumber v-model:value="refundForm.amount" :min="0.01" :step="0.01" class="w-full" />
                     </Field>
                     <Field :label="t('admin.common.method')" :error="refundForm.errors.method">
                         <AdminSelect
@@ -354,44 +334,33 @@ function addressRows(address: Address): { label: string; value: string }[] {
                             ]"
                         />
                     </Field>
-                    <input
-                        v-model="refundForm.reference"
-                        type="text"
-                        :placeholder="t('admin.common.reference_optional')"
-                        :class="inputClass"
-                        dir="ltr"
-                    />
-                    <input v-model="refundForm.reason" type="text" :placeholder="t('admin.common.reason_optional')" :class="inputClass" />
-                    <button type="submit" :disabled="refundForm.processing" :class="btnSecondary" class="justify-center">
+                    <Input v-model:value="refundForm.reference" :placeholder="t('admin.common.reference_optional')" dir="ltr" class="mb-3" />
+                    <Input v-model:value="refundForm.reason" :placeholder="t('admin.common.reason_optional')" class="mb-4" />
+                    <Button html-type="submit" block :loading="refundForm.processing">
                         {{ t('admin.orders.issue_refund') }}
-                    </button>
+                    </Button>
                 </form>
-            </section>
+            </Card>
 
-            <section
-                v-if="order.returns.length > 0"
-                class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
-            >
-                <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.nav.returns') }}</h2>
+            <Card v-if="order.returns.length > 0" size="small" :title="t('admin.nav.returns')">
                 <ul class="space-y-2 text-sm">
                     <li v-for="r in order.returns" :key="r.id" class="flex items-center justify-between">
                         <Link :href="route('admin.returns.show', r.id)" class="text-blue-600 hover:underline dark:text-blue-400">
                             {{ r.rma_number }}
                         </Link>
-                        <span class="text-xs text-gray-400">{{ r.status_label }}</span>
+                        <Text type="secondary" class="!text-xs">{{ r.status_label }}</Text>
                     </li>
                 </ul>
-            </section>
+            </Card>
 
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.orders.internal_note') }}</h2>
-                <form class="grid gap-3" @submit.prevent="submitNote">
-                    <textarea v-model="noteForm.internal_note" rows="3" :class="inputClass" />
-                    <button type="submit" :disabled="noteForm.processing" :class="btnSecondary" class="justify-center">
+            <Card size="small" :title="t('admin.orders.internal_note')">
+                <form @submit.prevent="submitNote">
+                    <Textarea v-model:value="noteForm.internal_note" :rows="3" class="mb-4" />
+                    <Button html-type="submit" block :loading="noteForm.processing">
                         {{ t('admin.orders.save_note') }}
-                    </button>
+                    </Button>
                 </form>
-            </section>
+            </Card>
         </div>
     </div>
 </template>

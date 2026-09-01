@@ -7,9 +7,12 @@ import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { Typography } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
+
+const { Text } = Typography;
 
 const { t } = useI18n();
 
@@ -70,8 +73,8 @@ const columns: Column[] = [
         </template>
         <template #cell-customer_name="{ row }">
             <div>
-                <p class="text-gray-900 dark:text-gray-100">{{ row.customer_name }}</p>
-                <p class="text-xs text-gray-400">{{ row.customer_email }}</p>
+                <p>{{ row.customer_name }}</p>
+                <Text type="secondary" class="!text-xs">{{ row.customer_email }}</Text>
             </div>
         </template>
         <template #cell-status="{ row }">
@@ -82,5 +85,5 @@ const columns: Column[] = [
         </template>
     </DataTable>
 
-    <Pagination :links="orders.links" :total="orders.total" :from="orders.from" :to="orders.to" />
+    <Pagination :paginator="orders" />
 </template>

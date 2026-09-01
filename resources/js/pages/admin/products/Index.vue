@@ -7,9 +7,9 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, checkboxClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { Avatar, Button, Checkbox, Space, Tooltip } from 'ant-design-vue';
 import { Plus, RotateCcw, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -108,12 +108,15 @@ function restore(product: ProductRow): void {
 
     <PageHeader :title="t('admin.products.title')" :subtitle="t('admin.products.count', { count: products.total })">
         <template #actions>
-            <button type="button" :class="btnSecondary" @click="toggleTrashed">
-                {{ filters.trashed ? 'Hide trash' : 'Show trash' }}
-            </button>
-            <Link v-if="can.create" :href="route('admin.products.create')" :class="btnPrimary">
-                <Plus class="h-4 w-4" />{{ t('admin.products.new') }}</Link
-            >
+            <Button @click="toggleTrashed">
+                {{ filters.trashed ? t('admin.common.hide_trash') : t('admin.common.show_trash') }}
+            </Button>
+            <Link v-if="can.create" :href="route('admin.products.create')">
+                <Button type="primary">
+                    <template #icon><Plus class="h-4 w-4" /></template>
+                    {{ t('admin.products.new') }}
+                </Button>
+            </Link>
         </template>
     </PageHeader>
 
@@ -127,7 +130,7 @@ function restore(product: ProductRow): void {
             { key: 'brand_id', label: t('admin.common.all_brands'), options: brands.map((b) => ({ value: String(b.id), label: b.name })) },
         ]"
     >
-        <div v-if="selected.length > 0 && can.update" class="flex items-center gap-2">
+        <Space v-if="selected.length > 0 && can.update">
             <AdminSelect
                 v-model="bulkAction"
                 class="!w-auto"
@@ -140,27 +143,21 @@ function restore(product: ProductRow): void {
                     { value: 'delete', label: t('admin.common.delete') },
                 ]"
             />
-            <button type="button" :class="btnSecondary" @click="applyBulk">{{ t('admin.common.apply') }}</button>
-        </div>
+            <Button @click="applyBulk">{{ t('admin.common.apply') }}</Button>
+        </Space>
     </FilterBar>
 
     <DataTable :columns="columns" :rows="products.data" :sort="String(filters.sort ?? '')" :dir="String(filters.dir ?? '')" @sort="sortBy">
         <template #select>
-            <input type="checkbox" :class="checkboxClass" :checked="allSelected" @change="toggleAll" />
+            <Checkbox :checked="allSelected" :indeterminate="selected.length > 0 && !allSelected" @change="toggleAll" />
         </template>
         <template #row-select="{ row }">
-            <input type="checkbox" :class="checkboxClass" :checked="selected.includes(row.id)" @change="toggleRow(row.id)" />
+            <Checkbox :checked="selected.includes(row.id)" @change="toggleRow(row.id)" />
         </template>
 
         <template #cell-name="{ row }">
             <div class="flex items-center gap-3">
-                <img
-                    v-if="row.image"
-                    :src="row.image"
-                    :alt="row.name"
-                    class="h-9 w-9 rounded-md border border-gray-200 object-cover dark:border-gray-700"
-                />
-                <div v-else class="flex h-9 w-9 items-center justify-center rounded-md bg-gray-100 text-xs text-gray-400 dark:bg-gray-800">—</div>
+                <Avatar :src="row.image ?? undefined" :alt="row.name" shape="square" :size="36">—</Avatar>
                 <div>
                     <Link
                         v-if="can.update && !row.deleted_at"
@@ -180,32 +177,28 @@ function restore(product: ProductRow): void {
         </template>
 
         <template #cell-status="{ row }">
-            <StatusBadge :status="row.status" :label="row.status_label" />
+            <!-- In the trash view a soft-deleted product still carries status
+                 "active", so without this the rows are indistinguishable from
+                 the live ones. -->
+            <StatusBadge v-if="row.deleted_at" status="deleted" />
+            <StatusBadge v-else :status="row.status" :label="row.status_label" />
         </template>
 
         <template #row-actions="{ row }">
-            <button
-                v-if="row.deleted_at && can.delete"
-                type="button"
-                class="rounded p-1.5 text-gray-400 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950"
-                :title="t('admin.common.restore')"
-                @click="restore(row)"
-            >
-                <RotateCcw class="h-4 w-4" />
-            </button>
-            <button
-                v-else-if="can.delete"
-                type="button"
-                class="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-                :title="t('admin.common.delete')"
-                @click="deleting = row"
-            >
-                <Trash2 class="h-4 w-4" />
-            </button>
+            <Tooltip v-if="row.deleted_at && can.delete" :title="t('admin.common.restore')">
+                <Button type="text" size="small" :aria-label="t('admin.common.restore')" @click="restore(row)">
+                    <template #icon><RotateCcw class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
+            <Tooltip v-else-if="can.delete" :title="t('admin.common.delete')">
+                <Button type="text" size="small" danger :aria-label="t('admin.common.delete')" @click="deleting = row">
+                    <template #icon><Trash2 class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
         </template>
     </DataTable>
 
-    <Pagination :links="products.links" :total="products.total" :from="products.from" :to="products.to" />
+    <Pagination :paginator="products" />
 
     <ConfirmDialog
         :open="deleting !== null"

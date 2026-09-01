@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { Button } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -119,9 +120,7 @@ function printInvoice(): void {
             <p class="text-center text-xs text-gray-400">{{ t('admin.orders.thank_you') }}</p>
 
             <div class="mt-8 text-center print:hidden">
-                <button type="button" class="rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700" @click="printInvoice">
-                    {{ t('admin.orders.print_invoice') }}
-                </button>
+                <Button type="primary" @click="printInvoice">{{ t('admin.orders.print_invoice') }}</Button>
             </div>
         </div>
     </div>

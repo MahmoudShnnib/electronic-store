@@ -2,9 +2,9 @@
 import CitySelect from '@/components/store/CitySelect.vue';
 import EmptyState from '@/components/store/EmptyState.vue';
 import type { AddressData } from '@/components/store/types';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import StoreLayout from '@/layouts/StoreLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
+import { Button, Card, Checkbox, Form, FormItem, Input, Modal, Popconfirm, Tag, Tooltip, Typography } from 'ant-design-vue';
 import { MapPin, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -12,6 +12,8 @@ import { useI18n } from 'vue-i18n';
 defineOptions({ layout: StoreLayout });
 
 defineProps<{ addresses: AddressData[]; cities: { en: string; ar: string }[] }>();
+
+const { Title, Text } = Typography;
 
 const { t } = useI18n();
 
@@ -69,9 +71,7 @@ function submit() {
 }
 
 function remove(address: AddressData) {
-    if (confirm(t('account.delete_address') + '?')) {
-        router.delete(route('account.addresses.destroy', address.id), { preserveScroll: true });
-    }
+    router.delete(route('account.addresses.destroy', address.id), { preserveScroll: true });
 }
 </script>
 
@@ -79,137 +79,103 @@ function remove(address: AddressData) {
     <Head :title="t('account.addresses_title')" />
 
     <div class="mx-auto w-full max-w-7xl px-4 py-8">
-        <div class="mb-6 flex items-center justify-between">
-            <h1 class="text-2xl font-bold">{{ t('account.addresses_title') }}</h1>
-            <button
-                type="button"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white transition hover:opacity-85 dark:bg-white dark:text-black"
-                @click="openCreate"
-            >
-                <Plus class="h-4 w-4" />
+        <div class="mb-6 flex items-center justify-between gap-3">
+            <Title :level="1" class="!mb-0 !text-2xl !font-bold">{{ t('account.addresses_title') }}</Title>
+            <Button type="primary" shape="round" @click="openCreate">
+                <template #icon><Plus class="h-4 w-4" /></template>
                 {{ t('account.add_address') }}
-            </button>
+            </Button>
         </div>
 
-        <EmptyState v-if="addresses.length === 0" :message="t('account.addresses_title')" />
+        <EmptyState v-if="addresses.length === 0" :message="t('account.no_addresses')" />
 
         <div v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <article v-for="address in addresses" :key="address.id" class="flex flex-col rounded-xl border border-border bg-card p-4">
-                <div class="flex items-start justify-between gap-2">
-                    <div class="flex items-center gap-2">
-                        <MapPin class="h-4 w-4 text-black dark:text-white" />
-                        <h2 class="font-semibold">{{ address.label ?? address.city }}</h2>
+            <Card v-for="address in addresses" :key="address.id" class="h-full" :body-style="{ padding: '1rem' }">
+                <div class="flex h-full flex-col">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <MapPin class="h-4 w-4 text-[#0F9D58]" />
+                            <h2 class="font-semibold">{{ address.label ?? address.city }}</h2>
+                        </div>
+                        <div class="-me-1 flex gap-1">
+                            <Tooltip :title="t('common.edit')">
+                                <Button type="text" shape="circle" size="small" :aria-label="t('common.edit')" @click="openEdit(address)">
+                                    <template #icon><Pencil class="h-4 w-4" /></template>
+                                </Button>
+                            </Tooltip>
+                            <Popconfirm
+                                :title="`${t('account.delete_address')}?`"
+                                :ok-text="t('common.delete')"
+                                :cancel-text="t('common.cancel')"
+                                ok-type="danger"
+                                @confirm="remove(address)"
+                            >
+                                <Tooltip :title="t('common.delete')">
+                                    <Button type="text" danger shape="circle" size="small" :aria-label="t('common.delete')">
+                                        <template #icon><Trash2 class="h-4 w-4" /></template>
+                                    </Button>
+                                </Tooltip>
+                            </Popconfirm>
+                        </div>
                     </div>
-                    <div class="flex gap-1">
-                        <button
-                            type="button"
-                            class="rounded p-1.5 text-muted-foreground hover:bg-muted"
-                            :aria-label="t('common.edit')"
-                            @click="openEdit(address)"
-                        >
-                            <Pencil class="h-4 w-4" />
-                        </button>
-                        <button
-                            type="button"
-                            class="rounded p-1.5 text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-                            :aria-label="t('common.delete')"
-                            @click="remove(address)"
-                        >
-                            <Trash2 class="h-4 w-4" />
-                        </button>
+
+                    <Text class="!mt-2 !block !text-sm opacity-65" dir="auto">
+                        {{ address.name }} · <span dir="ltr">{{ address.phone }}</span><br />
+                        {{ [address.area, address.city].filter(Boolean).join(', ') }}
+                    </Text>
+
+                    <div class="mt-auto flex flex-wrap gap-1.5 pt-3">
+                        <Tag v-if="address.is_default_shipping" color="processing" class="!m-0">{{ t('account.default_shipping') }}</Tag>
+                        <Tag v-if="address.is_default_billing" color="geekblue" class="!m-0">{{ t('account.default_billing') }}</Tag>
                     </div>
                 </div>
-
-                <p class="mt-2 text-sm text-muted-foreground">
-                    {{ address.name }} · <span dir="ltr">{{ address.phone }}</span
-                    ><br />
-                    {{ [address.area, address.city].filter(Boolean).join(', ') }}
-                </p>
-
-                <div class="mt-auto flex flex-wrap gap-1.5 pt-3">
-                    <span
-                        v-if="address.is_default_shipping"
-                        class="rounded-full bg-neutral-200 px-2 py-0.5 text-[11px] font-medium text-black dark:bg-neutral-800 dark:text-white"
-                    >
-                        {{ t('account.default_shipping') }}
-                    </span>
-                    <span
-                        v-if="address.is_default_billing"
-                        class="rounded-full bg-indigo-100 px-2 py-0.5 text-[11px] font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300"
-                    >
-                        {{ t('account.default_billing') }}
-                    </span>
-                </div>
-            </article>
+            </Card>
         </div>
 
-        <Dialog v-model:open="dialogOpen">
-            <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-                <DialogHeader>
-                    <DialogTitle>{{ editing ? t('account.edit_address') : t('account.add_address') }}</DialogTitle>
-                </DialogHeader>
+        <Modal
+            :open="dialogOpen"
+            :title="editing ? t('account.edit_address') : t('account.add_address')"
+            :footer="null"
+            :width="560"
+            @cancel="dialogOpen = false"
+        >
+            <Form layout="vertical" class="grid gap-x-4 sm:grid-cols-2" @submit.prevent="submit">
+                <FormItem class="sm:col-span-2" :label="t('account.label')">
+                    <Input v-model:value="form.label" placeholder="Home / Office" />
+                </FormItem>
 
-                <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="submit">
-                    <div class="sm:col-span-2">
-                        <label class="mb-1 block text-sm">{{ t('account.label') }}</label>
-                        <input
-                            v-model="form.label"
-                            type="text"
-                            placeholder="Home / Office"
-                            class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                        />
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-sm">{{ t('checkout.name') }}</label>
-                        <input v-model="form.name" type="text" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
-                        <p v-if="form.errors.name" class="mt-1 text-xs text-red-500">{{ form.errors.name }}</p>
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-sm">{{ t('checkout.phone') }}</label>
-                        <input v-model="form.phone" type="tel" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
-                        <p v-if="form.errors.phone" class="mt-1 text-xs text-red-500">{{ form.errors.phone }}</p>
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-sm">{{ t('checkout.city') }}</label>
-                        <CitySelect v-model="form.city" :cities="cities" :sheet-on-mobile="false" :has-error="form.errors.city !== undefined" />
-                        <p v-if="form.errors.city" class="mt-1 text-xs text-red-500">{{ form.errors.city }}</p>
-                    </div>
-                    <div>
-                        <label class="mb-1 block text-sm">{{ t('checkout.area') }}</label>
-                        <input v-model="form.area" type="text" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label class="mb-1 block text-sm">{{ t('checkout.notes') }}</label>
-                        <input v-model="form.notes" type="text" class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" />
-                    </div>
+                <FormItem :label="t('checkout.name')" :validate-status="form.errors.name ? 'error' : undefined" :help="form.errors.name">
+                    <Input v-model:value="form.name" />
+                </FormItem>
 
-                    <label class="flex items-center gap-2 text-sm">
-                        <input v-model="form.is_default_shipping" type="checkbox" class="h-4 w-4 rounded border-input text-black dark:text-white" />
-                        {{ t('account.default_shipping') }}
-                    </label>
-                    <label class="flex items-center gap-2 text-sm">
-                        <input v-model="form.is_default_billing" type="checkbox" class="h-4 w-4 rounded border-input text-black dark:text-white" />
-                        {{ t('account.default_billing') }}
-                    </label>
+                <FormItem :label="t('checkout.phone')" :validate-status="form.errors.phone ? 'error' : undefined" :help="form.errors.phone">
+                    <Input v-model:value="form.phone" type="tel" dir="ltr" />
+                </FormItem>
 
-                    <div class="flex justify-end gap-2 sm:col-span-2">
-                        <button
-                            type="button"
-                            class="rounded-lg border border-border px-4 py-2 text-sm transition hover:bg-muted"
-                            @click="dialogOpen = false"
-                        >
-                            {{ t('common.cancel') }}
-                        </button>
-                        <button
-                            type="submit"
-                            :disabled="form.processing"
-                            class="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-85 disabled:opacity-50 dark:bg-white dark:text-black"
-                        >
-                            {{ t('common.save') }}
-                        </button>
-                    </div>
-                </form>
-            </DialogContent>
-        </Dialog>
+                <FormItem :label="t('checkout.city')" :validate-status="form.errors.city ? 'error' : undefined" :help="form.errors.city">
+                    <CitySelect v-model="form.city" :cities="cities" :has-error="form.errors.city !== undefined" />
+                </FormItem>
+
+                <FormItem :label="t('checkout.area')">
+                    <Input v-model:value="form.area" />
+                </FormItem>
+
+                <FormItem class="sm:col-span-2" :label="t('checkout.notes')">
+                    <Input v-model:value="form.notes" />
+                </FormItem>
+
+                <FormItem class="!mb-2">
+                    <Checkbox v-model:checked="form.is_default_shipping">{{ t('account.default_shipping') }}</Checkbox>
+                </FormItem>
+                <FormItem class="!mb-2">
+                    <Checkbox v-model:checked="form.is_default_billing">{{ t('account.default_billing') }}</Checkbox>
+                </FormItem>
+
+                <div class="flex justify-end gap-2 sm:col-span-2">
+                    <Button @click="dialogOpen = false">{{ t('common.cancel') }}</Button>
+                    <Button type="primary" html-type="submit" :loading="form.processing">{{ t('common.save') }}</Button>
+                </div>
+            </Form>
+        </Modal>
     </div>
 </template>

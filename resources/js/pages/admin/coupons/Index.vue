@@ -10,9 +10,9 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
+import { Button, Checkbox, Input, InputNumber, Table, Tooltip, Typography } from 'ant-design-vue';
 import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -56,6 +56,14 @@ const columns: Column[] = [
     { key: 'used_count', label: t('admin.common.used') },
     { key: 'expires_at', label: t('admin.common.expires') },
     { key: 'is_active', label: t('admin.common.status') },
+];
+
+/** Redemption history table (AntD `Table` columns, not the admin `DataTable` ones). */
+const historyColumns = [
+    { key: 'customer', dataIndex: 'customer', title: t('admin.common.customer') },
+    { key: 'order_number', dataIndex: 'order_number', title: t('admin.common.order') },
+    { key: 'amount_formatted', dataIndex: 'amount_formatted', title: t('admin.common.amount') },
+    { key: 'at', dataIndex: 'at', title: t('admin.common.date') },
 ];
 
 const modalOpen = ref(false);
@@ -149,7 +157,10 @@ function destroy(): void {
 
     <PageHeader :title="t('admin.coupons.title')" :subtitle="t('admin.coupons.count', { count: coupons.total })">
         <template #actions>
-            <button type="button" :class="btnPrimary" @click="openCreate"><Plus class="h-4 w-4" />{{ t('admin.coupons.new') }}</button>
+            <Button type="primary" @click="openCreate">
+                <template #icon><Plus class="h-4 w-4" /></template>
+                {{ t('admin.coupons.new') }}
+            </Button>
         </template>
     </PageHeader>
 
@@ -157,18 +168,21 @@ function destroy(): void {
 
     <DataTable :columns="columns" :rows="coupons.data">
         <template #cell-code="{ row }">
-            <span class="font-mono font-medium text-gray-900 dark:text-gray-100">{{ row.code }}</span>
+            <span class="font-mono font-medium">{{ row.code }}</span>
         </template>
         <template #cell-used_count="{ row }">
-            <button
-                type="button"
-                class="text-blue-600 hover:underline disabled:text-inherit disabled:no-underline dark:text-blue-400"
-                :disabled="row.redemptions.length === 0"
-                :title="t('admin.coupons.history')"
-                @click="history = row"
-            >
-                {{ row.used_count }}<span v-if="row.usage_limit" class="text-gray-400"> / {{ row.usage_limit }}</span>
-            </button>
+            <Tooltip :title="t('admin.coupons.history')">
+                <Button
+                    type="link"
+                    size="small"
+                    class="!px-0"
+                    :disabled="row.redemptions.length === 0"
+                    :aria-label="t('admin.coupons.history')"
+                    @click="history = row"
+                >
+                    {{ row.used_count }}<Typography.Text v-if="row.usage_limit" type="secondary"> / {{ row.usage_limit }}</Typography.Text>
+                </Button>
+            </Tooltip>
         </template>
         <template #cell-is_active="{ row }">
             <StatusBadge
@@ -177,22 +191,26 @@ function destroy(): void {
             />
         </template>
         <template #row-actions="{ row }">
-            <button type="button" class="rounded p-1.5 text-gray-400 hover:text-blue-600" :title="t('admin.common.edit')" @click="openEdit(row)">
-                <Pencil class="h-4 w-4" />
-            </button>
-            <button type="button" class="rounded p-1.5 text-gray-400 hover:text-red-600" :title="t('admin.common.delete')" @click="deleting = row">
-                <Trash2 class="h-4 w-4" />
-            </button>
+            <Tooltip :title="t('admin.common.edit')">
+                <Button type="text" size="small" :aria-label="t('admin.common.edit')" @click="openEdit(row)">
+                    <template #icon><Pencil class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
+            <Tooltip :title="t('admin.common.delete')">
+                <Button type="text" size="small" danger :aria-label="t('admin.common.delete')" @click="deleting = row">
+                    <template #icon><Trash2 class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
         </template>
     </DataTable>
 
-    <Pagination :links="coupons.links" :total="coupons.total" :from="coupons.from" :to="coupons.to" />
+    <Pagination :paginator="coupons" />
 
     <FormModal :open="modalOpen" :title="editing ? t('admin.coupons.edit') : t('admin.coupons.new')" @close="modalOpen = false">
         <form class="grid gap-4" @submit.prevent="submit">
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.common.code')" required :error="form.errors.code">
-                    <input v-model="form.code" type="text" class="uppercase" :class="inputClass" dir="ltr" />
+                    <Input v-model:value="form.code" class="uppercase" dir="ltr" />
                 </Field>
                 <Field :label="t('admin.common.type')" required :error="form.errors.type">
                     <AdminSelect v-model="form.type" :options="types" />
@@ -200,22 +218,22 @@ function destroy(): void {
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <Field v-if="form.type === 'fixed'" :label="t('admin.coupons.discount_amount')" required :error="form.errors.value">
-                    <input v-model.number="form.value" type="number" step="0.01" min="0.01" :class="inputClass" />
+                    <InputNumber v-model:value="form.value" :min="0.01" :step="0.01" class="w-full" />
                 </Field>
                 <Field v-if="form.type === 'percentage'" :label="t('admin.coupons.percent')" required :error="form.errors.percent">
-                    <input v-model.number="form.percent" type="number" step="0.01" min="0.01" max="100" :class="inputClass" />
+                    <InputNumber v-model:value="form.percent" :min="0.01" :max="100" :step="0.01" class="w-full" />
                 </Field>
                 <Field :label="t('admin.coupons.max_discount')" :error="form.errors.max_discount">
-                    <input v-model.number="form.max_discount" type="number" step="0.01" min="0" :class="inputClass" />
+                    <InputNumber v-model:value="form.max_discount" :min="0" :step="0.01" class="w-full" />
                 </Field>
                 <Field :label="t('admin.coupons.minimum_order')" :error="form.errors.min_order">
-                    <input v-model.number="form.min_order" type="number" step="1" min="1" :class="inputClass" />
+                    <InputNumber v-model:value="form.min_order" :min="1" :step="1" class="w-full" />
                 </Field>
                 <Field :label="t('admin.coupons.usage_limit')" :error="form.errors.usage_limit">
-                    <input v-model.number="form.usage_limit" type="number" min="1" :class="inputClass" />
+                    <InputNumber v-model:value="form.usage_limit" :min="1" class="w-full" />
                 </Field>
                 <Field :label="t('admin.coupons.per_customer_limit')" :error="form.errors.per_customer_limit">
-                    <input v-model.number="form.per_customer_limit" type="number" min="1" :class="inputClass" />
+                    <InputNumber v-model:value="form.per_customer_limit" :min="1" class="w-full" />
                 </Field>
             </div>
             <div class="grid grid-cols-2 gap-3">
@@ -236,7 +254,7 @@ function destroy(): void {
                     :hint="t('admin.coupons.ids_hint')"
                     :error="form.errors.applies_to_ids"
                 >
-                    <input v-model="form.applies_to_ids" type="text" :class="inputClass" />
+                    <Input v-model:value="form.applies_to_ids" />
                 </Field>
             </div>
             <div class="grid grid-cols-2 gap-3">
@@ -247,12 +265,10 @@ function destroy(): void {
                     <AdminDateInput v-model="form.expires_at" with-time />
                 </Field>
             </div>
-            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input v-model="form.is_active" type="checkbox" :class="checkboxClass" />{{ t('admin.common.active') }}</label
-            >
+            <Checkbox v-model:checked="form.is_active">{{ t('admin.common.active') }}</Checkbox>
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="modalOpen = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="form.processing" :class="btnPrimary">{{ t('admin.common.save') }}</button>
+                <Button @click="modalOpen = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="form.processing">{{ t('admin.common.save') }}</Button>
             </div>
         </form>
     </FormModal>
@@ -268,23 +284,17 @@ function destroy(): void {
     />
 
     <FormModal :open="history !== null" :title="t('admin.coupons.history_title', { code: history?.code ?? '' })" @close="history = null">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="border-b border-gray-200 text-start text-gray-400 dark:border-gray-800">
-                    <th class="py-1.5 pe-4 text-start font-medium">{{ t('admin.common.customer') }}</th>
-                    <th class="py-1.5 pe-4 text-start font-medium">{{ t('admin.common.order') }}</th>
-                    <th class="py-1.5 pe-4 text-start font-medium">{{ t('admin.common.amount') }}</th>
-                    <th class="py-1.5 text-start font-medium">{{ t('admin.common.date') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="entry in history?.redemptions ?? []" :key="entry.id" class="border-b border-gray-100 dark:border-gray-800">
-                    <td class="py-1.5 pe-4 text-gray-800 dark:text-gray-200">{{ entry.customer }}</td>
-                    <td class="py-1.5 pe-4 text-gray-500">{{ entry.order_number ?? '—' }}</td>
-                    <td class="py-1.5 pe-4 text-gray-800 dark:text-gray-200">{{ entry.amount_formatted }}</td>
-                    <td class="py-1.5 text-gray-400">{{ entry.at }}</td>
-                </tr>
-            </tbody>
-        </table>
+        <Table
+            :columns="historyColumns"
+            :data-source="history?.redemptions ?? []"
+            :pagination="false"
+            row-key="id"
+            size="small"
+            :scroll="{ x: true }"
+        >
+            <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'order_number'">{{ record.order_number ?? '—' }}</template>
+            </template>
+        </Table>
     </FormModal>
 </template>

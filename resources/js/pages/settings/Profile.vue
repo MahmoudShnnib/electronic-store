@@ -1,31 +1,24 @@
 <script setup lang="ts">
-import { TransitionRoot } from '@headlessui/vue';
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-
 import DeleteUser from '@/components/DeleteUser.vue';
-import HeadingSmall from '@/components/HeadingSmall.vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import AppLayout from '@/layouts/AppLayout.vue';
+import StoreLayout from '@/layouts/StoreLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { type BreadcrumbItem, type SharedData, type User } from '@/types';
+import { type SharedData, type User } from '@/types';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Alert, Button, Card, Form, FormItem, Input, Typography } from 'ant-design-vue';
+import { useI18n } from 'vue-i18n';
+
+defineOptions({ layout: StoreLayout });
 
 interface Props {
     mustVerifyEmail: boolean;
     status?: string;
-    className?: string;
 }
 
 defineProps<Props>();
 
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Profile settings',
-        href: '/settings/profile',
-    },
-];
+const { Title, Text } = Typography;
+
+const { t } = useI18n();
 
 const page = usePage<SharedData>();
 const user = page.props.auth.user as User;
@@ -44,83 +37,46 @@ const submit = () => {
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Head title="Profile settings" />
+    <Head :title="t('settings.profile_title')" />
 
-        <SettingsLayout>
-            <div class="flex flex-col space-y-6">
-                <HeadingSmall title="Profile information" description="Update your name and email address" />
+    <SettingsLayout>
+        <Card>
+            <Title :level="2" class="!mb-1 !text-base !font-semibold">{{ t('settings.profile_title') }}</Title>
+            <Text class="!mb-5 !block !text-sm opacity-60">{{ t('settings.profile_description') }}</Text>
 
-                <form @submit.prevent="submit" class="space-y-6">
-                    <div class="grid gap-2">
-                        <Label for="name">Name</Label>
-                        <Input id="name" class="mt-1 block w-full" v-model="form.name" required autocomplete="name" placeholder="Full name" />
-                        <InputError class="mt-2" :message="form.errors.name" />
-                    </div>
+            <Form layout="vertical" @submit.prevent="submit">
+                <FormItem :label="t('settings.name')" required :validate-status="form.errors.name ? 'error' : undefined" :help="form.errors.name">
+                    <Input v-model:value="form.name" autocomplete="name" :placeholder="t('settings.name_placeholder')" />
+                </FormItem>
 
-                    <div class="grid gap-2">
-                        <Label for="email">Email address</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            class="mt-1 block w-full"
-                            v-model="form.email"
-                            required
-                            autocomplete="username"
-                            placeholder="Email address"
-                        />
-                        <InputError class="mt-2" :message="form.errors.email" />
-                    </div>
+                <FormItem :label="t('settings.email')" required :validate-status="form.errors.email ? 'error' : undefined" :help="form.errors.email">
+                    <Input v-model:value="form.email" type="email" autocomplete="username" dir="ltr" />
+                </FormItem>
 
-                    <div class="grid gap-2">
-                        <Label for="phone">Phone</Label>
-                        <Input
-                            id="phone"
-                            type="tel"
-                            class="mt-1 block w-full"
-                            v-model="form.phone"
-                            autocomplete="tel"
-                            dir="ltr"
-                            placeholder="Phone number"
-                        />
-                        <InputError class="mt-2" :message="form.errors.phone" />
-                    </div>
+                <FormItem :label="t('settings.phone')" :validate-status="form.errors.phone ? 'error' : undefined" :help="form.errors.phone">
+                    <Input v-model:value="form.phone" type="tel" autocomplete="tel" dir="ltr" />
+                </FormItem>
 
-                    <div v-if="mustVerifyEmail && !user.email_verified_at">
-                        <p class="mt-2 text-sm text-neutral-800">
-                            Your email address is unverified.
-                            <Link
-                                :href="route('verification.send')"
-                                method="post"
-                                as="button"
-                                class="focus:outline-hidden rounded-md text-sm text-neutral-600 underline hover:text-neutral-900 focus:ring-2 focus:ring-offset-2"
-                            >
-                                Click here to re-send the verification email.
-                            </Link>
-                        </p>
+                <Alert v-if="mustVerifyEmail && !user.email_verified_at" type="warning" show-icon class="!mb-4">
+                    <template #message>
+                        {{ t('settings.unverified') }}
+                        <Link :href="route('verification.send')" method="post" as="button" class="font-medium underline">
+                            {{ t('settings.resend_verification') }}
+                        </Link>
+                    </template>
+                </Alert>
 
-                        <div v-if="status === 'verification-link-sent'" class="mt-2 text-sm font-medium text-green-600">
-                            A new verification link has been sent to your email address.
-                        </div>
-                    </div>
+                <Alert v-if="status === 'verification-link-sent'" type="success" show-icon class="!mb-4" :message="t('settings.verification_sent')" />
 
-                    <div class="flex items-center gap-4">
-                        <Button :disabled="form.processing">Save</Button>
+                <div class="flex items-center gap-3">
+                    <Button type="primary" html-type="submit" :loading="form.processing">{{ t('common.save') }}</Button>
+                    <Transition name="fade">
+                        <Text v-if="form.recentlySuccessful" class="!text-sm opacity-60">{{ t('settings.saved') }}</Text>
+                    </Transition>
+                </div>
+            </Form>
+        </Card>
 
-                        <TransitionRoot
-                            :show="form.recentlySuccessful"
-                            enter="transition ease-in-out"
-                            enter-from="opacity-0"
-                            leave="transition ease-in-out"
-                            leave-to="opacity-0"
-                        >
-                            <p class="text-sm text-neutral-600">Saved.</p>
-                        </TransitionRoot>
-                    </div>
-                </form>
-            </div>
-
-            <DeleteUser />
-        </SettingsLayout>
-    </AppLayout>
+        <DeleteUser />
+    </SettingsLayout>
 </template>

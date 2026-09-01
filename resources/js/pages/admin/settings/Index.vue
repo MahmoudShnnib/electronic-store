@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
-import { btnPrimary, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { Button, Card, Input, InputNumber, Textarea } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
@@ -58,67 +58,65 @@ function submit(): void {
 
     <PageHeader :title="t('admin.settings.title')" :subtitle="t('admin.settings.subtitle')" />
 
-    <form class="grid max-w-3xl gap-6" @submit.prevent="submit">
-        <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.settings.general') }}</h2>
-            <div class="grid gap-4 sm:grid-cols-2">
-                <Field :label="t('admin.settings.store_name')">
-                    <input v-model="form.store_name" type="text" :class="inputClass" />
-                </Field>
-                <div />
-                <Field :label="t('admin.settings.support_email')">
-                    <input v-model="form.contact_email" type="email" :class="inputClass" />
-                </Field>
-                <Field :label="t('admin.settings.support_phone')">
-                    <input v-model="form.contact_phone" type="text" :class="inputClass" />
-                </Field>
-            </div>
-        </section>
+    <!-- Two columns on xl: General + Payments are short, Static pages is six
+         fields tall, so pairing them balances instead of leaving half the page
+         empty under a single narrow column. -->
+    <form class="grid max-w-3xl gap-6 xl:max-w-6xl xl:grid-cols-2 xl:items-start" @submit.prevent="submit">
+        <div class="grid gap-6">
+            <Card :title="t('admin.settings.general')" size="small">
+                <div class="grid gap-x-4 sm:grid-cols-2">
+                    <Field :label="t('admin.settings.store_name')">
+                        <Input v-model:value="form.store_name" />
+                    </Field>
+                    <div />
+                    <Field :label="t('admin.settings.support_email')">
+                        <Input v-model:value="form.contact_email" type="email" />
+                    </Field>
+                    <Field :label="t('admin.settings.support_phone')">
+                        <Input v-model:value="form.contact_phone" />
+                    </Field>
+                </div>
+            </Card>
 
-        <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.settings.payments') }}</h2>
-            <div class="grid gap-4">
+            <Card :title="t('admin.settings.payments')" size="small">
                 <Field :label="t('admin.settings.bank_transfer')" :hint="t('admin.settings.bank_transfer_hint')">
-                    <textarea v-model="form.bank_transfer_details" rows="3" :class="inputClass" />
+                    <Textarea v-model:value="form.bank_transfer_details" :rows="3" />
                 </Field>
                 <Field :label="t('admin.settings.invoice_footer')" :hint="t('admin.settings.invoice_footer_hint')">
-                    <textarea v-model="form.invoice_details" rows="2" :class="inputClass" />
+                    <Textarea v-model:value="form.invoice_details" :rows="2" />
                 </Field>
-            </div>
-        </section>
+            </Card>
+        </div>
 
-        <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.settings.static_pages') }}</h2>
-            <div class="grid gap-4">
-                <Field :label="t('admin.settings.about')">
-                    <textarea v-model="form.page_about" rows="4" :class="inputClass" />
-                </Field>
-                <Field :label="t('admin.settings.contact_page')">
-                    <textarea v-model="form.page_contact" rows="3" :class="inputClass" />
-                </Field>
-                <Field :label="t('admin.settings.privacy')">
-                    <textarea v-model="form.page_privacy" rows="4" :class="inputClass" />
-                </Field>
-                <Field :label="t('admin.settings.terms')">
-                    <textarea v-model="form.page_terms" rows="4" :class="inputClass" />
-                </Field>
-                <Field
-                    :label="t('admin.settings.return_window')"
-                    :hint="t('admin.settings.return_window_hint')"
-                    :error="form.errors['settings.return_window_days']"
-                >
-                    <input v-model.number="form.return_window_days" type="number" min="0" max="365" :class="inputClass" />
-                </Field>
-                <Field :label="t('admin.settings.return_policy')">
-                    <textarea v-model="form.page_returns" rows="4" :class="inputClass" />
-                </Field>
-            </div>
-        </section>
+        <Card :title="t('admin.settings.static_pages')" size="small">
+            <Field :label="t('admin.settings.about')">
+                <Textarea v-model:value="form.page_about" :rows="4" />
+            </Field>
+            <Field :label="t('admin.settings.contact_page')">
+                <Textarea v-model:value="form.page_contact" :rows="3" />
+            </Field>
+            <Field :label="t('admin.settings.privacy')">
+                <Textarea v-model:value="form.page_privacy" :rows="4" />
+            </Field>
+            <Field :label="t('admin.settings.terms')">
+                <Textarea v-model:value="form.page_terms" :rows="4" />
+            </Field>
+            <Field
+                :label="t('admin.settings.return_window')"
+                :hint="t('admin.settings.return_window_hint')"
+                :error="form.errors['settings.return_window_days']"
+            >
+                <InputNumber v-model:value="form.return_window_days" :min="0" :max="365" class="w-full" />
+            </Field>
+            <Field :label="t('admin.settings.return_policy')">
+                <Textarea v-model:value="form.page_returns" :rows="4" />
+            </Field>
+        </Card>
 
-        <div>
-            <button type="submit" :disabled="form.processing" :class="btnPrimary">
-                {{ form.processing ? 'Saving…' : 'Save settings' }}
-            </button>
+        <div class="xl:col-span-2">
+            <Button type="primary" html-type="submit" :loading="form.processing">
+                {{ form.processing ? t('admin.common.saving') : t('admin.common.save') }}
+            </Button>
         </div>
     </form>
 </template>

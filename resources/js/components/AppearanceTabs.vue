@@ -1,37 +1,32 @@
 <script setup lang="ts">
 import { useAppearance } from '@/composables/useAppearance';
+import { Radio, RadioGroup } from 'ant-design-vue';
 import { Monitor, Moon, Sun } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-interface Props {
-    class?: string;
-}
-
-const { class: containerClass = '' } = defineProps<Props>();
-
+const { t } = useI18n();
 const { appearance, updateAppearance } = useAppearance();
 
-const tabs = [
-    { value: 'light', Icon: Sun, label: 'Light' },
-    { value: 'dark', Icon: Moon, label: 'Dark' },
-    { value: 'system', Icon: Monitor, label: 'System' },
-] as const;
+const tabs = computed(() => [
+    { value: 'light', icon: Sun, label: t('settings.theme_light') },
+    { value: 'dark', icon: Moon, label: t('settings.theme_dark') },
+    { value: 'system', icon: Monitor, label: t('settings.theme_system') },
+]);
 </script>
 
 <template>
-    <div :class="['inline-flex gap-1 rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800', containerClass]">
-        <button
-            v-for="{ value, Icon, label } in tabs"
-            :key="value"
-            @click="updateAppearance(value)"
-            :class="[
-                'flex items-center rounded-md px-3.5 py-1.5 transition-colors',
-                appearance === value
-                    ? 'bg-white shadow-sm dark:bg-neutral-700 dark:text-neutral-100'
-                    : 'text-neutral-500 hover:bg-neutral-200/60 hover:text-black dark:text-neutral-400 dark:hover:bg-neutral-700/60',
-            ]"
-        >
-            <component :is="Icon" class="-ml-1 h-4 w-4" />
-            <span class="ml-1.5 text-sm">{{ label }}</span>
-        </button>
-    </div>
+    <RadioGroup
+        :value="appearance"
+        button-style="solid"
+        class="store-variants"
+        @update:value="(value) => updateAppearance(value as 'light' | 'dark' | 'system')"
+    >
+        <Radio.Button v-for="tab in tabs" :key="tab.value" :value="tab.value">
+            <span class="flex items-center gap-1.5">
+                <component :is="tab.icon" class="h-4 w-4" />
+                {{ tab.label }}
+            </span>
+        </Radio.Button>
+    </RadioGroup>
 </template>

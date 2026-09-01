@@ -5,9 +5,9 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
-import { btnSecondary } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { Button, TypographyText } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
@@ -54,7 +54,9 @@ const columns: Column[] = [
 
     <PageHeader :title="t('admin.inventory.movements_title')" :subtitle="t('admin.inventory.movements_subtitle')">
         <template #actions>
-            <Link :href="route('admin.inventory.index')" :class="btnSecondary">{{ t('admin.inventory.back_to_stock') }}</Link>
+            <Link :href="route('admin.inventory.index')">
+                <Button>{{ t('admin.inventory.back_to_stock') }}</Button>
+            </Link>
         </template>
     </PageHeader>
 
@@ -78,11 +80,9 @@ const columns: Column[] = [
             <StatusBadge :status="row.type" :label="row.type_label" />
         </template>
         <template #cell-change="{ row }">
-            <span :class="row.change >= 0 ? 'font-medium text-emerald-600' : 'font-medium text-red-600'">
-                {{ row.change >= 0 ? '+' : '' }}{{ row.change }}
-            </span>
+            <TypographyText :type="row.change >= 0 ? 'success' : 'danger'" strong> {{ row.change >= 0 ? '+' : '' }}{{ row.change }} </TypographyText>
         </template>
     </DataTable>
 
-    <Pagination :links="movements.links" :total="movements.total" :from="movements.from" :to="movements.to" />
+    <Pagination :paginator="movements" />
 </template>

@@ -1,87 +1,63 @@
 <script setup lang="ts">
+import { useMediaQuery } from '@/composables/useMediaQuery';
 import { useForm } from '@inertiajs/vue3';
+import { Alert, Button, Card, Form, FormItem, InputPassword, Modal, Typography } from 'ant-design-vue';
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
-// Components
-import HeadingSmall from '@/components/HeadingSmall.vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+/**
+ * Autofocus is a desktop-only convenience: on a phone it throws the on-screen
+ * keyboard up over the page before the person has read it.
+ */
+const autofocus = useMediaQuery('(min-width: 768px) and (pointer: fine)');
 
-const passwordInput = ref<HTMLInputElement | null>(null);
+const { Title, Text } = Typography;
+
+const { t } = useI18n();
+
+const open = ref(false);
 
 const form = useForm({
     password: '',
 });
 
-const deleteUser = (e: Event) => {
-    e.preventDefault();
-
+function deleteUser() {
     form.delete(route('profile.destroy'), {
         preserveScroll: true,
         onSuccess: () => closeModal(),
-        onError: () => passwordInput.value?.focus(),
         onFinish: () => form.reset(),
     });
-};
+}
 
-const closeModal = () => {
+function closeModal() {
+    open.value = false;
     form.clearErrors();
     form.reset();
-};
+}
 </script>
 
 <template>
-    <div class="space-y-6">
-        <HeadingSmall title="Delete account" description="Delete your account and all of its resources" />
-        <div class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
-            <div class="relative space-y-0.5 text-red-600 dark:text-red-100">
-                <p class="font-medium">Warning</p>
-                <p class="text-sm">Please proceed with caution, this cannot be undone.</p>
-            </div>
-            <Dialog>
-                <DialogTrigger as-child>
-                    <Button variant="destructive">Delete account</Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <form class="space-y-6" @submit="deleteUser">
-                        <DialogHeader class="space-y-3">
-                            <DialogTitle>Are you sure you want to delete your account?</DialogTitle>
-                            <DialogDescription>
-                                Once your account is deleted, all of its resources and data will also be permanently deleted. Please enter your
-                                password to confirm you would like to permanently delete your account.
-                            </DialogDescription>
-                        </DialogHeader>
+    <Card>
+        <Title :level="2" class="!mb-1 !text-base !font-semibold">{{ t('settings.delete_title') }}</Title>
+        <Text class="!block !text-sm opacity-60">{{ t('settings.delete_description') }}</Text>
 
-                        <div class="grid gap-2">
-                            <Label for="password" class="sr-only">Password</Label>
-                            <Input id="password" type="password" name="password" ref="passwordInput" v-model="form.password" placeholder="Password" />
-                            <InputError :message="form.errors.password" />
-                        </div>
+        <Alert type="error" show-icon class="!mt-4" :message="t('settings.delete_warning')" />
 
-                        <DialogFooter>
-                            <DialogClose as-child>
-                                <Button variant="secondary" @click="closeModal"> Cancel </Button>
-                            </DialogClose>
+        <Button danger class="!mt-4" @click="open = true">{{ t('settings.delete_button') }}</Button>
 
-                            <Button variant="destructive" :disabled="form.processing">
-                                <button type="submit">Delete account</button>
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-        </div>
-    </div>
+        <Modal :open="open" :title="t('settings.delete_confirm_title')" :footer="null" @cancel="closeModal">
+            <Form layout="vertical" @submit.prevent="deleteUser">
+                <Text class="!mb-4 !block opacity-70">{{ t('settings.delete_confirm_body') }}</Text>
+
+                <FormItem :label="t('auth.password')" :validate-status="form.errors.password ? 'error' : undefined" :help="form.errors.password">
+                    <InputPassword v-model:value="form.password" :autofocus="autofocus" dir="ltr" />
+                </FormItem>
+
+                <div class="flex justify-end gap-2">
+                    <Button @click="closeModal">{{ t('common.cancel') }}</Button>
+                    <Button type="primary" danger html-type="submit" :loading="form.processing">{{ t('settings.delete_button') }}</Button>
+                </div>
+            </Form>
+        </Modal>
+    </Card>
 </template>

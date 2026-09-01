@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import CatchGame from '@/components/store/CatchGame.vue';
 import ProductCard from '@/components/store/ProductCard.vue';
+import SnakeButton from '@/components/store/SnakeButton.vue';
 import type { ProductCardData } from '@/components/store/types';
 import StoreLayout from '@/layouts/StoreLayout.vue';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Carousel as ACarousel, Button, Col, Row, Typography } from 'ant-design-vue';
 import {
-    ChevronLeft,
-    ChevronRight,
+    Banknote,
     Cpu,
+    Flame,
     Gamepad2,
     Headphones,
     Laptop,
@@ -15,13 +18,20 @@ import {
     MousePointer,
     Package,
     Printer,
+    RotateCcw,
     Router,
+    ShieldCheck,
     Smartphone,
+    Sparkles,
+    TrendingUp,
+    Truck,
 } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
+
+const { Title, Text, Paragraph } = Typography;
 
 interface HomeCategory {
     id: number;
@@ -43,6 +53,11 @@ interface HomeBrand {
     logo_path: string | null;
 }
 
+interface CategorySection {
+    category: { name: string; name_ar: string | null; slug: string };
+    products: { data: ProductCardData[] };
+}
+
 const props = defineProps<{
     categories: HomeCategory[];
     brands: HomeBrand[];
@@ -50,6 +65,7 @@ const props = defineProps<{
     newArrivals: { data: ProductCardData[] };
     onSale: { data: ProductCardData[] };
     bestSellers: { data: ProductCardData[] };
+    categorySections: CategorySection[];
 }>();
 
 const { t } = useI18n();
@@ -75,8 +91,6 @@ function categoryIcon(category: HomeCategory) {
     return Package;
 }
 
-// Hero + banner tiles come from the featured/new pools.
-
 /** Distinct products, in order, capped at `limit`. */
 function takeUnique(pool: ProductCardData[], limit: number, exclude: number[] = []): ProductCardData[] {
     const unique: ProductCardData[] = [];
@@ -94,41 +108,18 @@ const HERO_ROTATE_MS = 6000;
 
 const heroSlides = computed(() => takeUnique([...props.featured.data, ...props.newArrivals.data], HERO_SLIDE_COUNT));
 
-const activeSlide = ref(0);
-function goToSlide(index: number) {
-    const count = heroSlides.value.length;
-    if (count === 0) return;
-    activeSlide.value = (index + count) % count;
+// a-carousel owns slide position/animation/dots; we just drive it via ref for
+// keyboard + the custom arrow buttons (its built-in nav isn't RTL-aware).
+const carouselRef = ref<InstanceType<typeof ACarousel>>();
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const heroAutoplay = computed(() => !prefersReducedMotion && heroSlides.value.length > 1);
+
+function nextSlide() {
+    carouselRef.value?.next();
 }
-
-const nextSlide = () => goToSlide(activeSlide.value + 1);
-const previousSlide = () => goToSlide(activeSlide.value - 1);
-
-// Autoplay: paused while the pointer or keyboard focus is inside the hero, and
-// disabled outright for anyone who asked for reduced motion.
-const heroPaused = ref(false);
-let heroTimer: ReturnType<typeof setInterval> | null = null;
-
-function stopHeroAutoplay() {
-    if (heroTimer !== null) {
-        clearInterval(heroTimer);
-        heroTimer = null;
-    }
+function previousSlide() {
+    carouselRef.value?.prev();
 }
-
-function startHeroAutoplay() {
-    stopHeroAutoplay();
-    if (heroSlides.value.length < 2) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    heroTimer = setInterval(() => {
-        if (!heroPaused.value) nextSlide();
-    }, HERO_ROTATE_MS);
-}
-
-onMounted(startHeroAutoplay);
-onBeforeUnmount(stopHeroAutoplay);
-watch(() => heroSlides.value.length, startHeroAutoplay);
 
 /** Split a product name so the last word can carry the bold accent. */
 function splitName(name: string): { light: string; bold: string } {
@@ -137,21 +128,26 @@ function splitName(name: string): { light: string; bold: string } {
     return { light: parts.slice(0, -1).join(' '), bold: parts[parts.length - 1] };
 }
 
-/**
- * Promo tiles lead with whatever is actually discounted; categories with a live
- * sale come first so the "up to N% off" badge is truthful rather than decorative.
- */
-const promoTiles = computed(() => [...props.categories].sort((a, b) => b.max_discount - a.max_discount).slice(0, 6));
+/** The service promises the shop actually keeps — mirrored at checkout. */
+const trustItems = [
+    { key: 'trust_cod', icon: Banknote },
+    { key: 'trust_delivery', icon: Truck },
+    { key: 'trust_genuine', icon: ShieldCheck },
+    { key: 'trust_returns', icon: RotateCcw },
+];
 
-/** Stacked homepage rows, each rendered only when it has something to show. */
+/** Stacked homepage rows, each rendered only when it has something to show.
+ *  Curated, not exhaustive: the hero already carries the featured products, so
+ *  there is no featured grid, and each row is capped at one full 6-up line —
+ *  the "More" link is the way to the rest, not a longer wall of cards. */
+const SECTION_CAP = 6;
 const productSections = computed(() =>
     [
-        { key: 'deals', title: t('home.top_deals'), products: props.onSale.data, href: route('catalog.index') },
-        { key: 'newArrivals', title: t('home.new_arrivals'), products: props.newArrivals.data, href: route('catalog.index') },
-        { key: 'bestSellers', title: t('home.best_sellers'), products: props.bestSellers.data, href: route('catalog.index') },
-        { key: 'featured', title: t('home.featured'), products: props.featured.data, href: route('catalog.index') },
+        { key: 'deals', title: t('home.top_deals'), icon: Flame, products: props.onSale.data, href: route('catalog.index', { on_sale: 1 }) },
+        { key: 'newArrivals', title: t('home.new_arrivals'), icon: Sparkles, products: props.newArrivals.data, href: route('catalog.index') },
+        { key: 'bestSellers', title: t('home.best_sellers'), icon: TrendingUp, products: props.bestSellers.data, href: route('catalog.index') },
     ]
-        .map((section) => ({ ...section, products: section.products.slice(0, 8) }))
+        .map((section) => ({ ...section, products: section.products.slice(0, SECTION_CAP) }))
         .filter((section) => section.products.length > 0),
 );
 
@@ -166,229 +162,252 @@ const gameImages = computed(() => [
 ]);
 
 /** A single tile can't loop seamlessly — render it once, unanimated. */
-const marqueeCopies = computed(() => (promoTiles.value.length >= 2 ? 3 : 1));
 const brandCopies = computed(() => (props.brands.length >= 2 ? 3 : 1));
+
+/** Two promo tiles beside the hero: best live discount first, then the biggest
+ *  category — the truthful stand-ins for the reference site's ad banners. */
+const sideTiles = computed(() => {
+    const ranked = [...props.categories].sort(
+        (a, b) => b.max_discount - a.max_discount || b.products_count - a.products_count,
+    );
+    return ranked.slice(0, 2);
+});
+
+function sectionTitle(section: CategorySection): string {
+    return locale.value === 'ar' && section.category.name_ar ? section.category.name_ar : section.category.name;
+}
 </script>
 
 <template>
     <Head :title="t('nav.home')" />
 
-    <!-- Hero carousel -->
-    <section
-        class="relative overflow-hidden bg-[#211C24] text-white"
-        role="region"
-        aria-roledescription="carousel"
-        :aria-label="t('home.featured')"
-        tabindex="0"
-        @mouseenter="heroPaused = true"
-        @mouseleave="heroPaused = false"
-        @focusin="heroPaused = true"
-        @focusout="heroPaused = false"
-        @keydown.left.prevent="locale === 'ar' ? nextSlide() : previousSlide()"
-        @keydown.right.prevent="locale === 'ar' ? previousSlide() : nextSlide()"
-    >
-        <!-- sm:px-20 keeps the slide content clear of the absolutely-positioned arrows. -->
-        <div class="mx-auto grid max-w-7xl px-4 py-10 sm:px-20 sm:py-20 lg:py-24">
-            <!-- Slides share one grid cell so the section keeps a stable height. -->
+    <!-- One <h1> for the page. The hero rotates, so its slide titles are <h2>s —
+         a carousel that changes the page's only top-level heading every six
+         seconds gives a screen reader a document outline that will not sit still. -->
+    <h1 class="sr-only">{{ $page.props.name }} — {{ t('home.hero_subtitle') }}</h1>
+
+    <!-- Hero: a framed carousel with two promo tiles beside it, the reference
+         site's opening move. The tiles are the two categories with the best
+         live story to tell (biggest discount, then sheer size). -->
+    <section class="mx-auto max-w-7xl px-4 pt-6">
+        <div class="grid gap-4 lg:grid-cols-3">
             <div
-                v-for="(slide, index) in heroSlides"
-                :key="slide.id"
-                class="col-start-1 row-start-1 grid items-center gap-10 transition-opacity duration-700 lg:grid-cols-2"
-                :class="index === activeSlide ? 'opacity-100' : 'pointer-events-none opacity-0'"
-                :aria-hidden="index !== activeSlide"
-                role="group"
-                aria-roledescription="slide"
-                :aria-label="`${index + 1} / ${heroSlides.length}`"
+                class="store-slab store-slab-hero store-slab-deco relative overflow-hidden rounded-2xl lg:col-span-2"
+                role="region"
+                aria-roledescription="carousel"
+                :aria-label="t('home.featured')"
+                tabindex="0"
+                @keydown.left.prevent="locale === 'ar' ? nextSlide() : previousSlide()"
+                @keydown.right.prevent="locale === 'ar' ? previousSlide() : nextSlide()"
             >
-                <div class="text-center lg:text-start">
-                    <p class="text-base font-semibold text-white/40 sm:text-2xl">{{ t('home.featured') }}</p>
-                    <h1 class="mt-2 text-3xl font-light leading-tight tracking-tight sm:mt-3 sm:text-7xl">
-                        {{ splitName(slide.name).light }}
-                        <span class="font-semibold">{{ splitName(slide.name).bold }}</span>
-                    </h1>
-                    <p class="mt-4 text-lg text-[#909090]">{{ t('home.hero_subtitle') }}</p>
-                    <p class="mt-2 text-2xl font-light">{{ slide.current_price_formatted }}</p>
-                    <Link
-                        :href="route('products.show', slide.slug)"
-                        class="mt-8 inline-block rounded-md border border-white px-14 py-3.5 text-sm font-medium transition hover:bg-white hover:text-black"
-                        :tabindex="index === activeSlide ? 0 : -1"
-                    >
-                        {{ t('home.shop_now') }}
-                    </Link>
-                </div>
-                <div class="flex items-center justify-center">
-                    <img
-                        v-if="slide.image"
-                        :src="slide.image"
-                        :alt="slide.name"
-                        class="max-h-52 w-auto rounded-2xl object-contain drop-shadow-2xl sm:max-h-[420px]"
-                        :loading="index === 0 ? 'eager' : 'lazy'"
-                    />
-                    <div v-else class="flex h-72 w-72 items-center justify-center rounded-3xl bg-white/5">
-                        <Package class="h-24 w-24 text-white/20" />
+                <ACarousel
+                    v-if="heroSlides.length > 0"
+                    ref="carouselRef"
+                    :autoplay="heroAutoplay"
+                    :autoplay-speed="HERO_ROTATE_MS"
+                    dots
+                    effect="fade"
+                >
+                    <div v-for="(slide, index) in heroSlides" :key="slide.id">
+                        <div class="grid items-center gap-6 px-6 py-10 sm:px-10 lg:grid-cols-2 lg:py-14">
+                            <div class="text-center lg:text-start">
+                                <Text class="store-slab-ink-soft !text-sm !font-semibold sm:!text-lg">{{ t('home.featured') }}</Text>
+                                <Title
+                                    :level="2"
+                                    class="store-slab-title !mt-2 !text-3xl !font-light !leading-tight !tracking-tight sm:!text-5xl"
+                                >
+                                    {{ splitName(slide.name).light }}
+                                    <span class="font-semibold">{{ splitName(slide.name).bold }}</span>
+                                </Title>
+                                <Paragraph class="store-slab-ink-soft !mt-3 !text-base">{{ t('home.hero_subtitle') }}</Paragraph>
+                                <p class="mt-1 text-2xl font-light">{{ slide.current_price_formatted }}</p>
+                                <div class="mt-6">
+                                    <SnakeButton :href="route('products.show', slide.slug)">{{ t('home.shop_now') }}</SnakeButton>
+                                </div>
+                            </div>
+                            <div class="hidden items-center justify-center lg:flex">
+                                <!-- The first slide is the page's LCP element; the rest are
+                                     off-screen until the carousel advances. -->
+                                <img
+                                    v-if="slide.image"
+                                    :src="slide.image"
+                                    :alt="slide.name"
+                                    width="512"
+                                    height="512"
+                                    class="max-h-64 w-auto rounded-2xl object-contain drop-shadow-2xl"
+                                    :loading="index === 0 ? 'eager' : 'lazy'"
+                                    :fetchpriority="index === 0 ? 'high' : undefined"
+                                    decoding="async"
+                                />
+                                <div v-else class="store-slab-well flex h-56 w-56 items-center justify-center rounded-3xl">
+                                    <Package class="h-20 w-20 opacity-25" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ACarousel>
+
+                <!-- Empty state: no products at all. -->
+                <div v-else class="px-6 py-16 text-center">
+                    <Title :level="1" class="store-slab-title !text-5xl !font-light sm:!text-6xl">{{ $page.props.name }}</Title>
+                    <Paragraph class="store-slab-ink-soft !mt-4 !text-lg">{{ t('home.hero_subtitle') }}</Paragraph>
+                    <div class="mt-8">
+                        <SnakeButton :href="route('catalog.index')">{{ t('home.view_all') }}</SnakeButton>
                     </div>
                 </div>
+
+                <template v-if="heroSlides.length > 1">
+                    <Button
+                        shape="circle"
+                        class="store-slab-arrow !absolute start-2 top-1/2 hidden -translate-y-1/2 sm:!flex"
+                        :aria-label="t('home.previous_slide')"
+                        @click="previousSlide"
+                    >
+                        <template #icon><component :is="locale === 'ar' ? RightOutlined : LeftOutlined" /></template>
+                    </Button>
+                    <Button
+                        shape="circle"
+                        class="store-slab-arrow !absolute end-2 top-1/2 hidden -translate-y-1/2 sm:!flex"
+                        :aria-label="t('home.next_slide')"
+                        @click="nextSlide"
+                    >
+                        <template #icon><component :is="locale === 'ar' ? LeftOutlined : RightOutlined" /></template>
+                    </Button>
+                </template>
             </div>
 
-            <!-- Empty state: no products at all. -->
-            <div v-if="heroSlides.length === 0" class="col-start-1 row-start-1 py-10 text-center">
-                <h1 class="text-5xl font-light sm:text-7xl">{{ $page.props.name }}</h1>
-                <p class="mt-4 text-lg text-[#909090]">{{ t('home.hero_subtitle') }}</p>
+            <!-- Side promo tiles -->
+            <div v-if="sideTiles.length > 0" class="grid grid-cols-2 gap-4 lg:grid-cols-1 lg:grid-rows-2">
                 <Link
-                    :href="route('catalog.index')"
-                    class="mt-8 inline-block rounded-md border border-white px-14 py-3.5 text-sm font-medium transition hover:bg-white hover:text-black"
-                >
-                    {{ t('home.view_all') }}
-                </Link>
-            </div>
-        </div>
-
-        <template v-if="heroSlides.length > 1">
-            <button
-                type="button"
-                class="absolute start-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-white/10 p-3 transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:block"
-                :aria-label="t('home.previous_slide')"
-                @click="previousSlide"
-            >
-                <component :is="locale === 'ar' ? ChevronRight : ChevronLeft" class="h-5 w-5" />
-            </button>
-            <button
-                type="button"
-                class="absolute end-2 top-1/2 hidden -translate-y-1/2 rounded-full bg-white/10 p-3 transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white sm:block"
-                :aria-label="t('home.next_slide')"
-                @click="nextSlide"
-            >
-                <component :is="locale === 'ar' ? ChevronLeft : ChevronRight" class="h-5 w-5" />
-            </button>
-
-            <div class="absolute inset-x-0 bottom-6 flex justify-center gap-2">
-                <button
-                    v-for="(slide, index) in heroSlides"
-                    :key="slide.id"
-                    type="button"
-                    class="h-2 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                    :class="index === activeSlide ? 'w-8 bg-white' : 'w-2 bg-white/30 hover:bg-white/60'"
-                    :aria-label="t('home.go_to_slide', { number: index + 1 })"
-                    :aria-current="index === activeSlide"
-                    @click="goToSlide(index)"
-                />
-            </div>
-        </template>
-    </section>
-
-    <!-- Promo tiles: endless drifting marquee, alternating light/dark.
-         The row is repeated three times and each copy slides its own full
-         width, so when one copy exits the next is already in its place. -->
-    <section v-if="promoTiles.length > 0" class="mx-auto max-w-7xl overflow-hidden px-4 pt-8">
-        <div class="promo-marquee-wrap flex pb-2">
-            <div
-                v-for="copy in marqueeCopies"
-                :key="copy"
-                class="promo-marquee flex shrink-0 gap-4 pe-4"
-                :class="{ 'promo-marquee-static': marqueeCopies === 1 }"
-                :style="{ animationDuration: `${promoTiles.length * 8}s` }"
-                :aria-hidden="copy > 1 ? 'true' : undefined"
-            >
-                <Link
-                    v-for="(tile, index) in promoTiles"
+                    v-for="tile in sideTiles"
                     :key="tile.id"
                     :href="route('catalog.category', tile.slug)"
-                    :tabindex="copy > 1 ? -1 : undefined"
-                    class="relative flex h-40 w-[300px] shrink-0 items-center gap-4 overflow-hidden rounded-2xl px-5 transition hover:opacity-95 sm:w-[380px]"
-                    :class="index % 2 === 0 ? 'bg-[#E9E7E4] text-black' : 'bg-[#1C1C1C] text-white'"
+                    class="group relative block h-36 overflow-hidden rounded-2xl sm:h-44 lg:h-full lg:min-h-[10rem]"
                 >
-                    <div class="relative z-10 flex-1">
-                        <h3 class="text-lg font-semibold leading-tight">{{ categoryName(tile) }}</h3>
-                        <span
-                            v-if="tile.max_discount > 0"
-                            class="mt-3 inline-block rounded-md px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide"
-                            :class="index % 2 === 0 ? 'bg-black text-white' : 'bg-white text-black'"
-                        >
-                            {{ t('home.up_to_off', { percent: tile.max_discount }) }}
-                        </span>
-                        <span v-else class="mt-3 block text-xs opacity-70">
-                            {{ t('home.product_count', tile.products_count) }}
-                        </span>
+                    <img
+                        v-if="tile.image"
+                        :src="tile.image"
+                        :alt="categoryName(tile)"
+                        width="640"
+                        height="360"
+                        loading="lazy"
+                        decoding="async"
+                        class="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div v-else class="store-slab absolute inset-0 flex items-center justify-center">
+                        <component :is="categoryIcon(tile)" class="h-12 w-12 opacity-30" />
                     </div>
-                    <img v-if="tile.image" :src="tile.image" :alt="categoryName(tile)" loading="lazy" class="h-28 w-28 rounded-xl object-cover" />
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"></div>
+                    <div class="absolute inset-x-0 bottom-0 p-4 text-start text-white">
+                        <p class="text-base font-semibold leading-tight">{{ categoryName(tile) }}</p>
+                        <p v-if="tile.max_discount > 0" class="mt-1 text-sm font-bold text-[#4ade9b]">
+                            {{ t('home.up_to_off', { percent: tile.max_discount }) }}
+                        </p>
+                        <p v-else class="mt-1 text-xs opacity-80">{{ t('home.product_count', tile.products_count) }}</p>
+                    </div>
                 </Link>
             </div>
         </div>
     </section>
 
-    <!-- Categories rail -->
+    <!-- Categories: bold accent tile cards straight under the hero — the page's
+         map. Icon in a chip, name and size inside the card; the discount pill
+         only appears when a category actually has a live sale. -->
     <section v-if="categories.length > 0" class="mx-auto max-w-7xl px-4 pt-10">
-        <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-lg font-semibold">{{ t('home.shop_by_category') }}</h2>
-            <Link
-                :href="route('catalog.index')"
-                class="flex items-center gap-1 text-sm text-[#8B8B8B] transition hover:text-black dark:hover:text-white"
-            >
-                {{ t('home.more') }}
-                <ChevronRight class="h-4 w-4 rtl:rotate-180" />
+        <div class="mb-6 flex items-center justify-between">
+            <Title :level="3" class="store-section-title !m-0 !text-2xl !font-medium">{{ t('home.shop_by_category') }}</Title>
+            <Link :href="route('catalog.index')">
+                <Button type="link" class="!px-0">
+                    {{ t('home.more') }}
+                    <template #icon><RightOutlined class="rtl:rotate-180" /></template>
+                </Button>
             </Link>
         </div>
-        <div class="flex snap-x gap-3 overflow-x-auto pb-2 [scrollbar-width:none] lg:gap-4 [&::-webkit-scrollbar]:hidden">
-            <Link
-                v-for="category in categories"
-                :key="category.id"
-                :href="route('catalog.category', category.slug)"
-                class="group w-28 shrink-0 snap-start text-center sm:w-36 lg:w-44"
-            >
-                <div
-                    class="relative h-28 w-28 overflow-hidden rounded-2xl bg-neutral-900 ring-1 ring-black/5 transition group-hover:-translate-y-1 group-hover:shadow-lg dark:ring-white/10 sm:h-36 sm:w-36 lg:h-44 lg:w-44"
-                >
-                    <img
-                        v-if="category.image"
-                        :src="category.image"
-                        :alt="categoryName(category)"
-                        loading="lazy"
-                        class="absolute inset-0 h-full w-full object-cover opacity-90 transition duration-500 group-hover:scale-105"
-                    />
-                    <div class="absolute inset-0 bg-black/25"></div>
-                    <div class="absolute inset-0 flex items-center justify-center">
-                        <span class="rounded-full bg-white/15 p-2.5 backdrop-blur-sm lg:p-3.5">
-                            <component :is="categoryIcon(category)" class="h-5 w-5 text-white lg:h-7 lg:w-7" />
-                        </span>
-                    </div>
+        <div class="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 lg:grid-cols-6 lg:gap-x-4">
+            <Link v-for="category in categories" :key="category.id" :href="route('catalog.category', category.slug)" class="group block text-center">
+                <div class="store-category-card">
+                    <img v-if="category.image" :src="category.image" :alt="categoryName(category)" width="160" height="160" loading="lazy" decoding="async" />
+                    <component :is="categoryIcon(category)" v-else class="h-10 w-10 text-black/35" />
                 </div>
-                <span class="mt-2 line-clamp-2 block text-xs font-medium leading-snug sm:text-sm">{{ categoryName(category) }}</span>
+                <span class="mt-2 line-clamp-2 block text-xs font-semibold leading-snug sm:text-sm">{{ categoryName(category) }}</span>
+                <span v-if="category.max_discount > 0" class="mt-0.5 block text-xs font-bold text-[#0f9d58]">
+                    {{ t('home.up_to_off', { percent: category.max_discount }) }}
+                </span>
+                <span v-else class="mt-0.5 block text-xs opacity-55">{{ t('home.product_count', category.products_count) }}</span>
             </Link>
+        </div>
+    </section>
+
+    <!-- Trust strip: the promises the shop actually keeps. -->
+    <section class="mx-auto max-w-7xl px-4 pt-8">
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div v-for="item in trustItems" :key="item.key" class="store-trust-item">
+                <component :is="item.icon" class="h-5 w-5" />
+                <span>{{ t(`home.${item.key}`) }}</span>
+            </div>
         </div>
     </section>
 
     <!-- Stacked product sections, each with its own "More" link -->
     <section v-for="section in productSections" :key="section.key" class="mx-auto max-w-7xl px-4 pt-10">
         <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-lg font-semibold">{{ section.title }}</h2>
-            <Link :href="section.href" class="flex items-center gap-1 text-sm text-[#8B8B8B] transition hover:text-black dark:hover:text-white">
-                {{ t('home.more') }}
-                <ChevronRight class="h-4 w-4 rtl:rotate-180" />
+            <Title :level="3" class="store-section-title !m-0 !flex !items-center !gap-2 !text-lg !font-semibold">
+                <component :is="section.icon" class="h-5 w-5 text-[#0f9d58]" />
+                {{ section.title }}
+            </Title>
+            <Link :href="section.href">
+                <Button type="link" class="!px-0">
+                    {{ t('home.more') }}
+                    <template #icon><RightOutlined class="rtl:rotate-180" /></template>
+                </Button>
             </Link>
         </div>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-            <ProductCard v-for="product in section.products" :key="product.id" :product="product" />
+        <Row :gutter="[12, 12]">
+            <Col v-for="product in section.products" :key="product.id" :xs="12" :sm="8" :lg="6" :xl="4">
+                <ProductCard :product="product" />
+            </Col>
+        </Row>
+    </section>
+
+    <!-- Category spotlights: the two biggest departments get their own row,
+         the reference site's "gaming chairs / headsets" sections driven by
+         whatever this catalogue actually stocks. -->
+    <section v-for="section in categorySections" :key="section.category.slug" class="mx-auto max-w-7xl px-4 pt-10">
+        <div class="mb-4 flex items-center justify-between">
+            <Title :level="3" class="store-section-title !m-0 !text-lg !font-semibold">{{ sectionTitle(section) }}</Title>
+            <Link :href="route('catalog.category', section.category.slug)">
+                <Button type="link" class="!px-0">
+                    {{ t('home.more') }}
+                    <template #icon><RightOutlined class="rtl:rotate-180" /></template>
+                </Button>
+            </Link>
         </div>
+        <Row :gutter="[12, 12]">
+            <Col v-for="product in section.products.data" :key="product.id" :xs="12" :sm="8" :lg="6" :xl="4">
+                <ProductCard :product="product" />
+            </Col>
+        </Row>
     </section>
 
     <!-- Big sale banner -->
-    <section class="mt-14 bg-gradient-to-br from-[#211C24] via-[#211C24] to-[#3a2d4a] py-24 text-center text-white">
+    <section class="store-slab store-slab-deco mt-14 py-24 text-center">
         <div class="mx-auto max-w-3xl px-4">
-            <h2 class="text-5xl font-light tracking-tight sm:text-6xl">Big Summer <span class="font-semibold">Sale</span></h2>
-            <p class="mt-4 text-[#787878]">{{ t('home.on_sale') }} — {{ t('home.view_all') }}</p>
-            <Link
-                :href="route('catalog.index', { on_sale: 1 })"
-                class="mt-10 inline-block rounded-md border border-white px-14 py-3.5 text-sm font-medium transition hover:bg-white hover:text-black"
-            >
-                {{ t('home.view_all') }}
-            </Link>
+            <Title :level="2" class="store-slab-title !text-5xl !font-light !tracking-tight sm:!text-6xl">
+                {{ t('home.sale_banner_title') }}
+            </Title>
+            <Paragraph class="store-slab-ink-soft !mt-4">{{ t('home.sale_banner_subtitle') }}</Paragraph>
+            <div class="mt-10">
+                <SnakeButton :href="route('catalog.index', { on_sale: 1 })">{{ t('home.view_all') }}</SnakeButton>
+            </div>
         </div>
     </section>
 
     <!-- Brands -->
-    <section v-if="brands.length > 0" class="mx-auto max-w-7xl overflow-hidden px-4 py-14">
-        <h2 class="mb-8 text-2xl font-medium">{{ t('home.shop_by_brand') }}</h2>
-        <div class="promo-marquee-wrap flex">
+    <section v-if="brands.length > 0" class="store-band overflow-hidden py-14">
+        <div class="mx-auto max-w-7xl px-4">
+            <Title :level="3" class="store-section-title !mb-8 !text-2xl !font-medium">{{ t('home.shop_by_brand') }}</Title>
+        </div>
+        <div class="promo-marquee-wrap store-marquee-mask flex">
             <div
                 v-for="copy in brandCopies"
                 :key="copy"
@@ -397,14 +416,8 @@ const brandCopies = computed(() => (props.brands.length >= 2 ? 3 : 1));
                 :style="{ animationDuration: `${brands.length * 2.5}s` }"
                 :aria-hidden="copy > 1 ? 'true' : undefined"
             >
-                <Link
-                    v-for="brand in brands"
-                    :key="brand.id"
-                    :href="route('catalog.brand', brand.slug)"
-                    :tabindex="copy > 1 ? -1 : undefined"
-                    class="shrink-0 whitespace-nowrap rounded-md border border-[#DBDBDB] px-6 py-2.5 text-sm font-medium transition hover:border-black hover:bg-black hover:text-white dark:border-neutral-700 dark:hover:border-white dark:hover:bg-white dark:hover:text-black"
-                >
-                    {{ brand.name }}
+                <Link v-for="brand in brands" :key="brand.id" :href="route('catalog.brand', brand.slug)" :tabindex="copy > 1 ? -1 : undefined">
+                    <Button shape="round" class="!whitespace-nowrap">{{ brand.name }}</Button>
                 </Link>
             </div>
         </div>

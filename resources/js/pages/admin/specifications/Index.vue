@@ -4,9 +4,9 @@ import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import Field from '@/components/admin/Field.vue';
 import FormModal from '@/components/admin/FormModal.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
-import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
+import { Button, Card, Checkbox, CheckboxGroup, Empty, Input, InputNumber, Space, Tag, Tooltip, Typography } from 'ant-design-vue';
 import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -159,104 +159,78 @@ function destroyAttribute(): void {
 
     <PageHeader :title="t('admin.specifications.title')" :subtitle="t('admin.specifications.subtitle')">
         <template #actions>
-            <button type="button" :class="btnPrimary" @click="openGroupCreate">
-                <Plus class="h-4 w-4" />{{ t('admin.specifications.new_group') }}
-            </button>
+            <Button type="primary" @click="openGroupCreate">
+                <template #icon><Plus class="h-4 w-4" /></template>
+                {{ t('admin.specifications.new_group') }}
+            </Button>
         </template>
     </PageHeader>
 
     <div class="grid gap-5 lg:grid-cols-2">
-        <section
-            v-for="group in groups"
-            :key="group.id"
-            class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
-        >
-            <div class="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+        <Card v-for="group in groups" :key="group.id" size="small" :body-style="{ padding: 0 }">
+            <template #title>
                 <div>
-                    <h2 class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ group.name }}</h2>
-                    <p v-if="group.name_ar" class="text-xs text-gray-400" dir="rtl">{{ group.name_ar }}</p>
+                    <Typography.Text strong>{{ group.name }}</Typography.Text>
+                    <Typography.Text v-if="group.name_ar" type="secondary" class="block text-xs" dir="rtl">{{ group.name_ar }}</Typography.Text>
                 </div>
-                <div class="flex items-center gap-1">
-                    <button type="button" :class="btnSecondary" class="!px-2 !py-1 text-xs" @click="openAttributeCreate(group)">
-                        <Plus class="h-3.5 w-3.5" />{{ t('admin.specifications.attribute') }}
-                    </button>
-                    <button
-                        type="button"
-                        class="rounded p-1.5 text-gray-400 hover:text-blue-600"
-                        :title="t('admin.specifications.edit_group')"
-                        @click="openGroupEdit(group)"
-                    >
-                        <Pencil class="h-4 w-4" />
-                    </button>
-                    <button
-                        type="button"
-                        class="rounded p-1.5 text-gray-400 hover:text-red-600"
-                        :title="t('admin.specifications.delete_group')"
-                        @click="deletingGroup = group"
-                    >
-                        <Trash2 class="h-4 w-4" />
-                    </button>
-                </div>
-            </div>
+            </template>
+            <template #extra>
+                <Space :size="4">
+                    <Button size="small" @click="openAttributeCreate(group)">
+                        <template #icon><Plus class="h-3.5 w-3.5" /></template>
+                        {{ t('admin.specifications.attribute') }}
+                    </Button>
+                    <Tooltip :title="t('admin.specifications.edit_group')">
+                        <Button type="text" size="small" :aria-label="t('admin.specifications.edit_group')" @click="openGroupEdit(group)">
+                            <template #icon><Pencil class="h-4 w-4" /></template>
+                        </Button>
+                    </Tooltip>
+                    <Tooltip :title="t('admin.specifications.delete_group')">
+                        <Button type="text" size="small" danger :aria-label="t('admin.specifications.delete_group')" @click="deletingGroup = group">
+                            <template #icon><Trash2 class="h-4 w-4" /></template>
+                        </Button>
+                    </Tooltip>
+                </Space>
+            </template>
             <ul class="divide-y divide-gray-100 dark:divide-gray-800">
                 <li v-for="attribute in group.attributes" :key="attribute.id" class="flex items-center justify-between px-4 py-2.5 text-sm">
                     <div>
-                        <span class="text-gray-800 dark:text-gray-200">{{ attribute.name }}</span>
-                        <span v-if="attribute.unit" class="ms-1 text-xs text-gray-400">({{ attribute.unit }})</span>
-                        <span class="ms-2 rounded bg-gray-100 px-1.5 py-0.5 text-[10px] uppercase text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                            {{ attribute.type }}
-                        </span>
-                        <span
-                            v-if="attribute.is_filterable"
-                            class="ms-1 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] uppercase text-blue-600 dark:bg-blue-950 dark:text-blue-300"
-                            >{{ t('admin.specifications.filter') }}</span
-                        >
-                        <span
-                            class="ms-1 rounded px-1.5 py-0.5 text-[10px]"
-                            :class="
-                                attribute.category_ids.length === 0
-                                    ? 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500'
-                                    : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300'
-                            "
-                        >
+                        <span>{{ attribute.name }}</span>
+                        <Typography.Text v-if="attribute.unit" type="secondary" class="ms-1 text-xs">({{ attribute.unit }})</Typography.Text>
+                        <Tag class="ms-2 uppercase">{{ attribute.type }}</Tag>
+                        <Tag v-if="attribute.is_filterable" color="blue" class="uppercase">{{ t('admin.specifications.filter') }}</Tag>
+                        <Tag :color="attribute.category_ids.length === 0 ? undefined : 'green'">
                             {{
                                 attribute.category_ids.length === 0 ? t('admin.specifications.all_categories') : categoryNames(attribute.category_ids)
                             }}
-                        </span>
+                        </Tag>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <span class="text-xs text-gray-400">{{ t('admin.specifications.uses_n', { count: attribute.values_count }) }}</span>
-                        <button
-                            type="button"
-                            class="rounded p-1 text-gray-400 hover:text-blue-600"
-                            :title="t('admin.common.edit')"
-                            @click="openAttributeEdit(group, attribute)"
-                        >
-                            <Pencil class="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                            type="button"
-                            class="rounded p-1 text-gray-400 hover:text-red-600"
-                            :title="t('admin.common.delete')"
-                            @click="deletingAttribute = attribute"
-                        >
-                            <Trash2 class="h-3.5 w-3.5" />
-                        </button>
-                    </div>
+                    <Space :size="4">
+                        <Typography.Text type="secondary" class="text-xs">
+                            {{ t('admin.specifications.uses_n', { count: attribute.values_count }, attribute.values_count) }}
+                        </Typography.Text>
+                        <Tooltip :title="t('admin.common.edit')">
+                            <Button type="text" size="small" :aria-label="t('admin.common.edit')" @click="openAttributeEdit(group, attribute)">
+                                <template #icon><Pencil class="h-3.5 w-3.5" /></template>
+                            </Button>
+                        </Tooltip>
+                        <Tooltip :title="t('admin.common.delete')">
+                            <Button type="text" size="small" danger :aria-label="t('admin.common.delete')" @click="deletingAttribute = attribute">
+                                <template #icon><Trash2 class="h-3.5 w-3.5" /></template>
+                            </Button>
+                        </Tooltip>
+                    </Space>
                 </li>
-                <li v-if="group.attributes.length === 0" class="px-4 py-5 text-center text-sm text-gray-400">
-                    {{ t('admin.specifications.no_attributes') }}
+                <li v-if="group.attributes.length === 0" class="px-4 py-5 text-center text-sm">
+                    <Typography.Text type="secondary">{{ t('admin.specifications.no_attributes') }}</Typography.Text>
                 </li>
             </ul>
-        </section>
+        </Card>
     </div>
 
-    <p
-        v-if="groups.length === 0"
-        class="rounded-lg border border-dashed border-gray-300 bg-white p-10 text-center text-sm text-gray-400 dark:border-gray-700 dark:bg-gray-900"
-    >
-        {{ t('admin.specifications.no_groups') }}
-    </p>
+    <Card v-if="groups.length === 0">
+        <Empty :description="t('admin.specifications.no_groups')" />
+    </Card>
 
     <!-- Group modal -->
     <FormModal
@@ -266,17 +240,17 @@ function destroyAttribute(): void {
     >
         <form class="grid gap-4" @submit.prevent="submitGroup">
             <Field :label="t('admin.common.name')" required :error="groupForm.errors.name">
-                <input v-model="groupForm.name" type="text" :class="inputClass" dir="ltr" />
+                <Input v-model:value="groupForm.name" dir="ltr" />
             </Field>
             <Field :label="t('admin.common.name_ar')" :error="groupForm.errors.name_ar">
-                <input v-model="groupForm.name_ar" type="text" dir="rtl" :class="inputClass" />
+                <Input v-model:value="groupForm.name_ar" dir="rtl" />
             </Field>
             <Field :label="t('admin.common.position')" :error="groupForm.errors.position">
-                <input v-model.number="groupForm.position" type="number" min="0" :class="inputClass" />
+                <InputNumber v-model:value="groupForm.position" :min="0" class="w-full" />
             </Field>
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="groupModal = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="groupForm.processing" :class="btnPrimary">{{ t('admin.common.save') }}</button>
+                <Button @click="groupModal = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="groupForm.processing">{{ t('admin.common.save') }}</Button>
             </div>
         </form>
     </FormModal>
@@ -290,15 +264,15 @@ function destroyAttribute(): void {
         <form class="grid gap-4" @submit.prevent="submitAttribute">
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.common.name')" required :error="attributeForm.errors.name">
-                    <input v-model="attributeForm.name" type="text" :class="inputClass" dir="ltr" />
+                    <Input v-model:value="attributeForm.name" dir="ltr" />
                 </Field>
                 <Field :label="t('admin.common.name_ar')" :error="attributeForm.errors.name_ar">
-                    <input v-model="attributeForm.name_ar" type="text" dir="rtl" :class="inputClass" />
+                    <Input v-model:value="attributeForm.name_ar" dir="rtl" />
                 </Field>
             </div>
             <div class="grid grid-cols-3 gap-3">
                 <Field :label="t('admin.common.unit')" :hint="t('admin.specifications.unit_hint')" :error="attributeForm.errors.unit">
-                    <input v-model="attributeForm.unit" type="text" :class="inputClass" />
+                    <Input v-model:value="attributeForm.unit" />
                 </Field>
                 <Field :label="t('admin.common.type')" :error="attributeForm.errors.type">
                     <AdminSelect
@@ -311,25 +285,23 @@ function destroyAttribute(): void {
                     />
                 </Field>
                 <Field :label="t('admin.common.position')" :error="attributeForm.errors.position">
-                    <input v-model.number="attributeForm.position" type="number" min="0" :class="inputClass" />
+                    <InputNumber v-model:value="attributeForm.position" :min="0" class="w-full" />
                 </Field>
             </div>
-            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input v-model="attributeForm.is_filterable" type="checkbox" :class="checkboxClass" />{{
-                    t('admin.specifications.filterable')
-                }}</label
-            >
+            <Checkbox v-model:checked="attributeForm.is_filterable">{{ t('admin.specifications.filterable') }}</Checkbox>
             <Field :label="t('admin.specifications.categories_label')" :hint="t('admin.specifications.categories_hint')">
-                <div class="grid max-h-44 grid-cols-2 gap-1 overflow-y-auto rounded-md border border-gray-200 p-2 dark:border-gray-700">
-                    <label v-for="category in categories" :key="category.id" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input v-model="attributeForm.categories" type="checkbox" :value="category.id" :class="checkboxClass" />
+                <CheckboxGroup
+                    v-model:value="attributeForm.categories"
+                    class="grid max-h-44 w-full grid-cols-2 gap-1 overflow-y-auto rounded-md border border-gray-200 p-2 dark:border-gray-700"
+                >
+                    <Checkbox v-for="category in categories" :key="category.id" :value="category.id">
                         <span :class="{ 'ps-3 text-gray-500': category.parent_id !== null }">{{ category.name }}</span>
-                    </label>
-                </div>
+                    </Checkbox>
+                </CheckboxGroup>
             </Field>
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="attributeModal = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="attributeForm.processing" :class="btnPrimary">{{ t('admin.common.save') }}</button>
+                <Button @click="attributeModal = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="attributeForm.processing">{{ t('admin.common.save') }}</Button>
             </div>
         </form>
     </FormModal>

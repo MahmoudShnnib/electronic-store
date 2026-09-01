@@ -3,13 +3,17 @@ import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import FormModal from '@/components/admin/FormModal.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import type { TableColumnType } from 'ant-design-vue';
+import { Button, Card, Descriptions, InputNumber, Table, Typography } from 'ant-design-vue';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
+
+const { Text, Paragraph } = Typography;
+const DescriptionsItem = Descriptions.Item;
 
 const { t } = useI18n();
 
@@ -47,6 +51,36 @@ const props = defineProps<{
         items: PoItem[];
     };
 }>();
+
+/** `text-end` (not AntD's `align`) so the numeric columns follow the RTL flip. */
+const endCell = {
+    customCell: () => ({ class: 'text-end' }),
+    customHeaderCell: () => ({ class: 'text-end' }),
+};
+
+const itemColumns: TableColumnType<PoItem>[] = [
+    { key: 'name', dataIndex: 'name', title: t('admin.common.item'), customCell: () => ({ class: 'font-medium' }) },
+    { key: 'sku', dataIndex: 'sku', title: t('admin.common.sku') },
+    { key: 'quantity_ordered', dataIndex: 'quantity_ordered', title: t('admin.purchase_orders.ordered'), ...endCell },
+    { key: 'quantity_received', dataIndex: 'quantity_received', title: t('admin.purchase_orders.received'), ...endCell },
+    {
+        key: 'outstanding',
+        dataIndex: 'outstanding',
+        title: t('admin.common.outstanding'),
+        customHeaderCell: () => ({ class: 'text-end' }),
+        customCell: (record: PoItem) => ({
+            class: record.outstanding > 0 ? 'text-end font-semibold text-amber-600' : 'text-end text-emerald-600',
+        }),
+    },
+    { key: 'unit_cost_formatted', dataIndex: 'unit_cost_formatted', title: t('admin.common.unit_cost'), ...endCell },
+    {
+        key: 'line_total_formatted',
+        dataIndex: 'line_total_formatted',
+        title: t('admin.common.line_total'),
+        customHeaderCell: () => ({ class: 'text-end' }),
+        customCell: () => ({ class: 'text-end font-medium' }),
+    },
+];
 
 const receiveOpen = ref(false);
 const cancelOpen = ref(false);
@@ -92,151 +126,92 @@ function cancel(): void {
         :subtitle="t('admin.purchase_orders.created', { date: purchaseOrder.created_at, by: purchaseOrder.created_by ?? '—' })"
     >
         <template #actions>
-            <Link :href="route('admin.purchase-orders.index')" :class="btnSecondary">{{ t('admin.common.back') }}</Link>
-            <Link v-if="purchaseOrder.is_editable" :href="route('admin.purchase-orders.edit', purchaseOrder.id)" :class="btnSecondary">
-                {{ t('admin.common.edit') }}
+            <Link :href="route('admin.purchase-orders.index')">
+                <Button>{{ t('admin.common.back') }}</Button>
             </Link>
-            <button v-if="purchaseOrder.is_editable" type="button" :class="btnPrimary" @click="send">
+            <Link v-if="purchaseOrder.is_editable" :href="route('admin.purchase-orders.edit', purchaseOrder.id)">
+                <Button>{{ t('admin.common.edit') }}</Button>
+            </Link>
+            <Button v-if="purchaseOrder.is_editable" type="primary" @click="send">
                 {{ t('admin.purchase_orders.send_to_supplier') }}
-            </button>
-            <button v-if="purchaseOrder.is_receivable" type="button" :class="btnPrimary" @click="openReceive">
+            </Button>
+            <Button v-if="purchaseOrder.is_receivable" type="primary" @click="openReceive">
                 {{ t('admin.purchase_orders.receive_stock') }}
-            </button>
-            <button
-                v-if="purchaseOrder.status !== 'received' && purchaseOrder.status !== 'cancelled'"
-                type="button"
-                :class="btnSecondary"
-                @click="cancelOpen = true"
-            >
+            </Button>
+            <Button v-if="purchaseOrder.status !== 'received' && purchaseOrder.status !== 'cancelled'" @click="cancelOpen = true">
                 {{ t('admin.purchase_orders.cancel_po') }}
-            </button>
+            </Button>
         </template>
     </PageHeader>
 
     <div class="grid gap-6 xl:grid-cols-3">
         <div class="xl:col-span-2">
-            <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-800">
-                    <thead class="bg-gray-50 dark:bg-gray-950/50">
-                        <tr class="text-start text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            <th class="px-3 py-2.5 text-start">{{ t('admin.common.item') }}</th>
-                            <th class="px-3 py-2.5 text-start">{{ t('admin.common.sku') }}</th>
-                            <th class="px-3 py-2.5 text-end">{{ t('admin.purchase_orders.ordered') }}</th>
-                            <th class="px-3 py-2.5 text-end">{{ t('admin.purchase_orders.received') }}</th>
-                            <th class="px-3 py-2.5 text-end">{{ t('admin.common.outstanding') }}</th>
-                            <th class="px-3 py-2.5 text-end">{{ t('admin.common.unit_cost') }}</th>
-                            <th class="px-3 py-2.5 text-end">{{ t('admin.common.line_total') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        <tr v-for="item in purchaseOrder.items" :key="item.id">
-                            <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-gray-100">{{ item.name }}</td>
-                            <td class="px-3 py-2.5 text-gray-500">{{ item.sku }}</td>
-                            <td class="px-3 py-2.5 text-end">{{ item.quantity_ordered }}</td>
-                            <td class="px-3 py-2.5 text-end">{{ item.quantity_received }}</td>
-                            <td class="px-3 py-2.5 text-end" :class="item.outstanding > 0 ? 'font-semibold text-amber-600' : 'text-emerald-600'">
-                                {{ item.outstanding }}
-                            </td>
-                            <td class="px-3 py-2.5 text-end">{{ item.unit_cost_formatted }}</td>
-                            <td class="px-3 py-2.5 text-end font-medium">{{ item.line_total_formatted }}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <Table
+                :columns="itemColumns"
+                :data-source="purchaseOrder.items"
+                row-key="id"
+                :pagination="false"
+                size="middle"
+                :scroll="{ x: 'max-content' }"
+            />
         </div>
 
         <div class="space-y-6">
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <div class="mb-3 flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.status') }}</h2>
+            <Card :title="t('admin.common.status')" size="small">
+                <template #extra>
                     <StatusBadge :status="purchaseOrder.status" :label="purchaseOrder.status_label" />
-                </div>
-                <dl class="space-y-2 text-sm text-gray-600 dark:text-gray-300">
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.common.warehouse') }}</dt>
-                        <dd>{{ purchaseOrder.warehouse.name }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.common.expected') }}</dt>
-                        <dd>{{ purchaseOrder.expected_at ?? '—' }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.purchase_orders.fully_received') }}</dt>
-                        <dd>{{ purchaseOrder.received_at ?? '—' }}</dd>
-                    </div>
-                </dl>
-            </section>
+                </template>
+                <Descriptions :column="1" size="small">
+                    <DescriptionsItem :label="t('admin.common.warehouse')">{{ purchaseOrder.warehouse.name }}</DescriptionsItem>
+                    <DescriptionsItem :label="t('admin.common.expected')">{{ purchaseOrder.expected_at ?? '—' }}</DescriptionsItem>
+                    <DescriptionsItem :label="t('admin.purchase_orders.fully_received')">
+                        {{ purchaseOrder.received_at ?? '—' }}
+                    </DescriptionsItem>
+                </Descriptions>
+            </Card>
 
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.supplier') }}</h2>
-                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ purchaseOrder.supplier.company_name }}</p>
-                <p class="text-sm text-gray-500">{{ purchaseOrder.supplier.contact_person }}</p>
-                <p class="text-sm text-gray-500">{{ purchaseOrder.supplier.email }}</p>
-                <p class="text-sm text-gray-500">{{ purchaseOrder.supplier.phone }}</p>
-            </section>
+            <Card :title="t('admin.common.supplier')" size="small">
+                <p class="text-sm font-medium">{{ purchaseOrder.supplier.company_name }}</p>
+                <Text type="secondary" class="block !text-sm">{{ purchaseOrder.supplier.contact_person }}</Text>
+                <Text type="secondary" class="block !text-sm">{{ purchaseOrder.supplier.email }}</Text>
+                <Text type="secondary" class="block !text-sm">{{ purchaseOrder.supplier.phone }}</Text>
+            </Card>
 
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.purchase_orders.totals') }}</h2>
-                <dl class="space-y-1.5 text-sm text-gray-600 dark:text-gray-300">
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.common.subtotal') }}</dt>
-                        <dd>{{ purchaseOrder.subtotal_formatted }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.common.discount') }}</dt>
-                        <dd>
-                            <bdi dir="ltr">−{{ purchaseOrder.discount_formatted }}</bdi>
-                        </dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.common.tax') }}</dt>
-                        <dd>{{ purchaseOrder.tax_formatted }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt>{{ t('admin.common.shipping') }}</dt>
-                        <dd>{{ purchaseOrder.shipping_formatted }}</dd>
-                    </div>
-                    <div
-                        class="flex justify-between border-t border-gray-100 pt-2 text-base font-semibold text-gray-900 dark:border-gray-800 dark:text-gray-100"
-                    >
-                        <dt>{{ t('admin.common.total') }}</dt>
-                        <dd>{{ purchaseOrder.total_formatted }}</dd>
-                    </div>
-                </dl>
-            </section>
+            <Card :title="t('admin.purchase_orders.totals')" size="small">
+                <Descriptions :column="1" size="small">
+                    <DescriptionsItem :label="t('admin.common.subtotal')">{{ purchaseOrder.subtotal_formatted }}</DescriptionsItem>
+                    <DescriptionsItem :label="t('admin.common.discount')">
+                        <bdi dir="ltr">−{{ purchaseOrder.discount_formatted }}</bdi>
+                    </DescriptionsItem>
+                    <DescriptionsItem :label="t('admin.common.tax')">{{ purchaseOrder.tax_formatted }}</DescriptionsItem>
+                    <DescriptionsItem :label="t('admin.common.shipping')">{{ purchaseOrder.shipping_formatted }}</DescriptionsItem>
+                    <DescriptionsItem :label="t('admin.common.total')">
+                        <span class="text-base font-semibold">{{ purchaseOrder.total_formatted }}</span>
+                    </DescriptionsItem>
+                </Descriptions>
+            </Card>
 
-            <section
-                v-if="purchaseOrder.notes"
-                class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
-            >
-                <h2 class="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.notes') }}</h2>
-                <p class="whitespace-pre-line text-sm text-gray-600 dark:text-gray-300">{{ purchaseOrder.notes }}</p>
-            </section>
+            <Card v-if="purchaseOrder.notes" :title="t('admin.common.notes')" size="small">
+                <Paragraph class="!mb-0 whitespace-pre-line !text-sm">{{ purchaseOrder.notes }}</Paragraph>
+            </Card>
         </div>
     </div>
 
     <!-- Receive modal -->
     <FormModal :open="receiveOpen" :title="t('admin.purchase_orders.receive_stock')" @close="receiveOpen = false">
         <form class="grid gap-4" @submit.prevent="submitReceive">
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.purchase_orders.receive_hint') }}</p>
+            <Text type="secondary" class="!text-sm">{{ t('admin.purchase_orders.receive_hint') }}</Text>
             <div v-for="item in purchaseOrder.items.filter((i) => i.outstanding > 0)" :key="item.id" class="flex items-center justify-between gap-4">
                 <div class="min-w-0">
-                    <p class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">{{ item.name }}</p>
-                    <p class="text-xs text-gray-400">{{ t('admin.purchase_orders.outstanding_n', { count: item.outstanding }) }}</p>
+                    <p class="truncate text-sm font-medium">{{ item.name }}</p>
+                    <Text type="secondary" class="!text-xs">{{ t('admin.purchase_orders.outstanding_n', { count: item.outstanding }) }}</Text>
                 </div>
-                <input
-                    v-model.number="receiveForm.quantities[item.id]"
-                    type="number"
-                    min="0"
-                    :max="item.outstanding"
-                    class="w-24"
-                    :class="inputClass"
-                />
+                <InputNumber v-model:value="receiveForm.quantities[item.id]" :min="0" :max="item.outstanding" class="w-24" />
             </div>
-            <p v-if="receiveForm.errors.quantities" class="text-xs text-red-600">{{ receiveForm.errors.quantities }}</p>
+            <Text v-if="receiveForm.errors.quantities" type="danger" class="!text-xs">{{ receiveForm.errors.quantities }}</Text>
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="receiveOpen = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="receiveForm.processing" :class="btnPrimary">{{ t('admin.purchase_orders.receive') }}</button>
+                <Button @click="receiveOpen = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="receiveForm.processing">{{ t('admin.purchase_orders.receive') }}</Button>
             </div>
         </form>
     </FormModal>

@@ -8,10 +8,10 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { Avatar, Button, Checkbox, Input, InputNumber, Space, Textarea, Tooltip, Upload } from 'ant-design-vue';
+import { Pencil, Plus, Trash2, Upload as UploadIcon } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -114,7 +114,10 @@ function destroy(): void {
 
     <PageHeader :title="t('admin.brands.title')" :subtitle="t('admin.brands.count', { count: brands.total })">
         <template #actions>
-            <button type="button" :class="btnPrimary" @click="openCreate"><Plus class="h-4 w-4" />{{ t('admin.brands.new') }}</button>
+            <Button type="primary" @click="openCreate">
+                <template #icon><Plus class="h-4 w-4" /></template>
+                {{ t('admin.brands.new') }}
+            </Button>
         </template>
     </PageHeader>
 
@@ -122,66 +125,77 @@ function destroy(): void {
 
     <DataTable :columns="columns" :rows="brands.data">
         <template #cell-name="{ row }">
-            <div class="flex items-center gap-3">
-                <img v-if="row.logo" :src="row.logo" :alt="row.name" class="h-8 w-8 rounded object-contain" />
-                <div v-else class="flex h-8 w-8 items-center justify-center rounded bg-gray-100 text-xs font-semibold text-gray-400 dark:bg-gray-800">
-                    {{ row.name.charAt(0) }}
-                </div>
-                <span class="font-medium text-gray-900 dark:text-gray-100">{{ row.name }}</span>
-            </div>
+            <Space>
+                <Avatar :src="row.logo ?? undefined" shape="square" :size="32">{{ row.name.charAt(0) }}</Avatar>
+                <span class="font-medium">{{ row.name }}</span>
+            </Space>
         </template>
         <template #cell-is_active="{ row }">
             <StatusBadge :status="row.is_active ? 'active' : 'inactive'" />
         </template>
         <template #row-actions="{ row }">
-            <button type="button" class="rounded p-1.5 text-gray-400 hover:text-blue-600" :title="t('admin.common.edit')" @click="openEdit(row)">
-                <Pencil class="h-4 w-4" />
-            </button>
-            <button type="button" class="rounded p-1.5 text-gray-400 hover:text-red-600" :title="t('admin.common.delete')" @click="deleting = row">
-                <Trash2 class="h-4 w-4" />
-            </button>
+            <Tooltip :title="t('admin.common.edit')">
+                <Button type="text" size="small" :aria-label="t('admin.common.edit')" @click="openEdit(row)">
+                    <template #icon><Pencil class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
+            <Tooltip :title="t('admin.common.delete')">
+                <Button type="text" size="small" danger :aria-label="t('admin.common.delete')" @click="deleting = row">
+                    <template #icon><Trash2 class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
         </template>
     </DataTable>
 
-    <Pagination :links="brands.links" :total="brands.total" :from="brands.from" :to="brands.to" />
+    <Pagination :paginator="brands" />
 
     <FormModal :open="modalOpen" :title="editing ? t('admin.brands.edit') : t('admin.brands.new')" @close="modalOpen = false">
         <form class="grid gap-4" @submit.prevent="submit">
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.common.name')" required :error="form.errors.name">
-                    <input v-model="form.name" type="text" :class="inputClass" dir="ltr" />
+                    <Input v-model:value="form.name" dir="ltr" />
                 </Field>
                 <Field :label="t('admin.common.name_ar')" :error="form.errors.name_ar">
-                    <input v-model="form.name_ar" type="text" dir="rtl" :class="inputClass" />
+                    <Input v-model:value="form.name_ar" dir="rtl" />
                 </Field>
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.common.slug')" :hint="t('admin.common.slug_hint')" :error="form.errors.slug">
-                    <input v-model="form.slug" type="text" :class="inputClass" dir="ltr" />
+                    <Input v-model:value="form.slug" dir="ltr" />
                 </Field>
                 <Field :label="t('admin.common.position')" :error="form.errors.position">
-                    <input v-model.number="form.position" type="number" min="0" :class="inputClass" />
+                    <InputNumber v-model:value="form.position" :min="0" class="w-full" />
                 </Field>
             </div>
             <Field :label="t('admin.common.logo')" :error="form.errors.logo">
-                <input
-                    type="file"
+                <!-- `:before-upload` returning false keeps AntD from POSTing the
+                     file itself; Inertia sends it with the rest of the form. -->
+                <Upload
+                    :max-count="1"
                     accept="image/*"
-                    class="block w-full text-sm text-gray-600 dark:text-gray-300"
-                    @change="form.logo = ($event.target as HTMLInputElement).files?.[0] ?? null"
-                />
+                    :before-upload="
+                        (file: File) => {
+                            form.logo = file;
+                            return false;
+                        }
+                    "
+                    @remove="form.logo = null"
+                >
+                    <Button>
+                        <template #icon><UploadIcon class="h-4 w-4" /></template>
+                        {{ t('admin.common.choose') }}
+                    </Button>
+                </Upload>
             </Field>
             <Field :label="t('admin.common.description')" :error="form.errors.description">
-                <textarea v-model="form.description" rows="3" :class="inputClass" />
+                <Textarea v-model:value="form.description" :rows="3" />
             </Field>
-            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input v-model="form.is_active" type="checkbox" :class="checkboxClass" />{{ t('admin.common.active') }}</label
-            >
+            <Checkbox v-model:checked="form.is_active">{{ t('admin.common.active') }}</Checkbox>
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="modalOpen = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="form.processing" :class="btnPrimary">
+                <Button @click="modalOpen = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="form.processing">
                     {{ form.processing ? t('admin.common.saving') : t('admin.common.save') }}
-                </button>
+                </Button>
             </div>
         </form>
     </FormModal>

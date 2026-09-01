@@ -7,9 +7,9 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { Button, Checkbox, CheckboxGroup, Input, InputPassword, Tag, Tooltip, Typography } from 'ant-design-vue';
 import { Pencil, Plus } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -74,10 +74,6 @@ function openEdit(user: UserRow): void {
     modalOpen.value = true;
 }
 
-function toggleRole(role: string): void {
-    form.roles = form.roles.includes(role) ? form.roles.filter((r) => r !== role) : [...form.roles, role];
-}
-
 function submit(): void {
     form.transform((data) => ({
         ...data,
@@ -99,7 +95,10 @@ function submit(): void {
 
     <PageHeader :title="t('admin.users.title')" :subtitle="t('admin.users.count', { count: users.total })">
         <template #actions>
-            <button type="button" :class="btnPrimary" @click="openCreate"><Plus class="h-4 w-4" />{{ t('admin.users.new') }}</button>
+            <Button type="primary" @click="openCreate">
+                <template #icon><Plus class="h-4 w-4" /></template>
+                {{ t('admin.users.new') }}
+            </Button>
         </template>
     </PageHeader>
 
@@ -108,58 +107,49 @@ function submit(): void {
     <DataTable :columns="columns" :rows="users.data">
         <template #cell-name="{ row }">
             <div>
-                <p class="font-medium text-gray-900 dark:text-gray-100">{{ row.name }}</p>
-                <p class="text-xs text-gray-400">{{ row.email }}</p>
+                <p class="font-medium">{{ row.name }}</p>
+                <Typography.Text type="secondary" class="text-xs">{{ row.email }}</Typography.Text>
             </div>
         </template>
         <template #cell-roles="{ row }">
             <div class="flex flex-wrap gap-1">
-                <span
-                    v-for="role in row.roles"
-                    :key="role"
-                    class="rounded-full bg-gray-100 px-2 py-0.5 text-xs capitalize text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                >
-                    {{ role.replaceAll('_', ' ') }}
-                </span>
+                <Tag v-for="role in row.roles" :key="role" class="capitalize">{{ role.replaceAll('_', ' ') }}</Tag>
             </div>
         </template>
         <template #cell-is_active="{ row }">
             <StatusBadge :status="row.is_active ? 'active' : 'inactive'" />
         </template>
         <template #row-actions="{ row }">
-            <button type="button" class="rounded p-1.5 text-gray-400 hover:text-blue-600" :title="t('admin.common.edit')" @click="openEdit(row)">
-                <Pencil class="h-4 w-4" />
-            </button>
+            <Tooltip :title="t('admin.common.edit')">
+                <Button type="text" size="small" :aria-label="t('admin.common.edit')" @click="openEdit(row)">
+                    <template #icon><Pencil class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
         </template>
     </DataTable>
 
-    <Pagination :links="users.links" :total="users.total" :from="users.from" :to="users.to" />
+    <Pagination :paginator="users" />
 
     <FormModal :open="modalOpen" :title="editing ? t('admin.users.edit') : t('admin.users.new_staff')" @close="modalOpen = false">
         <form class="grid gap-4" @submit.prevent="submit">
             <Field :label="t('admin.common.name')" required :error="form.errors.name">
-                <input v-model="form.name" type="text" :class="inputClass" />
+                <Input v-model:value="form.name" />
             </Field>
             <Field v-if="!editing" :label="t('admin.common.email')" required :error="form.errors.email">
-                <input v-model="form.email" type="email" :class="inputClass" dir="ltr" />
+                <Input v-model:value="form.email" type="email" dir="ltr" />
             </Field>
             <Field :label="editing ? t('admin.users.new_password') : t('admin.users.password')" :required="!editing" :error="form.errors.password">
-                <input v-model="form.password" type="password" autocomplete="new-password" :class="inputClass" />
+                <InputPassword v-model:value="form.password" autocomplete="new-password" />
             </Field>
             <Field :label="t('admin.common.roles')" required :error="form.errors.roles">
-                <div class="mt-1 grid grid-cols-2 gap-2">
-                    <label v-for="role in roles" :key="role" class="flex items-center gap-2 text-sm capitalize text-gray-700 dark:text-gray-300">
-                        <input type="checkbox" :class="checkboxClass" :checked="form.roles.includes(role)" @change="toggleRole(role)" />
-                        {{ role.replaceAll('_', ' ') }}
-                    </label>
-                </div>
+                <CheckboxGroup v-model:value="form.roles" class="mt-1 grid grid-cols-2 gap-2">
+                    <Checkbox v-for="role in roles" :key="role" :value="role" class="capitalize">{{ role.replaceAll('_', ' ') }}</Checkbox>
+                </CheckboxGroup>
             </Field>
-            <label v-if="editing" class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input v-model="form.is_active" type="checkbox" :class="checkboxClass" />{{ t('admin.users.account_active') }}</label
-            >
+            <Checkbox v-if="editing" v-model:checked="form.is_active">{{ t('admin.users.account_active') }}</Checkbox>
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="modalOpen = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="form.processing" :class="btnPrimary">{{ t('admin.common.save') }}</button>
+                <Button @click="modalOpen = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="form.processing">{{ t('admin.common.save') }}</Button>
             </div>
         </form>
     </FormModal>

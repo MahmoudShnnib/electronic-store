@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Loader2, Search } from 'lucide-vue-next';
+import { AutoComplete, Input, Spin } from 'ant-design-vue';
+import { Search } from 'lucide-vue-next';
 import { onBeforeUnmount, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -17,13 +18,12 @@ const { t } = useI18n();
 
 const query = ref('');
 const suggestions = ref<Suggestion[]>([]);
-const open = ref(false);
 const loading = ref(false);
 
 let timer: ReturnType<typeof setTimeout> | null = null;
 let controller: AbortController | null = null;
 
-function onInput() {
+function onSearch() {
     if (timer) clearTimeout(timer);
     timer = setTimeout(fetchSuggestions, 300);
 }
@@ -33,7 +33,7 @@ async function fetchSuggestions() {
 
     if (term.length < 2) {
         suggestions.value = [];
-        open.value = false;
+
         return;
     }
 
@@ -48,7 +48,6 @@ async function fetchSuggestions() {
         });
         const json = (await response.json()) as { products: Suggestion[] };
         suggestions.value = json.products;
-        open.value = true;
     } catch {
         // aborted or network error — keep the previous list
     } finally {
@@ -56,22 +55,18 @@ async function fetchSuggestions() {
     }
 }
 
+/** Enter with nothing picked runs a full catalogue search. */
 function submit() {
-    open.value = false;
     if (query.value.trim() !== '') {
         router.get(route('catalog.index'), { q: query.value.trim() });
     }
 }
 
-function select(product: Suggestion) {
-    open.value = false;
+/** AntD hands back the option's `value`, which is the product slug. */
+function select(slug: unknown) {
     query.value = '';
-    router.get(route('products.show', product.slug));
-}
-
-function close() {
-    // Delay so click events on options land first.
-    setTimeout(() => (open.value = false), 150);
+    suggestions.value = [];
+    router.get(route('products.show', String(slug)));
 }
 
 onBeforeUnmount(() => {
@@ -81,46 +76,45 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="relative w-full">
-        <form class="relative" role="search" @submit.prevent="submit">
-            <input
-                v-model="query"
-                type="search"
-                :placeholder="t('nav.search_placeholder')"
-                class="h-10 w-full rounded-lg border border-input bg-background pe-10 ps-4 text-sm focus:border-black focus:outline-none focus:ring-2 focus:ring-black/15 dark:focus:border-white dark:focus:ring-white/25"
-                @input="onInput"
-                @focus="suggestions.length > 0 && (open = true)"
-                @blur="close"
-            />
-            <button
-                type="submit"
-                class="absolute top-0 flex h-10 w-10 items-center justify-center text-muted-foreground hover:text-foreground ltr:right-0 rtl:left-0"
-                :aria-label="t('common.search')"
-            >
-                <Loader2 v-if="loading" class="h-4 w-4 animate-spin" />
-                <Search v-else class="h-4 w-4" />
-            </button>
-        </form>
-
-        <div
-            v-if="open && suggestions.length > 0"
-            class="absolute z-50 mt-2 w-full overflow-hidden rounded-lg border border-border bg-popover shadow-xl"
+    <AutoComplete
+        v-model:value="query"
+        role="search"
+        :options="suggestions.map((product) => ({ value: product.slug, product }))"
+        :default-active-first-option="false"
+        class="store-search w-full"
+        popup-class-name="store-search-panel"
+        @search="onSearch"
+        @select="select"
+    >
+        <!-- A plain `Input`, not `Input.Search`: its attached button would be a
+             second, dead search control beside the debounced suggestions —
+             the same call the dashboard's FilterBar makes. -->
+        <Input
+            :placeholder="t('nav.search_placeholder')"
+            size="large"
+            type="search"
+            name="q"
+            autocomplete="off"
+            spellcheck="false"
+            :aria-label="t('common.search')"
+            @press-enter="submit"
         >
-            <button
-                v-for="product in suggestions"
-                :key="product.id"
-                type="button"
-                class="flex w-full items-center gap-3 px-3 py-2 text-start transition hover:bg-muted"
-                @mousedown.prevent="select(product)"
-            >
-                <img v-if="product.image" :src="product.image" :alt="product.name" class="h-10 w-10 rounded object-contain" />
-                <div v-else class="h-10 w-10 rounded bg-muted" />
+            <template #prefix>
+                <Spin v-if="loading" size="small" />
+                <Search v-else class="h-4 w-4 opacity-45" />
+            </template>
+        </Input>
+
+        <template #option="{ product }">
+            <div class="store-search-option">
+                <img v-if="product.image" :src="product.image" :alt="product.name" width="40" height="40" loading="lazy" class="store-search-thumb" />
+                <div v-else class="store-search-thumb store-search-thumb-empty" />
                 <div class="min-w-0 flex-1">
                     <p class="truncate text-sm font-medium">{{ product.name }}</p>
-                    <p v-if="product.brand" class="text-xs text-muted-foreground">{{ product.brand }}</p>
+                    <p v-if="product.brand" class="truncate text-xs opacity-60">{{ product.brand }}</p>
                 </div>
-                <span class="text-sm font-semibold text-black dark:text-white">{{ product.price_formatted }}</span>
-            </button>
-        </div>
-    </div>
+                <span class="shrink-0 text-sm font-semibold">{{ product.price_formatted }}</span>
+            </div>
+        </template>
+    </AutoComplete>
 </template>
