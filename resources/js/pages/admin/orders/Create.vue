@@ -2,16 +2,25 @@
 import AdminSelect from '@/components/admin/AdminSelect.vue';
 import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { formatMoney } from '@/lib/money';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { Button, Card, Input, InputNumber, Textarea, Tooltip, Typography } from 'ant-design-vue';
 import { Plus, Trash2 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
 
+const { Text } = Typography;
+
 const { t } = useI18n();
+const page = usePage();
+
+/** The running total is computed here, so it is the only figure this page formats. */
+function money(amount: number): string {
+    return formatMoney(amount, (page.props.locale as string) ?? 'en');
+}
 
 interface VariantOption {
     id: number;
@@ -121,22 +130,26 @@ function submit(): void {
     <form @submit.prevent="submit">
         <PageHeader :title="t('admin.orders.new')" :subtitle="t('admin.orders.new_hint')">
             <template #actions>
-                <Link :href="route('admin.orders.index')" :class="btnSecondary">{{ t('admin.common.back') }}</Link>
-                <button type="submit" :disabled="form.processing || !canSubmit" :class="btnPrimary">
+                <Link :href="route('admin.orders.index')">
+                    <Button>{{ t('admin.common.back') }}</Button>
+                </Link>
+                <Button type="primary" html-type="submit" :loading="form.processing" :disabled="!canSubmit">
                     {{ form.processing ? t('admin.common.saving') : t('admin.orders.create_order') }}
-                </button>
+                </Button>
             </template>
         </PageHeader>
 
         <div class="grid gap-6 xl:grid-cols-3">
             <div class="space-y-6 xl:col-span-2">
-                <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                    <div class="mb-4 flex items-center justify-between">
-                        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.orders.items') }}</h2>
-                        <button type="button" :class="btnSecondary" @click="addRow"><Plus class="h-4 w-4" />{{ t('admin.common.add') }}</button>
-                    </div>
+                <Card :title="t('admin.orders.items')" size="small">
+                    <template #extra>
+                        <Button @click="addRow">
+                            <template #icon><Plus class="h-4 w-4" /></template>
+                            {{ t('admin.common.add') }}
+                        </Button>
+                    </template>
 
-                    <p v-if="form.errors.items" class="mb-3 text-sm text-red-600">{{ form.errors.items }}</p>
+                    <Text v-if="form.errors.items" type="danger" class="mb-3 block !text-xs">{{ form.errors.items }}</Text>
 
                     <div class="space-y-3">
                         <div v-for="(row, index) in form.items" :key="row.key" class="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
@@ -160,50 +173,52 @@ function submit(): void {
                                 />
                             </Field>
                             <Field :label="t('admin.common.qty')" :error="form.errors[`items.${index}.quantity`]">
-                                <input v-model.number="row.quantity" type="number" min="1" class="w-24" :class="inputClass" />
+                                <InputNumber v-model:value="row.quantity" :min="1" class="w-24" />
                             </Field>
-                            <button
-                                type="button"
-                                class="mb-1 rounded-md p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-                                :aria-label="t('admin.common.remove')"
-                                @click="removeRow(index)"
-                            >
-                                <Trash2 class="h-4 w-4" />
-                            </button>
+                            <Tooltip :title="t('admin.common.remove')">
+                                <Button
+                                    type="text"
+                                    size="small"
+                                    danger
+                                    class="mb-1.5"
+                                    :aria-label="t('admin.common.remove')"
+                                    @click="removeRow(index)"
+                                >
+                                    <template #icon><Trash2 class="h-4 w-4" /></template>
+                                </Button>
+                            </Tooltip>
                         </div>
                     </div>
 
                     <p class="mt-4 border-t border-gray-100 pt-3 text-sm font-semibold text-gray-900 dark:border-gray-800 dark:text-gray-100">
-                        {{ t('admin.common.total') }}: {{ total.toFixed(2) }}
+                        {{ t('admin.common.total') }}: {{ money(total) }}
                     </p>
-                    <p class="mt-1 text-xs text-gray-400">{{ t('admin.orders.pricing_hint') }}</p>
-                </section>
+                    <Text type="secondary" class="mt-1 block !text-xs">{{ t('admin.orders.pricing_hint') }}</Text>
+                </Card>
             </div>
 
             <div class="space-y-6">
-                <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                    <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.customer') }}</h2>
+                <Card :title="t('admin.common.customer')" size="small">
                     <div class="grid gap-3">
                         <Field :label="t('admin.common.name')" required :error="form.errors['customer.name']">
-                            <input v-model="form.customer.name" type="text" :class="inputClass" />
+                            <Input v-model:value="form.customer.name" />
                         </Field>
                         <Field :label="t('admin.common.phone')" required :error="form.errors['customer.phone']">
-                            <input v-model="form.customer.phone" type="tel" :class="inputClass" dir="ltr" />
+                            <Input v-model:value="form.customer.phone" type="tel" dir="ltr" />
                         </Field>
                         <Field :label="t('admin.common.email')" :error="form.errors['customer.email']">
-                            <input v-model="form.customer.email" type="email" :class="inputClass" dir="ltr" />
+                            <Input v-model:value="form.customer.email" type="email" dir="ltr" />
                         </Field>
                         <Field :label="t('admin.common.city')" required :error="form.errors['shipping_address.city']">
                             <AdminSelect v-model="form.shipping_address.city" :placeholder="t('admin.common.choose')" :options="cityOptions" />
                         </Field>
                         <Field :label="t('admin.common.area')" required :error="form.errors['shipping_address.area']">
-                            <input v-model="form.shipping_address.area" type="text" :class="inputClass" />
+                            <Input v-model:value="form.shipping_address.area" />
                         </Field>
                     </div>
-                </section>
+                </Card>
 
-                <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                    <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.orders.order_details') }}</h2>
+                <Card :title="t('admin.orders.order_details')" size="small">
                     <div class="grid gap-3">
                         <Field :label="t('admin.common.method')" :error="form.errors.payment_method">
                             <AdminSelect v-model="form.payment_method" :options="paymentMethods" />
@@ -212,13 +227,11 @@ function submit(): void {
                             <AdminSelect v-model="form.source" :options="sourceOptions" />
                         </Field>
                         <Field :label="t('admin.orders.customer_note')" :error="form.errors.customer_note">
-                            <textarea v-model="form.customer_note" rows="3" :class="inputClass" />
+                            <Textarea v-model:value="form.customer_note" :rows="3" />
                         </Field>
                     </div>
-                    <p class="mt-3 rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:bg-gray-950/50 dark:text-gray-400">
-                        {{ t('admin.orders.unpaid_hint') }}
-                    </p>
-                </section>
+                    <Text type="secondary" class="mt-3 block !text-xs">{{ t('admin.orders.unpaid_hint') }}</Text>
+                </Card>
             </div>
         </div>
     </form>

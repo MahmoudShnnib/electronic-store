@@ -298,9 +298,12 @@ function restore(product: ProductRow): void {
             </div>
 
             <div class="flex justify-end gap-2 border-t border-gray-200 pt-4 dark:border-gray-800">
-                <button type="button" :class="btnSecondary" @click="previewing = null">{{ t('admin.common.close') }}</button>
-                <Link v-if="can.update && !previewing.deleted_at" :href="route('admin.products.edit', previewing.id)" :class="btnPrimary">
-                    <Pencil class="h-4 w-4" />{{ t('admin.common.edit') }}
+                <Button @click="previewing = null">{{ t('admin.common.close') }}</Button>
+                <Link v-if="can.update && !previewing.deleted_at" :href="route('admin.products.edit', previewing.id)">
+                    <Button type="primary">
+                        <template #icon><Pencil class="h-4 w-4" /></template>
+                        {{ t('admin.common.edit') }}
+                    </Button>
                 </Link>
             </div>
         </div>

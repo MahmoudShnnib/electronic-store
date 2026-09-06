@@ -6,9 +6,9 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatCard from '@/components/admin/StatCard.vue';
 import type { Paginator } from '@/components/admin/types';
-import { btnSecondary, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Button, Card, Input, InputNumber } from 'ant-design-vue';
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-vue-next';
 import { reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -80,8 +80,7 @@ function submit(): void {
         <StatCard :label="t('admin.treasury.balance')" :value="balances.total_formatted" />
     </div>
 
-    <section class="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.treasury.manual_entry') }}</h2>
+    <Card class="mb-6" :title="t('admin.treasury.manual_entry')" size="small">
         <form class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" @submit.prevent="submit">
             <Field :label="t('admin.treasury.direction')" :error="form.errors.direction">
                 <AdminSelect
@@ -102,21 +101,21 @@ function submit(): void {
                 />
             </Field>
             <Field :label="t('admin.common.amount')" :error="form.errors.amount">
-                <input v-model.number="form.amount" type="number" step="0.01" min="0.01" :class="inputClass" />
+                <InputNumber v-model:value="form.amount" :min="0.01" :step="0.01" class="w-full" />
             </Field>
             <Field :label="t('admin.common.reference_optional')" :error="form.errors.reference">
-                <input v-model="form.reference" type="text" :class="inputClass" dir="ltr" />
+                <Input v-model:value="form.reference" dir="ltr" />
             </Field>
             <Field :label="t('admin.common.note')" :error="form.errors.note">
                 <div class="flex gap-2">
-                    <input v-model="form.note" type="text" :class="inputClass" />
-                    <button type="submit" :disabled="form.processing" :class="btnSecondary" class="shrink-0">
+                    <Input v-model:value="form.note" />
+                    <Button html-type="submit" class="shrink-0" :loading="form.processing">
                         {{ t('admin.common.save') }}
-                    </button>
+                    </Button>
                 </div>
             </Field>
         </form>
-    </section>
+    </Card>
 
     <!-- No text search here — the ledger is only ever narrowed by account and direction. -->
     <div class="mb-4 flex flex-wrap items-center gap-3">
@@ -171,5 +170,5 @@ function submit(): void {
         </template>
     </DataTable>
 
-    <Pagination :links="transactions.links" :total="transactions.total" :from="transactions.from" :to="transactions.to" />
+    <Pagination :paginator="transactions" />
 </template>
