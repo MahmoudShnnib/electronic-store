@@ -18,6 +18,7 @@ final class HomeCache
     private const KEYS = [
         'home.sections',
         'home.category_cards',
+        'home.category_sections',
     ];
 
     public static function flush(): void

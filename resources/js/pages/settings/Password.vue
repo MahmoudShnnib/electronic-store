@@ -1,32 +1,15 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
-import AppLayout from '@/layouts/AppLayout.vue';
+import StoreLayout from '@/layouts/StoreLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
-import { TransitionRoot } from '@headlessui/vue';
 import { Head, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Button, Card, Form, FormItem, InputPassword, Typography } from 'ant-design-vue';
+import { useI18n } from 'vue-i18n';
 
-import HeadingSmall from '@/components/HeadingSmall.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { type BreadcrumbItem } from '@/types';
+defineOptions({ layout: StoreLayout });
 
-interface Props {
-    className?: string;
-}
+const { Title, Text } = Typography;
 
-defineProps<Props>();
-
-const breadcrumbItems: BreadcrumbItem[] = [
-    {
-        title: 'Password settings',
-        href: '/settings/password',
-    },
-];
-
-const passwordInput = ref<HTMLInputElement>();
-const currentPasswordInput = ref<HTMLInputElement>();
+const { t } = useI18n();
 
 const form = useForm({
     current_password: '',
@@ -38,19 +21,13 @@ const updatePassword = () => {
     form.put(route('password.update'), {
         preserveScroll: true,
         onSuccess: () => form.reset(),
-        onError: (errors: any) => {
+        onError: (errors: Record<string, string>) => {
             if (errors.password) {
                 form.reset('password', 'password_confirmation');
-                if (passwordInput.value instanceof HTMLInputElement) {
-                    passwordInput.value.focus();
-                }
             }
 
             if (errors.current_password) {
                 form.reset('current_password');
-                if (currentPasswordInput.value instanceof HTMLInputElement) {
-                    currentPasswordInput.value.focus();
-                }
             }
         },
     });
@@ -58,70 +35,45 @@ const updatePassword = () => {
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Profile settings" />
+    <Head :title="t('settings.password_title')" />
 
-        <SettingsLayout>
-            <div class="space-y-6">
-                <HeadingSmall title="Update password" description="Ensure your account is using a long, random password to stay secure" />
+    <SettingsLayout>
+        <Card>
+            <Title :level="2" class="!mb-1 !text-base !font-semibold">{{ t('settings.password_title') }}</Title>
+            <Text class="!mb-5 !block !text-sm opacity-60">{{ t('settings.password_description') }}</Text>
 
-                <form @submit.prevent="updatePassword" class="space-y-6">
-                    <div class="grid gap-2">
-                        <Label for="current_password">Current Password</Label>
-                        <Input
-                            id="current_password"
-                            ref="currentPasswordInput"
-                            v-model="form.current_password"
-                            type="password"
-                            class="mt-1 block w-full"
-                            autocomplete="current-password"
-                            placeholder="Current password"
-                        />
-                        <InputError :message="form.errors.current_password" />
-                    </div>
+            <Form layout="vertical" @submit.prevent="updatePassword">
+                <FormItem
+                    :label="t('settings.current_password')"
+                    :validate-status="form.errors.current_password ? 'error' : undefined"
+                    :help="form.errors.current_password"
+                >
+                    <InputPassword v-model:value="form.current_password" autocomplete="current-password" dir="ltr" />
+                </FormItem>
 
-                    <div class="grid gap-2">
-                        <Label for="password">New password</Label>
-                        <Input
-                            id="password"
-                            ref="passwordInput"
-                            v-model="form.password"
-                            type="password"
-                            class="mt-1 block w-full"
-                            autocomplete="new-password"
-                            placeholder="New password"
-                        />
-                        <InputError :message="form.errors.password" />
-                    </div>
+                <FormItem
+                    :label="t('settings.new_password')"
+                    :validate-status="form.errors.password ? 'error' : undefined"
+                    :help="form.errors.password"
+                >
+                    <InputPassword v-model:value="form.password" autocomplete="new-password" dir="ltr" />
+                </FormItem>
 
-                    <div class="grid gap-2">
-                        <Label for="password_confirmation">Confirm password</Label>
-                        <Input
-                            id="password_confirmation"
-                            v-model="form.password_confirmation"
-                            type="password"
-                            class="mt-1 block w-full"
-                            autocomplete="new-password"
-                            placeholder="Confirm password"
-                        />
-                        <InputError :message="form.errors.password_confirmation" />
-                    </div>
+                <FormItem
+                    :label="t('settings.confirm_password')"
+                    :validate-status="form.errors.password_confirmation ? 'error' : undefined"
+                    :help="form.errors.password_confirmation"
+                >
+                    <InputPassword v-model:value="form.password_confirmation" autocomplete="new-password" dir="ltr" />
+                </FormItem>
 
-                    <div class="flex items-center gap-4">
-                        <Button :disabled="form.processing">Save password</Button>
-
-                        <TransitionRoot
-                            :show="form.recentlySuccessful"
-                            enter="transition ease-in-out"
-                            enter-from="opacity-0"
-                            leave="transition ease-in-out"
-                            leave-to="opacity-0"
-                        >
-                            <p class="text-sm text-neutral-600">Saved</p>
-                        </TransitionRoot>
-                    </div>
-                </form>
-            </div>
-        </SettingsLayout>
-    </AppLayout>
+                <div class="flex items-center gap-3">
+                    <Button type="primary" html-type="submit" :loading="form.processing">{{ t('settings.save_password') }}</Button>
+                    <Transition name="fade">
+                        <Text v-if="form.recentlySuccessful" class="!text-sm opacity-60">{{ t('settings.saved') }}</Text>
+                    </Transition>
+                </div>
+            </Form>
+        </Card>
+    </SettingsLayout>
 </template>

@@ -58,6 +58,6 @@ final class PurchaseOrder extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnly(['po_number', 'status', 'total_cents'])->logOnlyDirty();
+        return LogOptions::defaults()->logOnly(['po_number', 'status', 'total_cents'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

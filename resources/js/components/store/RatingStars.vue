@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Star } from 'lucide-vue-next';
+import { Rate } from 'ant-design-vue';
+import { computed } from 'vue';
 
-withDefaults(
+const props = withDefaults(
     defineProps<{
         rating: number | null;
         count?: number;
@@ -9,20 +10,14 @@ withDefaults(
     }>(),
     { count: undefined, size: 'sm' },
 );
+
+/** `Rate` rounds to the nearest half itself, but it will not take null. */
+const value = computed(() => props.rating ?? 0);
 </script>
 
 <template>
-    <div class="flex items-center gap-1" :aria-label="`${rating ?? 0} / 5`">
-        <div class="flex">
-            <Star
-                v-for="i in 5"
-                :key="i"
-                :class="[
-                    size === 'sm' ? 'h-3.5 w-3.5' : 'h-5 w-5',
-                    (rating ?? 0) >= i - 0.5 ? 'fill-amber-400 text-amber-400' : 'fill-none text-gray-300 dark:text-gray-600',
-                ]"
-            />
-        </div>
-        <span v-if="count !== undefined" class="text-xs text-muted-foreground">({{ count }})</span>
+    <div class="flex items-center gap-1.5">
+        <Rate :value="value" disabled allow-half :class="['store-rate', size === 'sm' ? 'store-rate-sm' : 'store-rate-md']" />
+        <span v-if="count !== undefined" class="store-rate-count">({{ count }})</span>
     </div>
 </template>

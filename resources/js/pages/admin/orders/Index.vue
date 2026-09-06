@@ -5,13 +5,15 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
-import { btnPrimary } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { Button, Typography } from 'ant-design-vue';
 import { Plus } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
+
+const { Text } = Typography;
 
 const { t } = useI18n();
 
@@ -54,7 +56,12 @@ const columns: Column[] = [
 
     <PageHeader :title="t('admin.orders.title')" :subtitle="t('admin.orders.count', { count: orders.total })">
         <template #actions>
-            <Link :href="route('admin.orders.create')" :class="btnPrimary"><Plus class="h-4 w-4" />{{ t('admin.orders.new') }}</Link>
+            <Link :href="route('admin.orders.create')">
+                <Button type="primary">
+                    <template #icon><Plus class="h-4 w-4" /></template>
+                    {{ t('admin.orders.new') }}
+                </Button>
+            </Link>
         </template>
     </PageHeader>
 
@@ -76,8 +83,8 @@ const columns: Column[] = [
         </template>
         <template #cell-customer_name="{ row }">
             <div>
-                <p class="text-gray-900 dark:text-gray-100">{{ row.customer_name }}</p>
-                <p class="text-xs text-gray-400">{{ row.customer_email }}</p>
+                <p>{{ row.customer_name }}</p>
+                <Text type="secondary" class="!text-xs">{{ row.customer_email }}</Text>
             </div>
         </template>
         <template #cell-status="{ row }">
@@ -88,5 +95,5 @@ const columns: Column[] = [
         </template>
     </DataTable>
 
-    <Pagination :links="orders.links" :total="orders.total" :from="orders.from" :to="orders.to" />
+    <Pagination :paginator="orders" />
 </template>

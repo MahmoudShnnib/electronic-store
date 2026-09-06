@@ -67,29 +67,26 @@ const items = computed<NavItem[]>(() => [
 
 <template>
     <nav
-        class="fixed inset-x-4 bottom-4 z-50 mx-auto flex h-16 max-w-md items-center justify-between gap-1.5 rounded-full bg-white p-2 shadow-2xl shadow-black/30 ring-1 ring-black/10 transition-transform duration-300 dark:bg-[#111111] dark:shadow-black/60 dark:ring-white/15 lg:hidden"
+        class="store-tabbar-safe fixed inset-x-4 bottom-4 z-50 mx-auto flex h-16 max-w-md items-center justify-between gap-1.5 rounded-full bg-white p-2 shadow-2xl shadow-black/30 ring-1 ring-black/10 transition-transform duration-300 dark:bg-[#111111] dark:shadow-black/60 dark:ring-white/15 lg:hidden"
         :class="hidden ? 'translate-y-24' : 'translate-y-0'"
-        :aria-label="t('nav.home')"
+        :aria-label="t('nav.primary')"
     >
         <Link
             v-for="item in items"
             :key="item.key"
             :href="item.href"
-            class="relative flex h-12 items-center justify-center rounded-full transition-all duration-200"
+            class="relative flex h-12 items-center justify-center rounded-full transition-[background-color,color,flex,width,padding] duration-200"
+            :aria-current="item.active ? 'page' : undefined"
+            :aria-label="item.badge && item.badge > 0 ? `${item.label} (${item.badge})` : item.label"
             :class="
                 item.active
-                    ? 'flex-1 gap-2 bg-[#111111] px-4 text-white dark:bg-white dark:text-black'
-                    : 'w-12 shrink-0 bg-[#EDEDED] text-black dark:bg-[#2E2D2D] dark:text-white'
+                    ? 'store-tabbar-item-on flex-1 gap-2 px-4'
+                    : 'store-tabbar-item-off w-12 shrink-0'
             "
         >
             <component :is="item.icon" class="h-5 w-5 shrink-0" />
             <span v-if="item.active" class="truncate text-sm font-semibold">{{ item.label }}</span>
-            <span
-                v-if="item.badge && item.badge > 0 && !item.active"
-                class="absolute -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#111111] px-1 text-[10px] font-bold text-white dark:bg-white dark:text-black ltr:-right-0.5 rtl:-left-0.5"
-            >
-                {{ item.badge }}
-            </span>
+            <span v-if="item.badge && item.badge > 0 && !item.active" class="store-tabbar-badge">{{ item.badge }}</span>
         </Link>
     </nav>
 </template>

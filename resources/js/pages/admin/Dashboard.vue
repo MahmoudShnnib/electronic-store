@@ -4,6 +4,8 @@ import StatCard from '@/components/admin/StatCard.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import type { TableColumnType } from 'ant-design-vue';
+import { Card, Col, List, ListItem, Row, Table, Typography } from 'ant-design-vue';
 import { BarElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip } from 'chart.js';
 import { computed } from 'vue';
 import { Bar, Line } from 'vue-chartjs';
@@ -14,6 +16,8 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 defineOptions({ layout: AdminLayout });
 
 const { t } = useI18n();
+
+const { Text } = Typography;
 
 interface RevenuePoint {
     day: string;
@@ -88,6 +92,9 @@ const ordersChart = computed(() => ({
             data: props.revenueSeries.map((p) => p.orders),
             backgroundColor: '#10b981',
             borderRadius: 3,
+            // Sparse series (one day with orders) would otherwise stretch a single
+            // bar across the whole plot area and read as a solid block.
+            maxBarThickness: 48,
         },
     ],
 }));
@@ -100,7 +107,19 @@ const chartOptions = {
         y: { beginAtZero: true, grid: { color: 'rgba(128,128,128,0.1)' } },
         x: { grid: { display: false } },
     },
+    // A single day of data draws no line segment; without a visible point the
+    // revenue chart reads as empty.
+    elements: { point: { radius: 3, hoverRadius: 5 } },
 };
+
+/** The original markup had no header row; AntD needs titles, so reuse the shared column labels. */
+const recentOrderColumns: TableColumnType[] = [
+    { key: 'number', dataIndex: 'number', title: t('admin.common.order') },
+    { key: 'customer', dataIndex: 'customer', title: t('admin.common.customer') },
+    { key: 'status', dataIndex: 'status', title: t('admin.common.status') },
+    { key: 'total_formatted', dataIndex: 'total_formatted', title: t('admin.common.total') },
+    { key: 'created_at', dataIndex: 'created_at', title: t('admin.common.date') },
+];
 </script>
 
 <template>
@@ -108,100 +127,136 @@ const chartOptions = {
 
     <PageHeader :title="t('admin.dashboard.title')" :subtitle="t('admin.dashboard.subtitle')" />
 
-    <div class="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-        <StatCard :label="t('admin.dashboard.revenue_today')" :value="kpis.revenue_today" tone="success" />
-        <StatCard :label="t('admin.dashboard.revenue_this_month')" :value="kpis.revenue_month" tone="success" />
-        <StatCard :label="t('admin.dashboard.total_orders')" :value="kpis.orders_total" />
-        <StatCard
-            :label="t('admin.dashboard.in_progress_orders')"
-            :value="kpis.orders_in_progress"
-            :tone="kpis.orders_in_progress > 0 ? 'warning' : 'default'"
-        />
-        <StatCard :label="t('admin.dashboard.completed_orders')" :value="kpis.orders_completed" />
-        <StatCard :label="t('admin.dashboard.cancelled_orders')" :value="kpis.orders_cancelled" />
-        <StatCard :label="t('admin.dashboard.customers')" :value="kpis.customers_total" />
-        <StatCard
-            :label="t('admin.common.products')"
-            :value="kpis.products_total"
-            :hint="t('admin.dashboard.active_count', { count: kpis.products_active })"
-        />
-        <StatCard :label="t('admin.dashboard.low_stock')" :value="kpis.low_stock" :tone="kpis.low_stock > 0 ? 'warning' : 'default'" />
-        <StatCard :label="t('admin.dashboard.out_of_stock')" :value="kpis.out_of_stock" :tone="kpis.out_of_stock > 0 ? 'danger' : 'default'" />
-    </div>
+    <Row :gutter="[16, 16]">
+        <Col :xs="12" :md="8" :xl="6">
+            <StatCard :label="t('admin.dashboard.revenue_today')" :value="kpis.revenue_today" tone="success" />
+        </Col>
+        <Col :xs="12" :md="8" :xl="6">
+            <StatCard :label="t('admin.dashboard.revenue_this_month')" :value="kpis.revenue_month" tone="success" />
+        </Col>
+        <Col :xs="12" :md="8" :xl="6">
+            <StatCard :label="t('admin.dashboard.total_orders')" :value="kpis.orders_total" />
+        </Col>
+        <Col :xs="12" :md="8" :xl="6">
+            <StatCard
+                :label="t('admin.dashboard.in_progress_orders')"
+                :value="kpis.orders_in_progress"
+                :tone="kpis.orders_in_progress > 0 ? 'warning' : 'default'"
+            />
+        </Col>
+        <Col :xs="12" :md="8" :xl="6">
+            <StatCard :label="t('admin.dashboard.completed_orders')" :value="kpis.orders_completed" />
+        </Col>
+        <Col :xs="12" :md="8" :xl="6">
+            <StatCard :label="t('admin.dashboard.cancelled_orders')" :value="kpis.orders_cancelled" />
+        </Col>
+        <Col :xs="12" :md="8" :xl="6">
+            <StatCard :label="t('admin.dashboard.customers')" :value="kpis.customers_total" />
+        </Col>
+        <Col :xs="12" :md="8" :xl="6">
+            <StatCard
+                :label="t('admin.common.products')"
+                :value="kpis.products_total"
+                :hint="t('admin.dashboard.active_count', { count: kpis.products_active })"
+            />
+        </Col>
+        <Col :xs="12" :md="8" :xl="6">
+            <StatCard :label="t('admin.dashboard.low_stock')" :value="kpis.low_stock" :tone="kpis.low_stock > 0 ? 'warning' : 'default'" />
+        </Col>
+        <Col :xs="12" :md="8" :xl="6">
+            <StatCard :label="t('admin.dashboard.out_of_stock')" :value="kpis.out_of_stock" :tone="kpis.out_of_stock > 0 ? 'danger' : 'default'" />
+        </Col>
+    </Row>
 
-    <div class="mt-6 grid gap-6 lg:grid-cols-2">
-        <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.revenue_chart') }}</h2>
-            <div class="h-64">
-                <Line :data="revenueChart" :options="chartOptions" />
-            </div>
-        </div>
-        <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <h2 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.orders_chart') }}</h2>
-            <div class="h-64">
-                <Bar :data="ordersChart" :options="chartOptions" />
-            </div>
-        </div>
-    </div>
+    <Row :gutter="[16, 16]" class="mt-6">
+        <Col :xs="24" :lg="12">
+            <Card :title="t('admin.dashboard.revenue_chart')" size="small">
+                <div class="h-64">
+                    <Line :data="revenueChart" :options="chartOptions" />
+                </div>
+            </Card>
+        </Col>
+        <Col :xs="24" :lg="12">
+            <Card :title="t('admin.dashboard.orders_chart')" size="small">
+                <div class="h-64">
+                    <Bar :data="ordersChart" :options="chartOptions" />
+                </div>
+            </Card>
+        </Col>
+    </Row>
 
-    <div class="mt-6 grid gap-6 xl:grid-cols-3">
-        <div class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900 xl:col-span-2">
-            <div class="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
-                <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.dashboard.recent_orders') }}</h2>
-                <Link :href="route('admin.orders.index')" class="text-sm text-blue-600 hover:underline dark:text-blue-400">{{
-                    t('admin.dashboard.view_all')
-                }}</Link>
-            </div>
-            <table class="min-w-full divide-y divide-gray-100 text-sm dark:divide-gray-800">
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                    <tr v-for="order in recentOrders" :key="order.id" class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                        <td class="px-4 py-2.5">
-                            <Link :href="route('admin.orders.show', order.id)" class="font-medium text-blue-600 hover:underline dark:text-blue-400">
-                                {{ order.number }}
-                            </Link>
-                        </td>
-                        <td class="px-4 py-2.5 text-gray-600 dark:text-gray-300">{{ order.customer }}</td>
-                        <td class="px-4 py-2.5"><StatusBadge :status="order.status" :label="order.status_label" /></td>
-                        <td class="px-4 py-2.5 font-medium text-gray-900 dark:text-gray-100">{{ order.total_formatted }}</td>
-                        <td class="px-4 py-2.5 text-gray-400">{{ order.created_at }}</td>
-                    </tr>
-                    <tr v-if="recentOrders.length === 0">
-                        <td class="px-4 py-8 text-center text-gray-400" colspan="5">{{ t('admin.dashboard.no_orders') }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <Row :gutter="[16, 16]" class="mt-6">
+        <Col :xs="24" :xl="16">
+            <Card :title="t('admin.dashboard.recent_orders')" size="small" :body-style="{ padding: 0 }">
+                <template #extra>
+                    <Link :href="route('admin.orders.index')" class="text-blue-600 hover:underline dark:text-blue-400">{{
+                        t('admin.dashboard.view_all')
+                    }}</Link>
+                </template>
+                <Table
+                    :columns="recentOrderColumns"
+                    :data-source="recentOrders"
+                    row-key="id"
+                    :pagination="false"
+                    size="middle"
+                    :scroll="{ x: 'max-content' }"
+                >
+                    <template #bodyCell="{ column, record }">
+                        <template v-if="column.key === 'number'">
+                            <Link
+                                :href="route('admin.orders.show', record.id)"
+                                class="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                                >{{ record.number }}</Link
+                            >
+                        </template>
+                        <template v-else-if="column.key === 'status'">
+                            <StatusBadge :status="record.status" :label="record.status_label" />
+                        </template>
+                        <template v-else-if="column.key === 'total_formatted'">
+                            <span class="font-medium">{{ record.total_formatted }}</span>
+                        </template>
+                        <template v-else-if="column.key === 'created_at'">
+                            <Text type="secondary">{{ record.created_at }}</Text>
+                        </template>
+                    </template>
+                    <template #emptyText>{{ t('admin.dashboard.no_orders') }}</template>
+                </Table>
+            </Card>
+        </Col>
 
-        <div class="space-y-6">
-            <div class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-gray-800 dark:text-gray-300">
-                    {{ t('admin.dashboard.best_sellers') }}
-                </h2>
-                <ul class="divide-y divide-gray-100 dark:divide-gray-800">
-                    <li v-for="(item, i) in bestSellers" :key="i" class="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                        <span class="truncate text-gray-700 dark:text-gray-300">{{ item.name }}</span>
-                        <span class="shrink-0 text-xs text-gray-400">{{
-                            t('admin.dashboard.sold_revenue', { sold: item.sold, revenue: item.revenue_formatted })
-                        }}</span>
-                    </li>
-                    <li v-if="bestSellers.length === 0" class="px-4 py-6 text-center text-sm text-gray-400">{{ t('admin.dashboard.no_sales') }}</li>
-                </ul>
-            </div>
+        <Col :xs="24" :xl="8">
+            <Card :title="t('admin.dashboard.best_sellers')" size="small" :body-style="{ padding: 0 }">
+                <List size="small" :data-source="bestSellers" :locale="{ emptyText: t('admin.dashboard.no_sales') }" :split="true" class="px-2">
+                    <template #renderItem="{ item }">
+                        <ListItem>
+                            <span class="truncate">{{ item.name }}</span>
+                            <Text type="secondary" class="shrink-0 !text-xs">
+                                {{ t('admin.dashboard.sold_revenue', { sold: item.sold, revenue: item.revenue_formatted }) }}
+                            </Text>
+                        </ListItem>
+                    </template>
+                </List>
+            </Card>
 
-            <div class="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 dark:border-gray-800 dark:text-gray-300">
-                    {{ t('admin.dashboard.recent_activity') }}
-                </h2>
-                <ul class="divide-y divide-gray-100 dark:divide-gray-800">
-                    <li v-for="entry in recentActivity" :key="entry.id" class="px-4 py-2.5 text-sm">
-                        <p class="text-gray-700 dark:text-gray-300">{{ entry.description }}</p>
-                        <p class="text-xs text-gray-400">{{ entry.causer }} · {{ entry.created_at }}</p>
-                    </li>
-                    <li v-if="recentActivity.length === 0" class="px-4 py-6 text-center text-sm text-gray-400">
-                        {{ t('admin.dashboard.no_activity') }}
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
+            <Card :title="t('admin.dashboard.recent_activity')" size="small" :body-style="{ padding: 0 }" class="mt-4">
+                <List
+                    size="small"
+                    :data-source="recentActivity"
+                    row-key="id"
+                    :locale="{ emptyText: t('admin.dashboard.no_activity') }"
+                    :split="true"
+                    class="px-2"
+                >
+                    <template #renderItem="{ item }">
+                        <ListItem>
+                            <div>
+                                <p class="mb-0">{{ item.description }}</p>
+                                <Text type="secondary" class="!text-xs">{{ item.causer }} · {{ item.created_at }}</Text>
+                            </div>
+                        </ListItem>
+                    </template>
+                </List>
+            </Card>
+        </Col>
+    </Row>
 </template>

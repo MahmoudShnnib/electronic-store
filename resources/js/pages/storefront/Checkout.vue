@@ -3,7 +3,9 @@ import CitySelect from '@/components/store/CitySelect.vue';
 import type { AddressData, CartData } from '@/components/store/types';
 import StoreLayout from '@/layouts/StoreLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Alert, Button, Card, Form, FormItem, Input, Radio, RadioGroup, Textarea, Typography } from 'ant-design-vue';
 import { ImageOff, Pencil } from 'lucide-vue-next';
+import { nextTick, onBeforeUnmount, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
@@ -15,6 +17,8 @@ const props = defineProps<{
     cities: { en: string; ar: string }[];
     paymentMethods: { value: string; label: string }[];
 }>();
+
+const { Title, Text } = Typography;
 
 const { t } = useI18n();
 
@@ -58,16 +62,47 @@ function fillFromAddress(address: AddressData) {
     form.shipping_address.area = address.area ?? '';
 }
 
+/**
+ * Errors come back from the server against nested keys, and the fields they
+ * belong to are AntD components rather than plain inputs — so the first bad one
+ * is found by walking the form in DOM order and focusing whatever control sits
+ * inside the `FormItem` AntD has marked as errored.
+ */
+function focusFirstError() {
+    nextTick(() => {
+        // AntD's Select is a div with a hidden search input inside it; that input is
+        // the focusable element, not `.ant-select-selector`.
+        const field = document.querySelector<HTMLElement>('.ant-form-item-has-error input, .ant-form-item-has-error textarea');
+
+        field?.focus();
+        field?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+}
+
 function submit() {
     // The city picker is a custom control, so native `required` can't reach it.
     if (form.shipping_address.city === '') {
         form.setError('shipping_address.city', t('checkout.city_required'));
+        focusFirstError();
 
         return;
     }
 
-    form.post(route('checkout.store'));
+    form.post(route('checkout.store'), { onError: focusFirstError });
 }
+
+/**
+ * Half-filled checkout details are worth a prompt: the form is long, it is the
+ * last step before an order, and a stray back-swipe used to drop all of it.
+ */
+function warnOnUnsavedChanges(event: BeforeUnloadEvent) {
+    if (form.isDirty && !form.processing) {
+        event.preventDefault();
+    }
+}
+
+onMounted(() => window.addEventListener('beforeunload', warnOnUnsavedChanges));
+onBeforeUnmount(() => window.removeEventListener('beforeunload', warnOnUnsavedChanges));
 
 /** Flatten nested error keys like `shipping_address.city`. */
 function error(key: string): string | undefined {
@@ -79,29 +114,35 @@ function error(key: string): string | undefined {
     <Head :title="t('checkout.title')" />
 
     <div class="mx-auto w-full max-w-7xl px-4 py-8">
-        <h1 class="mb-6 text-2xl font-bold">{{ t('checkout.title') }}</h1>
+        <Title :level="1" class="!mb-6 !text-2xl !font-bold">{{ t('checkout.title') }}</Title>
 
-        <p
+        <Alert
             v-if="error('cart') || error('coupon') || cart.coupon_error"
-            class="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
-        >
-            {{ error('cart') ?? error('coupon') ?? cart.coupon_error }}
-        </p>
+            type="error"
+            show-icon
+            class="!mb-4"
+            :message="error('cart') ?? error('coupon') ?? cart.coupon_error"
+        />
 
-        <form class="flex flex-col gap-8 lg:flex-row" @submit.prevent="submit">
+        <Form layout="vertical" class="flex flex-col gap-8 lg:flex-row" @submit.prevent="submit">
             <div class="flex-1 space-y-6">
                 <!-- Contact + delivery -->
-                <section class="rounded-xl border border-border bg-card p-5">
-                    <h2 class="mb-4 font-semibold">1. {{ t('checkout.contact') }}</h2>
+                <Card>
+                    <template #title>
+                        <span class="store-step">1</span>
+                        {{ t('checkout.contact') }}
+                    </template>
 
-                    <div v-if="addresses.length > 0" class="mb-4">
-                        <p class="mb-2 text-sm text-muted-foreground">{{ t('checkout.saved_addresses') }}</p>
+                    <div v-if="addresses.length > 0" class="mb-5">
+                        <Text class="!mb-2 !block !text-sm opacity-60">{{ t('checkout.saved_addresses') }}</Text>
                         <div class="flex flex-wrap gap-2">
+                            <!-- A saved address fills the form, so the chip is a real button
+                                 rather than a Tag with a click handler on a <span>. -->
                             <button
                                 v-for="address in addresses"
                                 :key="address.id"
                                 type="button"
-                                class="rounded-lg border border-border px-3 py-1.5 text-sm transition hover:border-black dark:hover:border-white"
+                                class="store-filter-tag ant-tag"
                                 @click="fillFromAddress(address)"
                             >
                                 {{ address.label ?? [address.city, address.area].filter(Boolean).join(' — ') }}
@@ -109,153 +150,156 @@ function error(key: string): string | undefined {
                         </div>
                     </div>
 
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <label class="mb-1 block text-sm">{{ t('checkout.name') }}</label>
-                            <input
-                                v-model="form.customer.name"
-                                type="text"
-                                required
-                                maxlength="120"
-                                class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                            />
-                            <p v-if="error('customer.name')" class="mt-1 text-xs text-red-500">{{ error('customer.name') }}</p>
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-sm">{{ t('checkout.phone') }}</label>
-                            <input
-                                v-model="form.customer.phone"
+                    <div class="grid gap-x-4 sm:grid-cols-2">
+                        <FormItem
+                            :label="t('checkout.name')"
+                            required
+                            :validate-status="error('customer.name') ? 'error' : undefined"
+                            :help="error('customer.name')"
+                        >
+                            <Input v-model:value="form.customer.name" name="name" autocomplete="name" :maxlength="120" />
+                        </FormItem>
+
+                        <FormItem
+                            :label="t('checkout.phone')"
+                            required
+                            :validate-status="error('customer.phone') ? 'error' : undefined"
+                            :help="error('customer.phone') ?? t('checkout.phone_hint')"
+                        >
+                            <Input
+                                v-model:value="form.customer.phone"
                                 type="tel"
+                                name="tel"
+                                autocomplete="tel"
+                                spellcheck="false"
                                 dir="ltr"
-                                required
                                 inputmode="tel"
                                 placeholder="0912345678"
-                                pattern="[\s\-().+0-9]{10,20}"
-                                :title="t('checkout.phone_hint')"
-                                class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                             />
-                            <p v-if="error('customer.phone')" class="mt-1 text-xs text-red-500">{{ error('customer.phone') }}</p>
-                        </div>
-                        <div class="sm:col-span-2">
-                            <label class="mb-1 block text-sm">
+                        </FormItem>
+
+                        <FormItem
+                            class="sm:col-span-2"
+                            :validate-status="error('customer.email') ? 'error' : undefined"
+                            :help="error('customer.email')"
+                        >
+                            <template #label>
                                 {{ t('checkout.email') }}
-                                <span class="text-muted-foreground">({{ t('common.optional') }})</span>
-                            </label>
-                            <input
-                                v-model="form.customer.email"
-                                type="email"
-                                dir="ltr"
-                                class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                            />
-                            <p v-if="error('customer.email')" class="mt-1 text-xs text-red-500">{{ error('customer.email') }}</p>
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-sm">{{ t('checkout.city') }}</label>
+                                <Text class="!ms-1 !text-xs opacity-55">({{ t('common.optional') }})</Text>
+                            </template>
+                            <Input v-model:value="form.customer.email" type="email" name="email" autocomplete="email" spellcheck="false" dir="ltr" />
+                        </FormItem>
+
+                        <FormItem
+                            :label="t('checkout.city')"
+                            required
+                            :validate-status="error('shipping_address.city') ? 'error' : undefined"
+                            :help="error('shipping_address.city')"
+                        >
                             <CitySelect
                                 v-model="form.shipping_address.city"
                                 :cities="cities"
                                 :has-error="error('shipping_address.city') !== undefined"
                             />
-                            <p v-if="error('shipping_address.city')" class="mt-1 text-xs text-red-500">{{ error('shipping_address.city') }}</p>
-                        </div>
-                        <div>
-                            <label class="mb-1 block text-sm">{{ t('checkout.area') }}</label>
-                            <input
-                                v-model="form.shipping_address.area"
-                                type="text"
-                                required
-                                maxlength="120"
-                                class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                            />
-                            <p v-if="error('shipping_address.area')" class="mt-1 text-xs text-red-500">{{ error('shipping_address.area') }}</p>
-                        </div>
-                        <div class="sm:col-span-2">
-                            <label class="mb-1 block text-sm">{{ t('checkout.order_note') }}</label>
-                            <textarea
-                                v-model="form.customer_note"
-                                rows="2"
-                                class="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                            />
-                            <p v-if="error('customer_note')" class="mt-1 text-xs text-red-500">{{ error('customer_note') }}</p>
-                        </div>
+                        </FormItem>
+
+                        <FormItem
+                            :label="t('checkout.area')"
+                            required
+                            :validate-status="error('shipping_address.area') ? 'error' : undefined"
+                            :help="error('shipping_address.area')"
+                        >
+                            <Input v-model:value="form.shipping_address.area" name="address-level1" autocomplete="address-level1" :maxlength="120" />
+                        </FormItem>
+
+                        <FormItem
+                            class="sm:col-span-2"
+                            :label="t('checkout.order_note')"
+                            :validate-status="error('customer_note') ? 'error' : undefined"
+                            :help="error('customer_note')"
+                        >
+                            <Textarea v-model:value="form.customer_note" :rows="2" />
+                        </FormItem>
                     </div>
-                </section>
+                </Card>
 
                 <!-- Payment -->
-                <section class="rounded-xl border border-border bg-card p-5">
-                    <h2 class="mb-4 font-semibold">2. {{ t('checkout.payment') }}</h2>
-                    <div class="space-y-2">
-                        <label
-                            v-for="method in paymentMethods"
-                            :key="method.value"
-                            class="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition"
-                            :class="
-                                form.payment_method === method.value
-                                    ? 'border-black bg-neutral-100 dark:border-white dark:bg-neutral-800'
-                                    : 'border-border'
-                            "
-                        >
-                            <input v-model="form.payment_method" type="radio" :value="method.value" class="h-4 w-4 text-black dark:text-white" />
-                            <span class="text-sm font-medium">{{ method.label }}</span>
-                        </label>
-                    </div>
-                    <p v-if="error('payment_method')" class="mt-1 text-xs text-red-500">{{ error('payment_method') }}</p>
-                </section>
+                <Card>
+                    <template #title>
+                        <span class="store-step">2</span>
+                        {{ t('checkout.payment') }}
+                    </template>
+
+                    <FormItem :validate-status="error('payment_method') ? 'error' : undefined" :help="error('payment_method')" class="!mb-0">
+                        <RadioGroup v-model:value="form.payment_method" class="store-payment">
+                            <Radio v-for="method in paymentMethods" :key="method.value" :value="method.value" class="store-payment-option">
+                                {{ method.label }}
+                            </Radio>
+                        </RadioGroup>
+                    </FormItem>
+                </Card>
             </div>
 
             <!-- Review / summary -->
-            <aside class="h-fit w-full rounded-xl border border-border bg-card p-5 lg:w-96">
-                <div class="mb-4 flex items-center justify-between gap-2">
-                    <h2 class="font-semibold">3. {{ t('checkout.review') }}</h2>
-                    <Link
-                        :href="route('cart.show')"
-                        class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition hover:border-black dark:hover:border-white"
-                    >
-                        <Pencil class="h-3.5 w-3.5" />
-                        {{ t('checkout.edit_order') }}
-                    </Link>
-                </div>
-
-                <ul class="mb-4 max-h-80 space-y-3 overflow-y-auto text-sm">
-                    <li v-for="item in cart.items" :key="item.id" class="flex items-center gap-3">
-                        <Link
-                            :href="route('products.show', item.slug)"
-                            class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted"
-                        >
-                            <img v-if="item.image" :src="item.image" :alt="item.name" class="h-full w-full object-contain" />
-                            <ImageOff v-else class="h-6 w-6 text-muted-foreground" />
+            <aside class="w-full lg:w-96">
+                <Card class="sticky top-24">
+                    <template #title>
+                        <span class="store-step">3</span>
+                        {{ t('checkout.review') }}
+                    </template>
+                    <template #extra>
+                        <Link :href="route('cart.show')">
+                            <Button size="small">
+                                <template #icon><Pencil class="h-3.5 w-3.5" /></template>
+                                {{ t('checkout.edit_order') }}
+                            </Button>
                         </Link>
-                        <div class="min-w-0 flex-1">
-                            <p class="line-clamp-2 font-medium leading-snug">{{ item.name }}</p>
-                            <p class="mt-0.5 text-xs text-muted-foreground" dir="auto">{{ item.quantity }} × {{ item.unit_price_formatted }}</p>
+                    </template>
+
+                    <ul class="overlay-scroll mb-4 max-h-80 space-y-3 overflow-y-auto text-sm">
+                        <li v-for="item in cart.items" :key="item.id" class="flex items-center gap-3">
+                            <Link :href="route('products.show', item.slug)" class="store-cart-thumb !h-16 !w-16">
+                                <img
+                                    v-if="item.image"
+                                    :src="item.image"
+                                    :alt="item.name"
+                                    width="64"
+                                    height="64"
+                                    loading="lazy"
+                                    class="h-full w-full object-contain"
+                                />
+                                <ImageOff v-else class="h-6 w-6 opacity-30" />
+                            </Link>
+                            <div class="min-w-0 flex-1">
+                                <p class="store-product-name !min-h-0">{{ item.name }}</p>
+                                <Text class="!mt-0.5 !block !text-xs opacity-55" dir="auto"
+                                    >{{ item.quantity }} × {{ item.unit_price_formatted }}</Text
+                                >
+                            </div>
+                            <span class="store-money shrink-0 font-semibold">{{ item.line_subtotal_formatted }}</span>
+                        </li>
+                    </ul>
+
+                    <dl class="store-totals border-t border-black/10 pt-3 dark:border-white/10">
+                        <div v-if="cart.discount_cents > 0" class="store-totals-row store-totals-discount">
+                            <dt>
+                                {{ t('cart.discount') }} <template v-if="cart.coupon">({{ cart.coupon.code }})</template>
+                            </dt>
+                            <dd>
+                                <bdi dir="ltr">−{{ cart.discount_formatted }}</bdi>
+                            </dd>
                         </div>
-                        <span class="shrink-0 font-semibold">{{ item.line_subtotal_formatted }}</span>
-                    </li>
-                </ul>
+                        <div class="store-totals-row store-totals-grand">
+                            <dt>{{ t('cart.total') }}</dt>
+                            <dd>{{ cart.total_formatted }}</dd>
+                        </div>
+                    </dl>
 
-                <dl class="space-y-2 border-t border-border pt-3 text-sm">
-                    <div v-if="cart.discount_cents > 0" class="flex justify-between text-green-600">
-                        <dt>
-                            {{ t('cart.discount') }} <template v-if="cart.coupon">({{ cart.coupon.code }})</template>
-                        </dt>
-                        <dd>
-                            <bdi dir="ltr">−{{ cart.discount_formatted }}</bdi>
-                        </dd>
-                    </div>
-                    <div class="flex justify-between border-t border-border pt-3 text-base font-bold">
-                        <dt>{{ t('cart.total') }}</dt>
-                        <dd>{{ cart.total_formatted }}</dd>
-                    </div>
-                </dl>
-
-                <button
-                    type="submit"
-                    :disabled="form.processing"
-                    class="mt-5 w-full rounded-xl bg-black py-3 font-semibold text-white transition hover:opacity-85 disabled:opacity-50 dark:bg-white dark:text-black"
-                >
-                    {{ form.processing ? t('common.loading') : t('checkout.place_order') }}
-                </button>
+                    <Button type="primary" size="large" shape="round" block html-type="submit" :loading="form.processing" class="!mt-5">
+                        {{ t('checkout.place_order') }}
+                    </Button>
+                </Card>
             </aside>
-        </form>
+        </Form>
     </div>
 </template>

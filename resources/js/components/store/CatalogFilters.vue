@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { CategoryData } from '@/components/store/types';
+import { Button, Divider, InputNumber, Tag } from 'ant-design-vue';
 import { BadgePercent } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
+
+const CheckableTag = Tag.CheckableTag;
 
 export interface CatalogFilterForm {
     q?: string;
@@ -19,7 +22,7 @@ const props = defineProps<{
     locale: string;
     brands: { id: number; name: string; slug: string }[] | null;
     categories: CategoryData[] | null;
-    /** When set (mobile sheet), shows a live "show N results" close button —
+    /** When set (mobile drawer), shows a live "show N results" close button —
      *  filters apply automatically, so there is no apply action anymore. */
     resultsCount?: number;
 }>();
@@ -38,17 +41,6 @@ function isSelected(list: (string | number)[], id: number): boolean {
     return list.map(Number).includes(id);
 }
 
-const numberInput =
-    'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
-
-const chip = 'rounded-full border px-3.5 py-1.5 text-sm transition';
-const chipOff = 'border-[#DBDBDB] text-foreground hover:border-black dark:border-neutral-700 dark:hover:border-white';
-const chipOn = 'border-black bg-black text-white dark:border-white dark:bg-white dark:text-black';
-
-function chipClass(selected: boolean): string {
-    return `${chip} ${selected ? chipOn : chipOff}`;
-}
-
 function categoryName(option: CategoryData): string {
     return props.locale === 'ar' && option.name_ar ? option.name_ar : option.name;
 }
@@ -59,78 +51,99 @@ function categoryName(option: CategoryData): string {
      mutation made here. -->
 <!-- eslint-disable vue/no-mutating-props -->
 <template>
-    <div>
-        <h2 class="mb-4 font-semibold">{{ t('catalog.filters') }}</h2>
+    <div class="store-filters">
+        <h2 class="text-base font-semibold">{{ t('catalog.filters') }}</h2>
 
         <!-- Price -->
-        <div class="border-t border-[#EDEDED] py-4 dark:border-neutral-800">
-            <h3 class="mb-3 text-sm font-medium">{{ t('catalog.price_range') }}</h3>
-            <div class="flex items-center gap-2">
-                <input v-model="form.min_price" type="number" inputmode="numeric" min="0" :placeholder="t('catalog.min')" :class="numberInput" />
-                <span class="shrink-0 text-muted-foreground">–</span>
-                <input v-model="form.max_price" type="number" inputmode="numeric" min="0" :placeholder="t('catalog.max')" :class="numberInput" />
-            </div>
-
-            <button
-                type="button"
-                class="mt-3 inline-flex items-center gap-1.5"
-                :class="chipClass(form.on_sale === true)"
-                @click="form.on_sale = form.on_sale !== true"
-            >
-                <BadgePercent class="h-4 w-4" />
-                {{ t('catalog.on_sale_only') }}
-            </button>
+        <Divider class="!mb-4 !mt-3" />
+        <h3 class="store-filters-heading">{{ t('catalog.price_range') }}</h3>
+        <div class="flex items-center gap-2">
+            <InputNumber
+                v-model:value="form.min_price"
+                :min="0"
+                :placeholder="t('catalog.min')"
+                :aria-label="t('catalog.min')"
+                inputmode="numeric"
+                class="w-full"
+            />
+            <span class="shrink-0 opacity-50" aria-hidden="true">–</span>
+            <InputNumber
+                v-model:value="form.max_price"
+                :min="0"
+                :placeholder="t('catalog.max')"
+                :aria-label="t('catalog.max')"
+                inputmode="numeric"
+                class="w-full"
+            />
         </div>
+
+        <!-- AntD's CheckableTag is a bare <span>: it has no role, no checked state and
+             no keyboard path of its own, so every chip states all three here. -->
+        <CheckableTag
+            :checked="form.on_sale === true"
+            class="store-filter-tag !mt-3"
+            role="checkbox"
+            :aria-checked="form.on_sale === true"
+            tabindex="0"
+            @change="form.on_sale = form.on_sale !== true"
+            @keydown.enter.prevent="form.on_sale = form.on_sale !== true"
+            @keydown.space.prevent="form.on_sale = form.on_sale !== true"
+        >
+            <span class="flex items-center gap-1.5">
+                <BadgePercent class="h-3.5 w-3.5" />
+                {{ t('catalog.on_sale_only') }}
+            </span>
+        </CheckableTag>
 
         <!-- Brands -->
-        <div v-if="brands && brands.length > 0" class="border-t border-[#EDEDED] py-4 dark:border-neutral-800">
-            <h3 class="mb-3 text-sm font-medium">{{ t('nav.brands') }}</h3>
-            <div class="flex flex-wrap gap-2">
-                <button
+        <template v-if="brands && brands.length > 0">
+            <Divider class="!mb-4 !mt-5" />
+            <h3 class="store-filters-heading">{{ t('nav.brands') }}</h3>
+            <div class="flex flex-wrap gap-2" role="group" :aria-label="t('nav.brands')">
+                <CheckableTag
                     v-for="option in brands"
                     :key="option.id"
-                    type="button"
-                    :class="chipClass(isSelected(form.brands, option.id))"
-                    @click="toggleId(form.brands, option.id)"
+                    :checked="isSelected(form.brands, option.id)"
+                    class="store-filter-tag"
+                    role="checkbox"
+                    :aria-checked="isSelected(form.brands, option.id)"
+                    tabindex="0"
+                    @change="toggleId(form.brands, option.id)"
+                    @keydown.enter.prevent="toggleId(form.brands, option.id)"
+                    @keydown.space.prevent="toggleId(form.brands, option.id)"
                 >
                     {{ option.name }}
-                </button>
+                </CheckableTag>
             </div>
-        </div>
+        </template>
 
         <!-- Categories -->
-        <div v-if="categories && categories.length > 0" class="border-t border-[#EDEDED] py-4 dark:border-neutral-800">
-            <h3 class="mb-3 text-sm font-medium">{{ t('nav.categories') }}</h3>
-            <div class="flex flex-wrap gap-2">
-                <button
+        <template v-if="categories && categories.length > 0">
+            <Divider class="!mb-4 !mt-5" />
+            <h3 class="store-filters-heading">{{ t('nav.categories') }}</h3>
+            <div class="flex flex-wrap gap-2" role="group" :aria-label="t('nav.categories')">
+                <CheckableTag
                     v-for="option in categories"
                     :key="option.id"
-                    type="button"
-                    :class="chipClass(isSelected(form.categories, option.id))"
-                    @click="toggleId(form.categories, option.id)"
+                    :checked="isSelected(form.categories, option.id)"
+                    class="store-filter-tag"
+                    role="checkbox"
+                    :aria-checked="isSelected(form.categories, option.id)"
+                    tabindex="0"
+                    @change="toggleId(form.categories, option.id)"
+                    @keydown.enter.prevent="toggleId(form.categories, option.id)"
+                    @keydown.space.prevent="toggleId(form.categories, option.id)"
                 >
                     {{ categoryName(option) }}
-                </button>
+                </CheckableTag>
             </div>
-        </div>
+        </template>
 
-        <div class="mt-2 flex gap-2">
-            <button
-                type="button"
-                class="rounded-lg border border-[#DBDBDB] py-2.5 text-sm font-semibold transition hover:border-black dark:border-neutral-700 dark:hover:border-white"
-                :class="resultsCount !== undefined ? 'w-1/3' : 'w-full'"
-                @click="emit('clear')"
-            >
-                {{ t('catalog.clear') }}
-            </button>
-            <button
-                v-if="resultsCount !== undefined"
-                type="button"
-                class="flex-1 rounded-lg bg-black py-2.5 text-sm font-semibold text-white transition hover:opacity-85 dark:bg-white dark:text-black"
-                @click="emit('done')"
-            >
+        <div class="mt-6 flex gap-2">
+            <Button :block="resultsCount === undefined" @click="emit('clear')">{{ t('catalog.clear') }}</Button>
+            <Button v-if="resultsCount !== undefined" type="primary" class="flex-1" @click="emit('done')">
                 {{ t('catalog.show_results', { count: resultsCount }) }}
-            </button>
+            </Button>
         </div>
     </div>
 </template>

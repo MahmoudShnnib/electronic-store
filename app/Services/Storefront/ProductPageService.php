@@ -84,6 +84,8 @@ final class ProductPageService
                 'current_price_formatted' => Money::format($product->currentPriceCents()),
                 'status' => $product->status->value,
                 'purchasable' => $product->status->isPurchasable(),
+                'wishlisted' => auth()->check()
+                    && auth()->user()->wishlistItems()->where('product_id', $product->id)->exists(),
                 'has_variants' => $product->has_variants,
                 'images' => $product->images->map(fn ($img) => [
                     'id' => $img->id,

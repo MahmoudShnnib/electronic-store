@@ -4,10 +4,10 @@ import AdminSelect from '@/components/admin/AdminSelect.vue';
 import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import type { Option } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Plus, Trash2, Upload } from 'lucide-vue-next';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { Alert, Button, Card, Checkbox, Input, InputNumber, Tag, Textarea, Tooltip, Typography, Upload } from 'ant-design-vue';
+import { Plus, Trash2, Upload as UploadIcon } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -228,26 +228,25 @@ function specFor(attributeId: number): SpecValue {
 
 // -- Images -------------------------------------------------------------------
 
-const imageInput = ref<HTMLInputElement | null>(null);
 const uploadingImages = ref(false);
 
-function uploadImages(event: Event): void {
-    const files = (event.target as HTMLInputElement).files;
-
-    if (!files || files.length === 0 || !props.product) return;
+/**
+ * AntD calls `before-upload` once per file but hands each call the whole
+ * selection, so post the batch once — on the last file — to keep the single
+ * multi-image request the native `<input multiple>` used to make.
+ */
+function uploadImages(files: File[]): void {
+    if (files.length === 0 || !props.product) return;
 
     uploadingImages.value = true;
 
     router.post(
         route('admin.products.images.store', props.product.id),
-        { images: Array.from(files) },
+        { images: files },
         {
             forceFormData: true,
             preserveScroll: true,
-            onFinish: () => {
-                uploadingImages.value = false;
-                if (imageInput.value) imageInput.value.value = '';
-            },
+            onFinish: () => (uploadingImages.value = false),
         },
     );
 }
@@ -264,30 +263,29 @@ function deleteImage(image: ProductImage): void {
 
     <PageHeader :title="isEdit ? t('admin.products.edit') : t('admin.products.new')" :subtitle="product?.name">
         <template #actions>
-            <Link :href="route('admin.products.index')" :class="btnSecondary">{{ t('admin.common.back_to_list') }}</Link>
+            <Button @click="router.visit(route('admin.products.index'))">{{ t('admin.common.back_to_list') }}</Button>
         </template>
     </PageHeader>
 
     <form class="grid gap-6 xl:grid-cols-3" @submit.prevent="submit">
         <div class="space-y-6 xl:col-span-2">
             <!-- Basics -->
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.products.basics') }}</h2>
+            <Card :title="t('admin.products.basics')">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <Field :label="t('admin.common.name')" required :error="form.errors.name">
-                        <input v-model="form.name" type="text" :class="inputClass" dir="ltr" />
+                        <Input v-model:value="form.name" dir="ltr" />
                     </Field>
                     <Field :label="t('admin.common.name_ar')" :error="form.errors.name_ar">
-                        <input v-model="form.name_ar" type="text" dir="rtl" :class="inputClass" />
+                        <Input v-model:value="form.name_ar" dir="rtl" />
                     </Field>
                     <Field :label="t('admin.common.sku')" required :error="form.errors.sku">
-                        <input v-model="form.sku" type="text" :class="inputClass" dir="ltr" />
+                        <Input v-model:value="form.sku" dir="ltr" />
                     </Field>
                     <Field :label="t('admin.products.barcode')" :error="form.errors.barcode">
-                        <input v-model="form.barcode" type="text" :class="inputClass" dir="ltr" />
+                        <Input v-model:value="form.barcode" dir="ltr" />
                     </Field>
                     <Field :label="t('admin.common.slug')" :hint="t('admin.products.slug_hint')" :error="form.errors.slug">
-                        <input v-model="form.slug" type="text" :class="inputClass" dir="ltr" />
+                        <Input v-model:value="form.slug" dir="ltr" />
                     </Field>
                     <Field :label="t('admin.common.category')" required :error="form.errors.category_id">
                         <AdminSelect
@@ -314,32 +312,31 @@ function deleteImage(image: ProductImage): void {
 
                 <div class="mt-4 grid gap-4 sm:grid-cols-2">
                     <Field :label="t('admin.products.short_description')" :error="form.errors.short_description">
-                        <textarea v-model="form.short_description" rows="2" :class="inputClass" dir="ltr" />
+                        <Textarea v-model:value="form.short_description" :rows="2" dir="ltr" />
                     </Field>
                     <Field :label="t('admin.products.short_description_ar')" :error="form.errors.short_description_ar">
-                        <textarea v-model="form.short_description_ar" rows="2" dir="rtl" :class="inputClass" />
+                        <Textarea v-model:value="form.short_description_ar" :rows="2" dir="rtl" />
                     </Field>
                     <Field :label="t('admin.common.description')" :error="form.errors.description">
-                        <textarea v-model="form.description" rows="6" :class="inputClass" dir="ltr" />
+                        <Textarea v-model:value="form.description" :rows="6" dir="ltr" />
                     </Field>
                     <Field :label="t('admin.common.description_ar')" :error="form.errors.description_ar">
-                        <textarea v-model="form.description_ar" rows="6" dir="rtl" :class="inputClass" />
+                        <Textarea v-model:value="form.description_ar" :rows="6" dir="rtl" />
                     </Field>
                 </div>
-            </section>
+            </Card>
 
             <!-- Pricing -->
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.products.pricing') }}</h2>
+            <Card :title="t('admin.products.pricing')">
                 <div class="grid gap-4 sm:grid-cols-3">
                     <Field :label="t('admin.products.cost_price')" required :error="form.errors.cost_price">
-                        <input v-model.number="form.cost_price" type="number" step="0.01" min="0" :class="inputClass" />
+                        <InputNumber v-model:value="form.cost_price" :step="0.01" :min="0" class="w-full" />
                     </Field>
                     <Field :label="t('admin.products.regular_price')" required :error="form.errors.price">
-                        <input v-model.number="form.price" type="number" step="0.01" min="0" :class="inputClass" />
+                        <InputNumber v-model:value="form.price" :step="0.01" :min="0" class="w-full" />
                     </Field>
                     <Field :label="t('admin.products.sale_price')" :error="form.errors.sale_price">
-                        <input v-model.number="form.sale_price" type="number" step="0.01" min="0" :class="inputClass" />
+                        <InputNumber v-model:value="form.sale_price" :step="0.01" :min="0" class="w-full" />
                     </Field>
                     <Field :label="t('admin.products.sale_starts')" :error="form.errors.sale_starts_at">
                         <AdminDateInput v-model="form.sale_starts_at" with-time />
@@ -348,110 +345,99 @@ function deleteImage(image: ProductImage): void {
                         <AdminDateInput v-model="form.sale_ends_at" with-time />
                     </Field>
                 </div>
-            </section>
+            </Card>
 
             <!-- Variants -->
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <div class="mb-4 flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.products.variants') }}</h2>
-                    <button type="button" :class="btnSecondary" @click="addVariant">
-                        <Plus class="h-4 w-4" />{{ t('admin.products.add_variant') }}
-                    </button>
-                </div>
-                <p v-if="form.variants.length === 0" class="text-sm text-gray-400">{{ t('admin.products.no_variants') }}</p>
-                <p v-if="form.errors.variants" class="mb-2 text-xs text-red-600">{{ form.errors.variants }}</p>
+            <Card :title="t('admin.products.variants')">
+                <template #extra>
+                    <Button @click="addVariant">
+                        <template #icon><Plus class="h-4 w-4" /></template>
+                        {{ t('admin.products.add_variant') }}
+                    </Button>
+                </template>
+                <Typography.Text v-if="form.variants.length === 0" type="secondary">{{ t('admin.products.no_variants') }}</Typography.Text>
+                <Typography.Text v-if="form.errors.variants" type="danger" class="mb-2 block text-xs">{{ form.errors.variants }}</Typography.Text>
 
-                <div
+                <Card
                     v-for="(variant, index) in form.variants"
                     :key="variant.id ?? `new-${index}`"
-                    class="mb-4 rounded-md border border-gray-200 p-4 dark:border-gray-700"
+                    size="small"
+                    class="mb-4"
+                    :title="t('admin.products.variant_n', { n: index + 1 })"
                 >
-                    <div class="mb-3 flex items-center justify-between">
-                        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">{{
-                            t('admin.products.variant_n', { n: index + 1 })
-                        }}</span>
-                        <button type="button" class="text-red-500 hover:text-red-700" :title="t('admin.common.remove')" @click="removeVariant(index)">
-                            <Trash2 class="h-4 w-4" />
-                        </button>
-                    </div>
+                    <template #extra>
+                        <Tooltip :title="t('admin.common.remove')">
+                            <Button type="text" size="small" danger :aria-label="t('admin.common.remove')" @click="removeVariant(index)">
+                                <template #icon><Trash2 class="h-4 w-4" /></template>
+                            </Button>
+                        </Tooltip>
+                    </template>
                     <div class="grid gap-3 sm:grid-cols-3">
                         <Field :label="t('admin.common.name')" required :error="err(`variants.${index}.name`)">
-                            <input v-model="variant.name" type="text" :placeholder="t('admin.products.variant_hint')" :class="inputClass" dir="ltr" />
+                            <Input v-model:value="variant.name" :placeholder="t('admin.products.variant_hint')" dir="ltr" />
                         </Field>
                         <Field :label="t('admin.common.sku')" required :error="err(`variants.${index}.sku`)">
-                            <input v-model="variant.sku" type="text" :class="inputClass" dir="ltr" />
+                            <Input v-model:value="variant.sku" dir="ltr" />
                         </Field>
                         <Field :label="t('admin.products.barcode')" :error="err(`variants.${index}.barcode`)">
-                            <input v-model="variant.barcode" type="text" :class="inputClass" dir="ltr" />
+                            <Input v-model:value="variant.barcode" dir="ltr" />
                         </Field>
                         <Field :label="t('admin.products.cost_price')" :error="err(`variants.${index}.cost_price`)">
-                            <input v-model.number="variant.cost_price" type="number" step="0.01" min="0" :class="inputClass" />
+                            <InputNumber v-model:value="variant.cost_price" :step="0.01" :min="0" class="w-full" />
                         </Field>
                         <Field :label="t('admin.common.price')" required :error="err(`variants.${index}.price`)">
-                            <input v-model.number="variant.price" type="number" step="0.01" min="0" :class="inputClass" />
+                            <InputNumber v-model:value="variant.price" :step="0.01" :min="0" class="w-full" />
                         </Field>
                         <Field :label="t('admin.products.sale_price')" :error="err(`variants.${index}.sale_price`)">
-                            <input v-model.number="variant.sale_price" type="number" step="0.01" min="0" :class="inputClass" />
+                            <InputNumber v-model:value="variant.sale_price" :step="0.01" :min="0" class="w-full" />
                         </Field>
-                        <Field :label="t('admin.common.low_stock_threshold')" :error="err(`variants.${index}.low_stock_threshold`)">
-                            <input v-model.number="variant.low_stock_threshold" type="number" min="0" :class="inputClass" />
-                        </Field>
-                        <label class="mt-6 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                            <input v-model="variant.is_active" type="checkbox" :class="checkboxClass" />{{ t('admin.common.active') }}</label
+                        <Field
+                            :label="t('admin.common.low_stock_threshold')"
+                            :help="t('admin.help.low_stock_threshold')"
+                            :error="err(`variants.${index}.low_stock_threshold`)"
                         >
+                            <InputNumber v-model:value="variant.low_stock_threshold" :min="0" class="w-full" />
+                        </Field>
+                        <Checkbox v-model:checked="variant.is_active" class="mt-6 self-start">{{ t('admin.common.active') }}</Checkbox>
                     </div>
 
                     <div class="mt-3">
-                        <p class="mb-1 text-xs font-medium uppercase text-gray-400">{{ t('admin.products.attributes') }}</p>
+                        <Typography.Text type="secondary" class="mb-1 block text-xs font-medium uppercase">{{
+                            t('admin.products.attributes')
+                        }}</Typography.Text>
                         <div class="flex flex-wrap items-center gap-2">
-                            <span
-                                v-for="(value, key) in variant.attributes ?? {}"
-                                :key="key"
-                                class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                            >
+                            <Tag v-for="(value, key) in variant.attributes ?? {}" :key="key" closable @close="removeAttribute(index, String(key))">
                                 {{ key }}: {{ value }}
-                                <button type="button" class="text-gray-400 hover:text-red-500" @click="removeAttribute(index, String(key))">×</button>
-                            </span>
-                            <input
+                            </Tag>
+                            <Input
                                 :value="attributeDrafts[index]?.key ?? ''"
-                                type="text"
                                 :placeholder="t('admin.products.attr_key_hint')"
-                                :class="inputClass"
-                                class="!w-24 !px-2 !py-1 text-xs"
-                                @input="
-                                    attributeDrafts[index] = {
-                                        key: ($event.target as HTMLInputElement).value,
-                                        value: attributeDrafts[index]?.value ?? '',
-                                    }
-                                "
+                                size="small"
+                                class="!w-24"
+                                @update:value="(v: string) => (attributeDrafts[index] = { key: v, value: attributeDrafts[index]?.value ?? '' })"
                             />
-                            <input
+                            <Input
                                 :value="attributeDrafts[index]?.value ?? ''"
-                                type="text"
                                 :placeholder="t('admin.products.attr_value_hint')"
-                                :class="inputClass"
-                                class="!w-28 !px-2 !py-1 text-xs"
-                                @input="
-                                    attributeDrafts[index] = {
-                                        key: attributeDrafts[index]?.key ?? '',
-                                        value: ($event.target as HTMLInputElement).value,
-                                    }
-                                "
+                                size="small"
+                                class="!w-28"
+                                @update:value="(v: string) => (attributeDrafts[index] = { key: attributeDrafts[index]?.key ?? '', value: v })"
                             />
-                            <button type="button" class="text-xs text-blue-600 hover:underline" @click="addAttribute(index)">
-                                {{ t('admin.common.add') }}
-                            </button>
+                            <Button type="link" size="small" @click="addAttribute(index)">{{ t('admin.common.add') }}</Button>
                         </div>
                     </div>
-                </div>
-            </section>
+                </Card>
+            </Card>
 
             <!-- Specifications -->
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.nav.specifications') }}</h2>
-                <p v-if="form.category_id === ''" class="mb-3 text-sm text-gray-400">{{ t('admin.products.pick_category_for_specs') }}</p>
+            <Card :title="t('admin.nav.specifications')">
+                <Typography.Text v-if="form.category_id === ''" type="secondary" class="mb-3 block">{{
+                    t('admin.products.pick_category_for_specs')
+                }}</Typography.Text>
                 <div v-for="group in visibleGroups" :key="group.id" class="mb-5">
-                    <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{{ group.name }}</p>
+                    <Typography.Text type="secondary" class="mb-2 block text-xs font-semibold uppercase tracking-wide">{{
+                        group.name
+                    }}</Typography.Text>
                     <div class="grid gap-3 sm:grid-cols-2">
                         <div v-for="attribute in group.attributes" :key="attribute.id" class="grid grid-cols-2 gap-2">
                             <Field
@@ -459,86 +445,114 @@ function deleteImage(image: ProductImage): void {
                                 :error="err(`specifications.${attribute.id}.value`)"
                             >
                                 <!--
-                                    step="any": a bare number input defaults to step=1, so a
-                                    screen size of 6.8 failed native constraint validation and
-                                    silently blocked the whole form from submitting — which is
-                                    what "Save does nothing on some products" actually was.
+                                    `string-mode` keeps decimals intact and hands back a string,
+                                    which is what the backend validates `value` as. A plain number
+                                    input used to default to step=1, so a screen size of 6.8 failed
+                                    native constraint validation and silently blocked the whole form
+                                    from submitting — which is what "Save does nothing on some
+                                    products" actually was. InputNumber runs no native constraint
+                                    validation, so decimals can't wedge the submit any more.
                                 -->
-                                <input
-                                    v-model="specFor(attribute.id).value"
-                                    :type="attribute.type === 'number' ? 'number' : 'text'"
-                                    :step="attribute.type === 'number' ? 'any' : undefined"
-                                    :class="inputClass"
+                                <InputNumber
+                                    v-if="attribute.type === 'number'"
+                                    v-model:value="specFor(attribute.id).value"
+                                    string-mode
+                                    :step="0.01"
+                                    class="w-full"
                                 />
+                                <Input v-else v-model:value="specFor(attribute.id).value" />
                             </Field>
                             <Field :label="`${attribute.name} (AR)`" :error="err(`specifications.${attribute.id}.value_ar`)">
-                                <input v-model="specFor(attribute.id).value_ar" type="text" dir="rtl" :class="inputClass" />
+                                <Input v-model:value="specFor(attribute.id).value_ar" dir="rtl" />
                             </Field>
                         </div>
                     </div>
                 </div>
-                <p v-if="form.category_id !== '' && visibleGroups.length === 0" class="text-sm text-gray-400">
+                <Typography.Text v-if="form.category_id !== '' && visibleGroups.length === 0" type="secondary">
                     {{ t('admin.products.no_specs_hint') }}
-                </p>
-            </section>
+                </Typography.Text>
+            </Card>
 
             <!-- Images (edit only) -->
-            <section v-if="isEdit" class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <div class="mb-4 flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.products.images') }}</h2>
-                    <label :class="btnSecondary" class="cursor-pointer">
-                        <Upload class="h-4 w-4" />
-                        {{ uploadingImages ? 'Uploading…' : 'Upload images' }}
-                        <input ref="imageInput" type="file" accept="image/jpeg,image/png,image/webp" multiple class="hidden" @change="uploadImages" />
-                    </label>
-                </div>
+            <Card v-if="isEdit" :title="t('admin.products.images')">
+                <template #extra>
+                    <!-- `:before-upload` returning false keeps AntD from POSTing the files
+                         itself; `uploadImages` sends the whole selection through Inertia. -->
+                    <Upload
+                        :file-list="[]"
+                        multiple
+                        accept="image/jpeg,image/png,image/webp"
+                        :before-upload="
+                            (file: File, fileList: File[]) => {
+                                if (file === fileList[fileList.length - 1]) uploadImages(fileList);
+                                return false;
+                            }
+                        "
+                    >
+                        <Button :loading="uploadingImages">
+                            <template #icon><UploadIcon class="h-4 w-4" /></template>
+                            {{ uploadingImages ? 'Uploading…' : 'Upload images' }}
+                        </Button>
+                    </Upload>
+                </template>
                 <div v-if="(product?.images.length ?? 0) > 0" class="grid grid-cols-3 gap-3 sm:grid-cols-5">
                     <div v-for="image in product?.images" :key="image.id" class="group relative">
                         <img
                             :src="image.url"
                             alt=""
+                            width="200"
+                            height="200"
+                            loading="lazy"
                             class="aspect-square w-full rounded-md border border-gray-200 object-cover dark:border-gray-700"
                         />
-                        <span
-                            v-if="image.is_primary"
-                            class="absolute start-1 top-1 rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-medium text-white"
-                            >{{ t('admin.common.primary') }}</span
-                        >
-                        <button
-                            type="button"
-                            class="absolute end-1 top-1 hidden rounded bg-red-600 p-1 text-white group-hover:block"
-                            :title="t('admin.products.delete_image')"
-                            @click="deleteImage(image)"
-                        >
-                            <Trash2 class="h-3.5 w-3.5" />
-                        </button>
+                        <Tag v-if="image.is_primary" color="blue" class="absolute start-1 top-1 !me-0">{{ t('admin.common.primary') }}</Tag>
+                        <Tooltip :title="t('admin.products.delete_image')">
+                            <Button
+                                type="primary"
+                                danger
+                                size="small"
+                                class="absolute end-1 top-1 hidden group-hover:inline-flex"
+                                :aria-label="t('admin.products.delete_image')"
+                                @click="deleteImage(image)"
+                            >
+                                <template #icon><Trash2 class="h-3.5 w-3.5" /></template>
+                            </Button>
+                        </Tooltip>
                     </div>
                 </div>
-                <p v-else class="text-sm text-gray-400">{{ t('admin.products.no_images') }}</p>
-            </section>
-            <p v-else class="text-sm text-gray-400">{{ t('admin.products.save_first') }}</p>
+                <Typography.Text v-else type="secondary">{{ t('admin.products.no_images') }}</Typography.Text>
+            </Card>
+            <Typography.Text v-else type="secondary">{{ t('admin.products.save_first') }}</Typography.Text>
         </div>
 
         <!-- Side column -->
         <div class="space-y-6">
-            <section class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="mb-4 text-sm font-semibold text-gray-700 dark:text-gray-300">{{ t('admin.common.status') }}</h2>
+            <Card :title="t('admin.common.status')">
                 <Field :label="t('admin.common.status')" required :error="form.errors.status">
                     <AdminSelect v-model="form.status" :options="statuses" />
                 </Field>
-                <label class="mt-4 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input v-model="form.is_featured" type="checkbox" :class="checkboxClass" />{{ t('admin.products.featured_product') }}</label
+                <Checkbox v-model:checked="form.is_featured" class="mt-4">{{ t('admin.products.featured_product') }}</Checkbox>
+                <Field
+                    class="mt-4"
+                    :label="t('admin.common.low_stock_threshold')"
+                    :help="t('admin.help.low_stock_threshold')"
+                    :error="form.errors.low_stock_threshold"
                 >
-                <Field class="mt-4" :label="t('admin.common.low_stock_threshold')" :error="form.errors.low_stock_threshold">
-                    <input v-model.number="form.low_stock_threshold" type="number" min="0" :class="inputClass" />
+                    <InputNumber v-model:value="form.low_stock_threshold" :min="0" class="w-full" />
                 </Field>
-            </section>
+            </Card>
 
-            <div class="flex gap-3">
-                <button type="submit" :disabled="form.processing" :class="btnPrimary" class="flex-1 justify-center">
-                    {{ form.processing ? 'Saving…' : isEdit ? 'Save changes' : 'Create product' }}
-                </button>
-            </div>
+            <Alert v-if="errorSummary.length > 0" type="error" show-icon :message="t('admin.common.fix_errors')">
+                <template #description>
+                    <ul class="list-inside list-disc space-y-0.5">
+                        <li v-for="(message, index) in errorSummary" :key="index">{{ message }}</li>
+                    </ul>
+                </template>
+            </Alert>
+
+            <Button type="primary" html-type="submit" block :loading="form.processing">
+                {{ form.processing ? 'Saving…' : isEdit ? 'Save changes' : 'Create product' }}
+            </Button>
         </div>
     </form>
 </template>

@@ -5,9 +5,9 @@ import Field from '@/components/admin/Field.vue';
 import FormModal from '@/components/admin/FormModal.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
-import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
+import { Button, Checkbox, Input, Tag, Textarea, Tooltip } from 'ant-design-vue';
 import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -98,35 +98,32 @@ function destroy(): void {
 
     <PageHeader :title="t('admin.warehouses.title')">
         <template #actions>
-            <button type="button" :class="btnPrimary" @click="openCreate"><Plus class="h-4 w-4" />{{ t('admin.warehouses.new') }}</button>
+            <Button type="primary" @click="openCreate">
+                <template #icon><Plus class="h-4 w-4" /></template>
+                {{ t('admin.warehouses.new') }}
+            </Button>
         </template>
     </PageHeader>
 
     <DataTable :columns="columns" :rows="warehouses">
         <template #cell-name="{ row }">
-            <span class="font-medium text-gray-900 dark:text-gray-100">{{ row.name }}</span>
-            <span
-                v-if="row.is_default"
-                class="ms-2 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium uppercase text-blue-600 dark:bg-blue-950 dark:text-blue-300"
-                >{{ t('admin.common.default') }}</span
-            >
+            <span class="font-medium">{{ row.name }}</span>
+            <Tag v-if="row.is_default" color="blue" class="ms-2 uppercase">{{ t('admin.common.default') }}</Tag>
         </template>
         <template #cell-is_active="{ row }">
             <StatusBadge :status="row.is_active ? 'active' : 'inactive'" />
         </template>
         <template #row-actions="{ row }">
-            <button type="button" class="rounded p-1.5 text-gray-400 hover:text-blue-600" :title="t('admin.common.edit')" @click="openEdit(row)">
-                <Pencil class="h-4 w-4" />
-            </button>
-            <button
-                v-if="!row.is_default"
-                type="button"
-                class="rounded p-1.5 text-gray-400 hover:text-red-600"
-                :title="t('admin.common.delete')"
-                @click="deleting = row"
-            >
-                <Trash2 class="h-4 w-4" />
-            </button>
+            <Tooltip :title="t('admin.common.edit')">
+                <Button type="text" size="small" :aria-label="t('admin.common.edit')" @click="openEdit(row)">
+                    <template #icon><Pencil class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
+            <Tooltip v-if="!row.is_default" :title="t('admin.common.delete')">
+                <Button type="text" size="small" danger :aria-label="t('admin.common.delete')" @click="deleting = row">
+                    <template #icon><Trash2 class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
         </template>
     </DataTable>
 
@@ -134,26 +131,22 @@ function destroy(): void {
         <form class="grid gap-4" @submit.prevent="submit">
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.common.name')" required :error="form.errors.name">
-                    <input v-model="form.name" type="text" :class="inputClass" />
+                    <Input v-model:value="form.name" />
                 </Field>
                 <Field :label="t('admin.common.code')" required :hint="t('admin.warehouses.code_hint')" :error="form.errors.code">
-                    <input v-model="form.code" type="text" :class="inputClass" dir="ltr" />
+                    <Input v-model:value="form.code" dir="ltr" />
                 </Field>
             </div>
             <Field :label="t('admin.common.address')" :error="form.errors.address">
-                <textarea v-model="form.address" rows="2" :class="inputClass" />
+                <Textarea v-model:value="form.address" :rows="2" />
             </Field>
             <div class="flex gap-6">
-                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input v-model="form.is_default" type="checkbox" :class="checkboxClass" />{{ t('admin.warehouses.default_warehouse') }}</label
-                >
-                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input v-model="form.is_active" type="checkbox" :class="checkboxClass" />{{ t('admin.common.active') }}</label
-                >
+                <Checkbox v-model:checked="form.is_default">{{ t('admin.warehouses.default_warehouse') }}</Checkbox>
+                <Checkbox v-model:checked="form.is_active">{{ t('admin.common.active') }}</Checkbox>
             </div>
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="modalOpen = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="form.processing" :class="btnPrimary">{{ t('admin.common.save') }}</button>
+                <Button @click="modalOpen = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="form.processing">{{ t('admin.common.save') }}</Button>
             </div>
         </form>
     </FormModal>

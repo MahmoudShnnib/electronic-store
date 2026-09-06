@@ -14,7 +14,9 @@
         "register": "Register",
         "logout": "Log out",
         "admin": "Admin",
-        "search_placeholder": "Search for phones, laptops, accessories…"
+        "search_placeholder": "Search for phones, laptops, accessories…",
+        "all_categories": "All categories",
+        "primary": "Main"
     },
     "home": {
         "featured": "Featured products",
@@ -42,7 +44,13 @@
         "game_score": "Score: {score}",
         "game_best": "Best: {best}",
         "game_over": "Game over!",
-        "game_play_again": "Play again"
+        "game_play_again": "Play again",
+        "sale_banner_title": "Season sale",
+        "sale_banner_subtitle": "Live discounts across the catalogue — while stock lasts.",
+        "trust_cod": "Cash on delivery",
+        "trust_delivery": "Fast delivery across Libya",
+        "trust_genuine": "100% genuine products",
+        "trust_returns": "Easy returns"
     },
     "catalog": {
         "filters": "Filters",
@@ -83,7 +91,11 @@
         "review_body": "Your review",
         "submit_review": "Submit review",
         "no_reviews": "No reviews yet.",
-        "percent_off": "{percent}% off"
+        "percent_off": "{percent}% off",
+        "decrease_quantity": "Decrease quantity",
+        "increase_quantity": "Increase quantity",
+        "save_to_wishlist": "Save to wishlist",
+        "remove_from_wishlist": "Saved — tap to remove"
     },
     "cart": {
         "title": "Shopping cart",
@@ -96,7 +108,9 @@
         "coupon_placeholder": "Coupon code",
         "apply_coupon": "Apply",
         "remove_coupon": "Remove coupon",
-        "unavailable": "No longer available"
+        "unavailable": "No longer available",
+        "remove_confirm": "Remove this item from your cart?",
+        "remove_coupon_confirm": "Remove this coupon?"
     },
     "checkout": {
         "title": "Checkout",
@@ -142,7 +156,8 @@
         "delete_address": "Delete address",
         "default_shipping": "Default shipping",
         "default_billing": "Default billing",
-        "label": "Label"
+        "label": "Label",
+        "no_addresses": "You have no saved addresses yet."
     },
     "wishlist": {
         "title": "My wishlist",
@@ -186,9 +201,23 @@
         "remember_me": "Remember me",
         "login": "Log in",
         "create_account": "Create account",
-        "no_account": "Don't have an account?",
+        "no_account": "Don’t have an account?",
         "sign_up": "Sign up",
-        "have_account": "Already have an account?"
+        "have_account": "Already have an account?",
+        "forgot_title": "Forgot password",
+        "forgot_description": "Enter your email and we’ll send you a reset link",
+        "send_reset_link": "Email password reset link",
+        "return_to": "Or, return to",
+        "reset_title": "Reset password",
+        "reset_description": "Enter your new password below",
+        "reset_password": "Reset password",
+        "confirm_title": "Confirm your password",
+        "confirm_description": "This is a secure area. Please confirm your password before continuing.",
+        "verify_title": "Verify your email",
+        "verify_description": "Click the link we just emailed you to verify your address.",
+        "verify_sent": "A new verification link has been sent to your email address.",
+        "resend_verification": "Resend verification email",
+        "logout": "Log out"
     },
     "footer": {
         "about": "About us",
@@ -197,7 +226,15 @@
         "terms": "Terms & conditions",
         "return_policy": "Return policy",
         "rights": "All rights reserved.",
-        "tagline": "Your one-stop shop for phones, laptops, gaming and accessories."
+        "tagline": "Your one-stop shop for phones, laptops, gaming and accessories.",
+        "quick_links": "Quick links",
+        "customer_service": "Customer service",
+        "newsletter": "Newsletter",
+        "newsletter_hint": "Get the latest offers and discounts first.",
+        "email_placeholder": "Your email address",
+        "subscribe": "Subscribe",
+        "cod": "Cash on delivery",
+        "bank_transfer": "Bank transfer"
     },
     "admin": {
         "nav": {
@@ -233,6 +270,8 @@
             "close_menu": "Close menu",
             "log_out": "Log out",
             "switch_language": "Switch language",
+            "account_settings": "My account",
+            "change_password": "Change password",
             "treasury": "Treasury"
         },
         "common": {
@@ -252,12 +291,15 @@
             "choose": "Choose…",
             "active": "Active",
             "inactive": "Inactive",
+            "deleted": "Deleted",
             "deactivated": "Deactivated",
             "activate": "Activate",
             "deactivate": "Deactivate",
             "status": "Status",
             "actions": "Actions",
             "none": "None",
+            "yes": "Yes",
+            "no": "No",
             "date": "Date",
             "total": "Total",
             "discount": "Discount",
@@ -343,6 +385,8 @@
             "are_you_sure": "Are you sure?",
             "no_records": "No records found.",
             "search_default": "Search…",
+            "hide_trash": "Hide trash",
+            "show_trash": "Show trash",
             "showing": "Showing {from}–{to} of {total}",
             "close": "Close",
             "before": "Before",
@@ -371,9 +415,20 @@
             "recipient": "Recipient",
             "details": "Details",
             "created": "Created",
-            "updated": "Updated",
-            "show_trash": "Show trash",
-            "hide_trash": "Hide trash"
+            "updated": "Updated"
+        },
+        "help": {
+            "stock_available": "Units on the shelf and free to sell. Reserved, damaged and incoming are tracked in their own columns.",
+            "stock_reserved": "Set aside for orders that are placed but not shipped yet.",
+            "stock_damaged": "Written off as unsellable, and not part of the available count.",
+            "stock_incoming": "Booked against purchase orders that have been sent to the supplier but not received yet.",
+            "low_stock_threshold": "Once available stock drops to this number the product is flagged as low stock on the dashboard.",
+            "avg_order_value": "Revenue divided by the number of orders in this period.",
+            "discounts_given": "Total coupon discount applied to orders in this period.",
+            "est_profit": "Revenue in this period minus what the items sold cost to buy. Shipping, refunds and overheads are not deducted.",
+            "inventory_cost_value": "What the stock currently held — available plus reserved — cost to buy.",
+            "inventory_retail_value": "What that same stock would bring in at current selling prices.",
+            "outstanding": "Order total minus the payments that have been confirmed. Refunds are shown separately."
         },
         "dashboard": {
             "title": "Dashboard",
@@ -429,7 +484,9 @@
                 "settings_updated": "Settings updated",
                 "staff_created": "Staff account created",
                 "staff_updated": "Staff account updated",
-                "updated": "Updated"
+                "updated": "Updated",
+                "account_activated": "Customer account activated",
+                "account_deactivated": "Customer account deactivated"
             },
             "fields": {
                 "barcode": "Barcode",
@@ -455,8 +512,51 @@
                 "status": "Status",
                 "supplier_id": "Supplier",
                 "tax_rate": "Tax rate",
-                "warranty_months": "Warranty (months)"
-            }
+                "warranty_months": "Warranty (months)",
+                "reason": "Reason",
+                "from": "From",
+                "to": "To",
+                "amount_cents": "Amount",
+                "reference": "Reference",
+                "note": "Note",
+                "keys": "Changed settings",
+                "received": "Received quantities",
+                "conditions": "Item conditions",
+                "method": "Method",
+                "return": "Return",
+                "permissions": "Permissions",
+                "parent_id": "Parent category",
+                "is_default": "Default",
+                "code": "Code",
+                "key": "Key",
+                "value": "Value",
+                "po_number": "PO number",
+                "total_cents": "Total",
+                "company_name": "Company name",
+                "value_cents": "Discount amount",
+                "percent": "Discount percent",
+                "usage_limit": "Usage limit"
+            },
+            "subjects": {
+                "Product": "Product",
+                "ProductVariant": "Product variant",
+                "Order": "Order",
+                "User": "User",
+                "Coupon": "Coupon",
+                "Category": "Category",
+                "Brand": "Brand",
+                "Supplier": "Supplier",
+                "ProductReturn": "Return",
+                "Setting": "Setting",
+                "Warehouse": "Warehouse",
+                "PurchaseOrder": "Purchase order"
+            },
+            "field": "Field",
+            "details": "Details",
+            "no_details": "No further details for this entry.",
+            "no_changes": "No logged fields changed.",
+            "ip": "IP address",
+            "browser": "Browser"
         },
         "brands": {
             "title": "Brands",
@@ -526,8 +626,8 @@
             "billing": "billing",
             "last_login": "Last login",
             "joined": "Joined {date}",
-            "deactivate_confirm": "Deactivate {name}'s account? They will be signed out and unable to log in.",
-            "reactivate_confirm": "Reactivate {name}'s account?"
+            "deactivate_confirm": "Deactivate {name}’s account? They will be signed out and unable to log in.",
+            "reactivate_confirm": "Reactivate {name}’s account?"
         },
         "inventory": {
             "title": "Inventory",
@@ -764,7 +864,7 @@
             "unit_hint": "e.g. GB, Hz",
             "delete_group_message": "Delete “{name}” and all its attributes? Product values under it will be removed.",
             "delete_attribute_message": "Delete “{name}”? Its values on products will be removed.",
-            "uses_n": "{count} uses",
+            "uses_n": "{count} use | {count} uses",
             "categories_label": "Applies to categories",
             "categories_hint": "Leave empty to show this attribute for every category.",
             "all_categories": "All categories"
@@ -814,5 +914,39 @@
             "withdrawal": "Out",
             "manual_entry": "Manual movement"
         }
+    },
+    "settings": {
+        "title": "Settings",
+        "description": "Manage your profile and account settings",
+        "profile": "Profile",
+        "password": "Password",
+        "appearance": "Appearance",
+        "profile_title": "Profile information",
+        "profile_description": "Update your name, email address and phone number",
+        "name": "Name",
+        "name_placeholder": "Full name",
+        "email": "Email address",
+        "phone": "Phone",
+        "unverified": "Your email address is unverified.",
+        "resend_verification": "Re-send the verification email",
+        "verification_sent": "A new verification link has been sent to your email address.",
+        "saved": "Saved.",
+        "password_title": "Update password",
+        "password_description": "Use a long, random password to keep your account secure",
+        "current_password": "Current password",
+        "new_password": "New password",
+        "confirm_password": "Confirm password",
+        "save_password": "Save password",
+        "appearance_title": "Appearance",
+        "appearance_description": "Choose how the store looks on this device",
+        "theme_light": "Light",
+        "theme_dark": "Dark",
+        "theme_system": "System",
+        "delete_title": "Delete account",
+        "delete_description": "Permanently delete your account and everything in it",
+        "delete_warning": "This cannot be undone.",
+        "delete_button": "Delete account",
+        "delete_confirm_title": "Delete your account?",
+        "delete_confirm_body": "Your account and all of its data will be permanently deleted. Enter your password to confirm."
     }
 }

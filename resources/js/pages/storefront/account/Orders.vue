@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import EmptyState from '@/components/store/EmptyState.vue';
 import Pagination from '@/components/store/Pagination.vue';
+import StatusTag from '@/components/store/StatusTag.vue';
 import type { PaginationLink } from '@/components/store/types';
 import StoreLayout from '@/layouts/StoreLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { Button, Card, Popconfirm, Table, Typography } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
@@ -24,33 +26,29 @@ defineProps<{
     orders: { data: OrderRow[]; links: PaginationLink[] };
 }>();
 
+const { Title } = Typography;
+
 const { t } = useI18n();
 
 function cancelOrder(id: number) {
-    if (confirm(t('account.cancel_confirm'))) {
-        router.post(route('account.orders.cancel', id), {}, { preserveScroll: true });
-    }
+    router.post(route('account.orders.cancel', id), {}, { preserveScroll: true });
 }
 
-const statusColors: Record<string, string> = {
-    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
-    confirmed: 'bg-neutral-200 text-black dark:bg-neutral-800 dark:text-white',
-    processing: 'bg-neutral-200 text-black dark:bg-neutral-800 dark:text-white',
-    ready_for_shipping: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300',
-    shipped: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300',
-    delivered: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300',
-    completed: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300',
-    cancelled: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
-    returned: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300',
-    refunded: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-};
+const columns = [
+    { key: 'number', dataIndex: 'number', title: t('account.order') },
+    { key: 'created_at', dataIndex: 'created_at', title: t('account.date') },
+    { key: 'items_count', dataIndex: 'items_count', title: t('account.items') },
+    { key: 'status', title: t('account.status') },
+    { key: 'total', title: t('account.total'), customHeaderCell: () => ({ class: 'text-end' }), customCell: () => ({ class: 'text-end' }) },
+    { key: 'actions', title: '', customHeaderCell: () => ({ class: 'text-end' }), customCell: () => ({ class: 'text-end' }) },
+];
 </script>
 
 <template>
     <Head :title="t('account.orders_title')" />
 
     <div class="mx-auto w-full max-w-7xl px-4 py-8">
-        <h1 class="mb-6 text-2xl font-bold">{{ t('account.orders_title') }}</h1>
+        <Title :level="1" class="!mb-6 !text-2xl !font-bold">{{ t('account.orders_title') }}</Title>
 
         <EmptyState
             v-if="orders.data.length === 0"
@@ -59,52 +57,39 @@ const statusColors: Record<string, string> = {
             :action-href="route('catalog.index')"
         />
 
-        <div v-else class="overflow-x-auto rounded-xl border border-border bg-card">
-            <table class="w-full min-w-[640px] text-sm">
-                <thead>
-                    <tr class="border-b border-border text-start text-muted-foreground">
-                        <th class="px-4 py-3 text-start font-medium">{{ t('account.order') }}</th>
-                        <th class="px-4 py-3 text-start font-medium">{{ t('account.date') }}</th>
-                        <th class="px-4 py-3 text-start font-medium">{{ t('account.items') }}</th>
-                        <th class="px-4 py-3 text-start font-medium">{{ t('account.status') }}</th>
-                        <th class="px-4 py-3 text-start font-medium">{{ t('account.total') }}</th>
-                        <th class="px-4 py-3" />
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="order in orders.data" :key="order.id" class="border-b border-border last:border-0 hover:bg-muted/50">
-                        <td class="px-4 py-3 font-medium">{{ order.number }}</td>
-                        <td class="px-4 py-3 text-muted-foreground">{{ order.created_at }}</td>
-                        <td class="px-4 py-3">{{ order.items_count }}</td>
-                        <td class="px-4 py-3">
-                            <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="statusColors[order.status] ?? 'bg-muted'">
-                                {{ order.status_label }}
-                            </span>
-                        </td>
-                        <td class="px-4 py-3 font-semibold">{{ order.total_formatted }}</td>
-                        <td class="px-4 py-3">
-                            <div class="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
-                                <Link
-                                    :href="route('account.orders.show', order.id)"
-                                    class="text-sm font-medium text-black hover:underline dark:text-white"
-                                >
-                                    {{ t('account.view') }}
-                                </Link>
-                                <button
-                                    v-if="order.cancellable"
-                                    type="button"
-                                    class="text-sm font-medium text-red-600 hover:underline"
-                                    @click="cancelOrder(order.id)"
-                                >
-                                    {{ t('account.cancel_order') }}
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <template v-else>
+            <Card :body-style="{ padding: '0' }">
+                <Table :columns="columns" :data-source="orders.data" row-key="id" :pagination="false" :scroll="{ x: 'max-content' }">
+                    <template #bodyCell="{ column, record }">
+                        <span v-if="column.key === 'number'" class="font-medium">{{ record.number }}</span>
 
-        <Pagination :links="orders.links" />
+                        <StatusTag v-else-if="column.key === 'status'" :status="record.status" :label="record.status_label" />
+
+                        <span v-else-if="column.key === 'total'" class="store-money font-semibold">{{ record.total_formatted }}</span>
+
+                        <div v-else-if="column.key === 'actions'" class="-me-1 flex items-center justify-end gap-1">
+                            <Link :href="route('account.orders.show', record.id)">
+                                <Button type="link" size="small">{{ t('account.view') }}</Button>
+                            </Link>
+
+                            <!-- `Popconfirm`, not `window.confirm`: a native dialog blocks the
+                                 whole page and cannot be styled or translated. -->
+                            <Popconfirm
+                                v-if="record.cancellable"
+                                :title="t('account.cancel_confirm')"
+                                :ok-text="t('account.cancel_order')"
+                                :cancel-text="t('common.cancel')"
+                                ok-type="danger"
+                                @confirm="cancelOrder(record.id)"
+                            >
+                                <Button type="link" size="small" danger>{{ t('account.cancel_order') }}</Button>
+                            </Popconfirm>
+                        </div>
+                    </template>
+                </Table>
+            </Card>
+
+            <Pagination :links="orders.links" />
+        </template>
     </div>
 </template>

@@ -3,9 +3,9 @@ import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import Field from '@/components/admin/Field.vue';
 import FormModal from '@/components/admin/FormModal.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
-import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
+import { Button, Card, Checkbox, CheckboxGroup, Input, Space, Tag, Tooltip, Typography } from 'ant-design-vue';
 import { Pencil, Plus, ShieldCheck, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -68,10 +68,6 @@ function openEdit(role: RoleRow): void {
     modalOpen.value = true;
 }
 
-function togglePermission(permission: string): void {
-    form.permissions = form.permissions.includes(permission) ? form.permissions.filter((p) => p !== permission) : [...form.permissions, permission];
-}
-
 function submit(): void {
     const options = { preserveScroll: true, onSuccess: () => (modalOpen.value = false) };
 
@@ -97,90 +93,67 @@ function destroy(): void {
 
     <PageHeader :title="t('admin.roles.title')" :subtitle="t('admin.roles.subtitle')">
         <template #actions>
-            <button type="button" :class="btnPrimary" @click="openCreate"><Plus class="h-4 w-4" />{{ t('admin.roles.new') }}</button>
+            <Button type="primary" @click="openCreate">
+                <template #icon><Plus class="h-4 w-4" /></template>
+                {{ t('admin.roles.new') }}
+            </Button>
         </template>
     </PageHeader>
 
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <section
-            v-for="role in roles"
-            :key="role.id"
-            class="rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-900"
-        >
-            <div class="mb-3 flex items-center justify-between">
-                <h2 class="flex items-center gap-2 text-sm font-semibold capitalize text-gray-900 dark:text-gray-100">
+        <Card v-for="role in roles" :key="role.id" size="small">
+            <template #title>
+                <Space>
                     <ShieldCheck class="h-4 w-4 text-blue-500" />
-                    {{ role.name.replaceAll('_', ' ') }}
-                </h2>
-                <div class="flex items-center gap-1">
-                    <button
-                        v-if="role.name !== 'super_admin'"
-                        type="button"
-                        class="rounded p-1.5 text-gray-400 hover:text-blue-600"
-                        :title="t('admin.common.edit')"
-                        @click="openEdit(role)"
-                    >
-                        <Pencil class="h-4 w-4" />
-                    </button>
-                    <button
-                        v-if="!role.protected"
-                        type="button"
-                        class="rounded p-1.5 text-gray-400 hover:text-red-600"
-                        :title="t('admin.common.delete')"
-                        @click="deleting = role"
-                    >
-                        <Trash2 class="h-4 w-4" />
-                    </button>
-                </div>
-            </div>
-            <p class="mb-2 text-xs text-gray-400">{{ t('admin.roles.users_n', { count: role.users_count }) }}</p>
-            <p v-if="role.name === 'super_admin'" class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.roles.super_admin_note') }}</p>
-            <p v-else-if="role.name === 'customer'" class="text-sm text-gray-500 dark:text-gray-400">{{ t('admin.roles.customer_note') }}</p>
+                    <span class="capitalize">{{ role.name.replaceAll('_', ' ') }}</span>
+                </Space>
+            </template>
+            <template #extra>
+                <Tooltip v-if="role.name !== 'super_admin'" :title="t('admin.common.edit')">
+                    <Button type="text" size="small" :aria-label="t('admin.common.edit')" @click="openEdit(role)">
+                        <template #icon><Pencil class="h-4 w-4" /></template>
+                    </Button>
+                </Tooltip>
+                <Tooltip v-if="!role.protected" :title="t('admin.common.delete')">
+                    <Button type="text" size="small" danger :aria-label="t('admin.common.delete')" @click="deleting = role">
+                        <template #icon><Trash2 class="h-4 w-4" /></template>
+                    </Button>
+                </Tooltip>
+            </template>
+            <Typography.Text type="secondary" class="mb-2 block text-xs">{{ t('admin.roles.users_n', { count: role.users_count }) }}</Typography.Text>
+            <Typography.Text v-if="role.name === 'super_admin'" type="secondary">{{ t('admin.roles.super_admin_note') }}</Typography.Text>
+            <Typography.Text v-else-if="role.name === 'customer'" type="secondary">{{ t('admin.roles.customer_note') }}</Typography.Text>
             <div v-else class="flex flex-wrap gap-1">
-                <span
-                    v-for="permission in role.permissions"
-                    :key="permission"
-                    class="rounded bg-gray-100 px-1.5 py-0.5 text-[11px] text-gray-600 dark:bg-gray-800 dark:text-gray-400"
-                >
-                    {{ permission }}
-                </span>
-                <span v-if="role.permissions.length === 0" class="text-sm text-gray-400">{{ t('admin.roles.no_permissions') }}</span>
+                <Tag v-for="permission in role.permissions" :key="permission">{{ permission }}</Tag>
+                <Typography.Text v-if="role.permissions.length === 0" type="secondary">{{ t('admin.roles.no_permissions') }}</Typography.Text>
             </div>
-        </section>
+        </Card>
     </div>
 
     <FormModal :open="modalOpen" :title="editing ? t('admin.roles.edit_named', { name: editing.name }) : 'New role'" wide @close="modalOpen = false">
         <form class="grid gap-4" @submit.prevent="submit">
             <Field v-if="!editing" :label="t('admin.roles.role_name')" required :hint="t('admin.roles.role_name_hint')" :error="form.errors.name">
-                <input v-model="form.name" type="text" :class="inputClass" />
+                <Input v-model:value="form.name" />
             </Field>
 
             <div>
-                <p class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.common.permissions') }}</p>
-                <p v-if="form.errors.permissions" class="mb-2 text-xs text-red-600">{{ form.errors.permissions }}</p>
-                <div class="grid max-h-96 gap-4 overflow-y-auto sm:grid-cols-2">
+                <Typography.Text strong class="mb-2 block text-sm">{{ t('admin.common.permissions') }}</Typography.Text>
+                <Typography.Text v-if="form.errors.permissions" type="danger" class="mb-2 block text-xs">{{ form.errors.permissions }}</Typography.Text>
+                <!-- One CheckboxGroup wraps every group, so the submitted array stays
+                     `form.permissions` exactly as before while the visual grouping holds. -->
+                <CheckboxGroup v-model:value="form.permissions" class="grid max-h-96 gap-4 overflow-y-auto sm:grid-cols-2">
                     <div v-for="(list, group) in groupedPermissions" :key="group" class="rounded-md border border-gray-100 p-3 dark:border-gray-800">
-                        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{{ group }}</p>
-                        <label
-                            v-for="permission in list"
-                            :key="permission"
-                            class="flex items-center gap-2 py-0.5 text-sm text-gray-700 dark:text-gray-300"
-                        >
-                            <input
-                                type="checkbox"
-                                :class="checkboxClass"
-                                :checked="form.permissions.includes(permission)"
-                                @change="togglePermission(permission)"
-                            />
-                            {{ permission }}
-                        </label>
+                        <Typography.Text type="secondary" class="mb-2 block text-xs font-semibold uppercase tracking-wide">{{ group }}</Typography.Text>
+                        <div class="grid gap-0.5">
+                            <Checkbox v-for="permission in list" :key="permission" :value="permission">{{ permission }}</Checkbox>
+                        </div>
                     </div>
-                </div>
+                </CheckboxGroup>
             </div>
 
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="modalOpen = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="form.processing" :class="btnPrimary">{{ t('admin.common.save') }}</button>
+                <Button @click="modalOpen = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="form.processing">{{ t('admin.common.save') }}</Button>
             </div>
         </form>
     </FormModal>

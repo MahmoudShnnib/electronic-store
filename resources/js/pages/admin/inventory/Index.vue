@@ -7,9 +7,9 @@ import FormModal from '@/components/admin/FormModal.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import type { Option, Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Button, Input, InputNumber, Tooltip, TypographyText } from 'ant-design-vue';
 import { ArrowLeftRight, PencilRuler } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -44,10 +44,10 @@ const columns: Column[] = [
     { key: 'name', label: t('admin.common.product') },
     { key: 'sku', label: t('admin.common.sku') },
     { key: 'warehouse', label: t('admin.common.warehouse') },
-    { key: 'quantity', label: t('admin.inventory.available') },
-    { key: 'reserved', label: t('admin.inventory.reserved') },
-    { key: 'damaged', label: t('admin.common.damaged') },
-    { key: 'incoming', label: t('admin.inventory.incoming') },
+    { key: 'quantity', label: t('admin.inventory.available'), help: t('admin.help.stock_available') },
+    { key: 'reserved', label: t('admin.inventory.reserved'), help: t('admin.help.stock_reserved') },
+    { key: 'damaged', label: t('admin.common.damaged'), help: t('admin.help.stock_damaged') },
+    { key: 'incoming', label: t('admin.inventory.incoming'), help: t('admin.help.stock_incoming') },
 ];
 
 // -- Adjust modal -------------------------------------------------------------
@@ -131,7 +131,9 @@ function submitTransfer(): void {
 
     <PageHeader :title="t('admin.inventory.title')" :subtitle="t('admin.inventory.count', { count: levels.total })">
         <template #actions>
-            <Link :href="route('admin.inventory.movements')" :class="btnSecondary">{{ t('admin.inventory.movement_ledger') }}</Link>
+            <Link :href="route('admin.inventory.movements')">
+                <Button>{{ t('admin.inventory.movement_ledger') }}</Button>
+            </Link>
         </template>
     </PageHeader>
 
@@ -158,62 +160,51 @@ function submitTransfer(): void {
 
     <DataTable :columns="columns" :rows="levels.data">
         <template #cell-name="{ row }">
-            <span class="font-medium text-gray-900 dark:text-gray-100">{{ row.name }}</span>
+            <span class="font-medium">{{ row.name }}</span>
         </template>
         <template #cell-quantity="{ row }">
-            <span
-                :class="
-                    row.quantity <= 0
-                        ? 'font-semibold text-red-600'
-                        : row.low_stock
-                          ? 'font-semibold text-amber-600'
-                          : 'text-gray-900 dark:text-gray-100'
-                "
-            >
+            <TypographyText :type="row.quantity <= 0 ? 'danger' : row.low_stock ? 'warning' : undefined" :strong="row.quantity <= 0 || row.low_stock">
                 {{ row.quantity }}
-            </span>
-            <span v-if="row.low_stock && row.quantity > 0" class="ms-1 text-[10px] uppercase text-amber-500">{{ t('admin.inventory.low') }}</span>
+            </TypographyText>
+            <TypographyText v-if="row.low_stock && row.quantity > 0" type="warning" class="ms-1 text-[10px] uppercase">
+                {{ t('admin.inventory.low') }}
+            </TypographyText>
         </template>
         <template #row-actions="{ row }">
-            <button
-                type="button"
-                class="rounded p-1.5 text-gray-400 hover:text-blue-600"
-                :title="t('admin.inventory.adjust_stock')"
-                @click="openAdjust(row)"
-            >
-                <PencilRuler class="h-4 w-4" />
-            </button>
-            <button
-                type="button"
-                class="rounded p-1.5 text-gray-400 hover:text-blue-600"
-                :title="t('admin.inventory.transfer')"
-                @click="openTransfer(row)"
-            >
-                <ArrowLeftRight class="h-4 w-4" />
-            </button>
+            <Tooltip :title="t('admin.inventory.adjust_stock')">
+                <Button type="text" size="small" :aria-label="t('admin.inventory.adjust_stock')" @click="openAdjust(row)">
+                    <template #icon><PencilRuler class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
+            <Tooltip :title="t('admin.inventory.transfer')">
+                <Button type="text" size="small" :aria-label="t('admin.inventory.transfer')" @click="openTransfer(row)">
+                    <template #icon><ArrowLeftRight class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
         </template>
     </DataTable>
 
-    <Pagination :links="levels.links" :total="levels.total" :from="levels.from" :to="levels.to" />
+    <Pagination :paginator="levels" />
 
     <!-- Adjust stock -->
     <FormModal :open="adjustOpen" :title="t('admin.inventory.adjust_stock')" @close="adjustOpen = false">
         <form class="grid gap-4" @submit.prevent="submitAdjust">
-            <p class="rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-300">{{ adjustForm.label }}</p>
+            <TypographyText type="secondary">{{ adjustForm.label }}</TypographyText>
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.common.change')" required :hint="t('admin.inventory.adjust_hint')" :error="adjustForm.errors.quantity_change">
-                    <input v-model.number="adjustForm.quantity_change" type="number" :class="inputClass" />
+                    <!-- No `:min` — adjustments are signed, negative values decrease stock. -->
+                    <InputNumber v-model:value="adjustForm.quantity_change" class="w-full" />
                 </Field>
                 <Field :label="t('admin.common.type')" required :error="adjustForm.errors.type">
                     <AdminSelect v-model="adjustForm.type" :options="movementTypes" />
                 </Field>
             </div>
             <Field :label="t('admin.common.reason')" required :error="adjustForm.errors.reason">
-                <input v-model="adjustForm.reason" type="text" :placeholder="t('admin.inventory.adjust_reason_hint')" :class="inputClass" />
+                <Input v-model:value="adjustForm.reason" :placeholder="t('admin.inventory.adjust_reason_hint')" />
             </Field>
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="adjustOpen = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="adjustForm.processing" :class="btnPrimary">{{ t('admin.inventory.apply_adjustment') }}</button>
+                <Button @click="adjustOpen = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="adjustForm.processing">{{ t('admin.inventory.apply_adjustment') }}</Button>
             </div>
         </form>
     </FormModal>
@@ -239,21 +230,21 @@ function submitTransfer(): void {
             </div>
 
             <div v-for="(item, index) in transferForm.items" :key="index" class="flex items-end gap-3">
-                <p class="flex-1 text-sm text-gray-700 dark:text-gray-300">{{ item.label }}</p>
+                <TypographyText class="flex-1 text-sm">{{ item.label }}</TypographyText>
                 <Field :label="t('admin.common.quantity')">
-                    <input v-model.number="item.quantity" type="number" min="1" class="w-24" :class="inputClass" />
+                    <InputNumber v-model:value="item.quantity" :min="1" class="w-24" />
                 </Field>
             </div>
-            <p v-if="transferForm.errors.items" class="text-xs text-red-600">{{ transferForm.errors.items }}</p>
+            <TypographyText v-if="transferForm.errors.items" type="danger" class="text-xs">{{ transferForm.errors.items }}</TypographyText>
 
             <Field :label="t('admin.common.notes')" :error="transferForm.errors.notes">
-                <input v-model="transferForm.notes" type="text" :class="inputClass" />
+                <Input v-model:value="transferForm.notes" />
             </Field>
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="transferOpen = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="transferForm.processing || transferForm.items.length === 0" :class="btnPrimary">
+                <Button @click="transferOpen = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="transferForm.processing" :disabled="transferForm.items.length === 0">
                     {{ t('admin.inventory.transfer') }}
-                </button>
+                </Button>
             </div>
         </form>
     </FormModal>

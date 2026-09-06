@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useMediaQuery } from '@/composables/useMediaQuery';
 import AuthLayout from '@/layouts/AuthLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Alert, Button, Form, FormItem, Input } from 'ant-design-vue';
+import { useI18n } from 'vue-i18n';
+
+/**
+ * Autofocus is a desktop-only convenience: on a phone it throws the on-screen
+ * keyboard up over the page before the person has read it.
+ */
+const autofocus = useMediaQuery('(min-width: 768px) and (pointer: fine)');
 
 defineProps<{
     status?: string;
 }>();
+
+const { t } = useI18n();
 
 const form = useForm({
     email: '',
@@ -22,33 +27,31 @@ const submit = () => {
 </script>
 
 <template>
-    <AuthLayout title="Forgot password" description="Enter your email to receive a password reset link">
-        <Head title="Forgot password" />
+    <AuthLayout :title="t('auth.forgot_title')" :description="t('auth.forgot_description')">
+        <Head :title="t('auth.forgot_title')" />
 
-        <div v-if="status" class="mb-4 text-center text-sm font-medium text-green-600">
-            {{ status }}
-        </div>
+        <Alert v-if="status" type="success" show-icon class="!mb-4" :message="status" />
 
-        <div class="space-y-6">
-            <form @submit.prevent="submit">
-                <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
-                    <Input id="email" type="email" name="email" autocomplete="off" v-model="form.email" autofocus placeholder="email@example.com" />
-                    <InputError :message="form.errors.email" />
-                </div>
+        <Form layout="vertical" @submit.prevent="submit">
+            <FormItem :label="t('auth.email')" :validate-status="form.errors.email ? 'error' : undefined" :help="form.errors.email">
+                <Input
+                    v-model:value="form.email"
+                    type="email"
+                    size="large"
+                    :autofocus="autofocus"
+                    autocomplete="email"
+                    spellcheck="false"
+                    dir="ltr"
+                    :placeholder="t('auth.email_placeholder')"
+                />
+            </FormItem>
 
-                <div class="my-6 flex items-center justify-start">
-                    <Button class="w-full" :disabled="form.processing">
-                        <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                        Email password reset link
-                    </Button>
-                </div>
-            </form>
+            <Button type="primary" size="large" block html-type="submit" :loading="form.processing">{{ t('auth.send_reset_link') }}</Button>
 
-            <div class="space-x-1 text-center text-sm text-muted-foreground">
-                <span>Or, return to</span>
-                <TextLink :href="route('login')">log in</TextLink>
-            </div>
-        </div>
+            <p class="mt-6 text-center text-sm opacity-65">
+                {{ t('auth.return_to') }}
+                <Link :href="route('login')" class="font-medium text-[#0F9D58] hover:underline">{{ t('auth.login') }}</Link>
+            </p>
+        </Form>
     </AuthLayout>
 </template>

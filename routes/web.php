@@ -32,6 +32,10 @@ Route::get('/checkout/confirmation/{number}', [Web\CheckoutController::class, 'c
 
 Route::post('/locale', [Web\LocaleController::class, 'update'])->name('locale.update');
 
+Route::post('/newsletter', [Web\NewsletterController::class, 'store'])
+    ->middleware('throttle:auth')
+    ->name('newsletter.subscribe');
+
 // Post-login landing (referenced by the auth scaffolding): staff go to the
 // admin dashboard, customers to their orders.
 Route::get('/dashboard', fn () => auth()->user()->isStaff()

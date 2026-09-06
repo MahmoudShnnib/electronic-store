@@ -7,11 +7,14 @@ import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Paginator } from '@/components/admin/types';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
+import { Tooltip, Typography } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
 
 const { t } = useI18n();
+
+const { Text } = Typography;
 
 interface CustomerRow extends Record<string, unknown> {
     id: number;
@@ -68,7 +71,10 @@ const columns: Column[] = [
                 <Link :href="route('admin.customers.show', row.id)" class="font-medium text-blue-600 hover:underline dark:text-blue-400">
                     {{ row.name }}
                 </Link>
-                <p class="text-xs text-gray-400">{{ row.email }} <span v-if="row.verified" :title="t('admin.common.email_verified')">✓</span></p>
+                <Text type="secondary" class="block !text-xs">
+                    {{ row.email }}
+                    <Tooltip v-if="row.verified" :title="t('admin.common.email_verified')"><span>✓</span></Tooltip>
+                </Text>
             </div>
         </template>
         <template #cell-is_active="{ row }">
@@ -79,5 +85,5 @@ const columns: Column[] = [
         </template>
     </DataTable>
 
-    <Pagination :links="customers.links" :total="customers.total" :from="customers.from" :to="customers.to" />
+    <Pagination :paginator="customers" />
 </template>

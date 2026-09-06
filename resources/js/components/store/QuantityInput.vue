@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { Button, InputNumber, Space } from 'ant-design-vue';
 import { Minus, Plus } from 'lucide-vue-next';
+import { useI18n } from 'vue-i18n';
 
 const props = withDefaults(
     defineProps<{
@@ -12,38 +14,26 @@ const props = withDefaults(
 
 const emit = defineEmits<{ (e: 'update:modelValue', value: number): void }>();
 
-function set(value: number) {
-    emit('update:modelValue', Math.min(props.max, Math.max(props.min, value)));
+const { t } = useI18n();
+
+function set(value: number | string | null) {
+    const next = Number(value);
+
+    emit('update:modelValue', Math.min(props.max, Math.max(props.min, Number.isFinite(next) ? next : props.min)));
 }
 </script>
 
 <template>
-    <div class="inline-flex items-center rounded-lg border border-border">
-        <button
-            type="button"
-            class="px-3 py-2 text-muted-foreground transition hover:text-foreground disabled:opacity-40"
-            :disabled="modelValue <= min"
-            aria-label="Decrease quantity"
-            @click="set(modelValue - 1)"
-        >
-            <Minus class="h-4 w-4" />
-        </button>
-        <input
-            :value="modelValue"
-            type="number"
-            :min="min"
-            :max="max"
-            class="w-12 border-x border-border bg-transparent py-2 text-center text-sm [appearance:textfield] focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-            @change="set(Number(($event.target as HTMLInputElement).value) || min)"
-        />
-        <button
-            type="button"
-            class="px-3 py-2 text-muted-foreground transition hover:text-foreground disabled:opacity-40"
-            :disabled="modelValue >= max"
-            aria-label="Increase quantity"
-            @click="set(modelValue + 1)"
-        >
-            <Plus class="h-4 w-4" />
-        </button>
-    </div>
+    <!-- `Space.Compact` is AntD's own way to weld controls into one field; the
+         stepper arrows are turned off because the flanking buttons are the
+         larger, touch-friendly version of the same thing. -->
+    <Space.Compact class="store-qty">
+        <Button :disabled="modelValue <= min" :aria-label="t('product.decrease_quantity')" @click="set(modelValue - 1)">
+            <template #icon><Minus class="h-4 w-4" /></template>
+        </Button>
+        <InputNumber :value="modelValue" :min="min" :max="max" :controls="false" class="store-qty-field" @change="set" />
+        <Button :disabled="modelValue >= max" :aria-label="t('product.increase_quantity')" @click="set(modelValue + 1)">
+            <template #icon><Plus class="h-4 w-4" /></template>
+        </Button>
+    </Space.Compact>
 </template>

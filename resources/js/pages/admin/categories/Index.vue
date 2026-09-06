@@ -9,10 +9,10 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Paginator } from '@/components/admin/types';
-import { btnPrimary, btnSecondary, checkboxClass, inputClass } from '@/components/admin/ui';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Image as ImageIcon, Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { Button, Checkbox, Input, InputNumber, Textarea, Tooltip, TypographyText, Upload } from 'ant-design-vue';
+import { Image as ImageIcon, Pencil, Plus, Trash2, Upload as UploadIcon } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -70,10 +70,14 @@ const form = useForm({ ...blank });
 /** Preview of the image already saved against the category being edited. */
 const currentImage = ref<string | null>(null);
 
-function pickImage(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    form.image = input.files?.[0] ?? null;
-    if (form.image) form.remove_image = false;
+/**
+ * `:before-upload` returning false keeps AntD from POSTing the file itself;
+ * Inertia sends it with the rest of the form.
+ */
+function pickImage(file: File): boolean {
+    form.image = file;
+    form.remove_image = false;
+    return false;
 }
 
 /**
@@ -172,7 +176,10 @@ function destroy(): void {
 
     <PageHeader :title="t('admin.categories.title')" :subtitle="t('admin.categories.count', { count: categories.total })">
         <template #actions>
-            <button type="button" :class="btnPrimary" @click="openCreate"><Plus class="h-4 w-4" />{{ t('admin.categories.new') }}</button>
+            <Button type="primary" @click="openCreate">
+                <template #icon><Plus class="h-4 w-4" /></template>
+                {{ t('admin.categories.new') }}
+            </Button>
         </template>
     </PageHeader>
 
@@ -180,37 +187,44 @@ function destroy(): void {
 
     <DataTable :columns="columns" :rows="categories.data">
         <template #cell-name="{ row }">
-            <div>
-                <span class="font-medium text-gray-900 dark:text-gray-100">{{ row.name }}</span>
-                <span v-if="row.name_ar" class="ms-2 text-xs text-gray-400" dir="rtl">{{ row.name_ar }}</span>
+            <!-- Flex gap, not a margin: the Arabic span carries dir="rtl", so its own
+                 margin-inline-start would resolve to the far side and the two names
+                 would run together. -->
+            <div class="flex items-center gap-2">
+                <span class="font-medium">{{ row.name }}</span>
+                <TypographyText v-if="row.name_ar" type="secondary" class="text-xs" dir="rtl">{{ row.name_ar }}</TypographyText>
             </div>
         </template>
         <template #cell-is_active="{ row }">
             <StatusBadge :status="row.is_active ? 'active' : 'inactive'" />
         </template>
         <template #row-actions="{ row }">
-            <button type="button" class="rounded p-1.5 text-gray-400 hover:text-blue-600" :title="t('admin.common.edit')" @click="openEdit(row)">
-                <Pencil class="h-4 w-4" />
-            </button>
-            <button type="button" class="rounded p-1.5 text-gray-400 hover:text-red-600" :title="t('admin.common.delete')" @click="deleting = row">
-                <Trash2 class="h-4 w-4" />
-            </button>
+            <Tooltip :title="t('admin.common.edit')">
+                <Button type="text" size="small" :aria-label="t('admin.common.edit')" @click="openEdit(row)">
+                    <template #icon><Pencil class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
+            <Tooltip :title="t('admin.common.delete')">
+                <Button type="text" size="small" danger :aria-label="t('admin.common.delete')" @click="deleting = row">
+                    <template #icon><Trash2 class="h-4 w-4" /></template>
+                </Button>
+            </Tooltip>
         </template>
     </DataTable>
 
-    <Pagination :links="categories.links" :total="categories.total" :from="categories.from" :to="categories.to" />
+    <Pagination :paginator="categories" />
 
     <FormModal :open="modalOpen" :title="editing ? t('admin.categories.edit') : t('admin.categories.new')" @close="modalOpen = false">
         <form class="grid gap-4" @submit.prevent="submit">
             <Field :label="t('admin.common.name')" required :error="form.errors.name">
-                <input v-model="form.name" type="text" :class="inputClass" dir="ltr" />
+                <Input v-model:value="form.name" dir="ltr" />
             </Field>
             <Field :label="t('admin.common.name_ar')" :error="form.errors.name_ar">
-                <input v-model="form.name_ar" type="text" dir="rtl" :class="inputClass" />
+                <Input v-model:value="form.name_ar" dir="rtl" />
             </Field>
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.common.slug')" :hint="t('admin.common.slug_hint')" :error="form.errors.slug">
-                    <input v-model="form.slug" type="text" :class="inputClass" dir="ltr" />
+                    <Input v-model:value="form.slug" dir="ltr" />
                 </Field>
                 <Field :label="t('admin.common.parent')" :error="form.errors.parent_id">
                     <AdminSelect
@@ -221,7 +235,7 @@ function destroy(): void {
                 </Field>
             </div>
             <Field :label="t('admin.common.description')" :error="form.errors.description">
-                <textarea v-model="form.description" rows="3" :class="inputClass" />
+                <Textarea v-model:value="form.description" :rows="3" />
             </Field>
             <Field :label="t('admin.categories.image')" :error="form.errors.image">
                 <div class="flex items-center gap-4">
@@ -229,39 +243,36 @@ function destroy(): void {
                         v-if="imagePreview"
                         :src="imagePreview"
                         alt=""
+                        width="64"
+                        height="64"
                         class="h-16 w-16 rounded-lg object-cover ring-1 ring-black/10 dark:ring-white/10"
                     />
                     <div v-else class="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-gray-400 dark:bg-neutral-800">
                         <ImageIcon class="h-6 w-6" />
                     </div>
                     <div class="flex-1 space-y-2">
-                        <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            class="block w-full text-sm text-gray-600 dark:text-gray-300"
-                            @change="pickImage"
-                        />
-                        <label v-if="currentImage" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                            <input v-model="form.remove_image" type="checkbox" :class="checkboxClass" />
-                            {{ t('admin.categories.remove_image') }}
-                        </label>
-                        <p class="text-xs text-gray-500">{{ t('admin.categories.image_hint') }}</p>
+                        <Upload :max-count="1" :show-upload-list="false" accept="image/jpeg,image/png,image/webp" :before-upload="pickImage">
+                            <Button>
+                                <template #icon><UploadIcon class="h-4 w-4" /></template>
+                                {{ t('admin.common.choose') }}
+                            </Button>
+                        </Upload>
+                        <Checkbox v-if="currentImage" v-model:checked="form.remove_image">{{ t('admin.categories.remove_image') }}</Checkbox>
+                        <TypographyText type="secondary" class="block text-xs">{{ t('admin.categories.image_hint') }}</TypographyText>
                     </div>
                 </div>
             </Field>
             <div class="grid grid-cols-2 gap-3">
                 <Field :label="t('admin.common.position')" :error="form.errors.position">
-                    <input v-model.number="form.position" type="number" min="0" :class="inputClass" />
+                    <InputNumber v-model:value="form.position" :min="0" class="w-full" />
                 </Field>
-                <label class="mt-6 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input v-model="form.is_active" type="checkbox" :class="checkboxClass" />{{ t('admin.common.active') }}</label
-                >
+                <Checkbox v-model:checked="form.is_active" class="mt-6">{{ t('admin.common.active') }}</Checkbox>
             </div>
             <div class="flex justify-end gap-3">
-                <button type="button" :class="btnSecondary" @click="modalOpen = false">{{ t('admin.common.cancel') }}</button>
-                <button type="submit" :disabled="form.processing" :class="btnPrimary">
+                <Button @click="modalOpen = false">{{ t('admin.common.cancel') }}</Button>
+                <Button type="primary" html-type="submit" :loading="form.processing">
                     {{ form.processing ? t('admin.common.saving') : t('admin.common.save') }}
-                </button>
+                </Button>
             </div>
         </form>
     </FormModal>

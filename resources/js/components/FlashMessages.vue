@@ -2,6 +2,7 @@
 import { usePage } from '@inertiajs/vue3';
 import { CheckCircle2, XCircle } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 interface Toast {
     id: number;
@@ -9,6 +10,7 @@ interface Toast {
     message: string;
 }
 
+const { t } = useI18n();
 const page = usePage();
 const flash = computed(() => page.props.flash as { success?: string | null; error?: string | null });
 
@@ -68,7 +70,15 @@ watch(errors, (messages) => messages.forEach((message) => push('error', message)
 <template>
     <Teleport to="body">
         <!-- Centered above the mobile tab bar; centering keeps LTR and RTL identical. -->
-        <div class="pointer-events-none fixed inset-x-4 bottom-24 z-[100] flex flex-col items-center gap-2 lg:bottom-6">
+        <!-- The live region is the container, not the toast: a `role="status"` element
+             that is inserted after the page has settled is announced unreliably, while
+             text arriving *inside* an existing polite region always is. -->
+        <div
+            class="store-toast-safe pointer-events-none fixed inset-x-4 bottom-24 z-[100] flex flex-col items-center gap-2 lg:bottom-6"
+            role="status"
+            aria-live="polite"
+            aria-atomic="false"
+        >
             <TransitionGroup
                 enter-active-class="transition duration-300 ease-out"
                 enter-from-class="translate-y-4 opacity-0"
@@ -81,8 +91,8 @@ watch(errors, (messages) => messages.forEach((message) => push('error', message)
                     v-for="toast in toasts"
                     :key="toast.id"
                     type="button"
-                    class="pointer-events-auto flex max-w-full items-center gap-2.5 rounded-full bg-[#111111] px-5 py-3 text-white shadow-2xl shadow-black/30"
-                    role="status"
+                    class="pointer-events-auto flex max-w-full items-center gap-2.5 rounded-full bg-[#111111] px-5 py-3 text-white shadow-2xl shadow-black/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    :aria-label="`${toast.message} — ${t('common.close')}`"
                     @click="dismiss(toast.id)"
                 >
                     <CheckCircle2 v-if="toast.type === 'success'" class="h-5 w-5 shrink-0 text-green-400" />

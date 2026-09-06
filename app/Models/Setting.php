@@ -36,6 +36,6 @@ final class Setting extends Model
 
     public function getActivitylogOptions(): LogOptions
     {
-        return LogOptions::defaults()->logOnly(['key', 'value'])->logOnlyDirty();
+        return LogOptions::defaults()->logOnly(['key', 'value'])->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

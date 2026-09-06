@@ -18,6 +18,8 @@ export interface ProductCardData {
     is_featured: boolean;
     rating_avg: number | null;
     rating_count: number;
+    /** Whether the signed-in customer has already saved this product. */
+    wishlisted: boolean;
 }
 
 export interface PaginationLink {

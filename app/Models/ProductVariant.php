@@ -79,6 +79,6 @@ final class ProductVariant extends Model
     {
         return LogOptions::defaults()
             ->logOnly(['name', 'sku', 'price_cents', 'sale_price_cents', 'cost_price_cents', 'is_active'])
-            ->logOnlyDirty();
+            ->logOnlyDirty()->dontLogEmptyChanges();
     }
 }

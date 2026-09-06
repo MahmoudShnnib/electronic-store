@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import InputError from '@/components/InputError.vue';
-import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useMediaQuery } from '@/composables/useMediaQuery';
 import AuthBase from '@/layouts/AuthLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import { LoaderCircle } from 'lucide-vue-next';
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Button, Form, FormItem, Input, InputPassword } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
+
+/**
+ * Autofocus is a desktop-only convenience: on a phone it throws the on-screen
+ * keyboard up over the page before the person has read it.
+ */
+const autofocus = useMediaQuery('(min-width: 768px) and (pointer: fine)');
 
 const { t } = useI18n();
 
@@ -29,78 +31,39 @@ const submit = () => {
     <AuthBase :title="t('auth.register_title')" :description="t('auth.register_description')">
         <Head :title="t('auth.register_title')" />
 
-        <form @submit.prevent="submit" class="flex flex-col gap-6">
-            <div class="grid gap-6">
-                <div class="grid gap-2">
-                    <Label for="name">{{ t('auth.name') }}</Label>
-                    <Input
-                        id="name"
-                        type="text"
-                        required
-                        autofocus
-                        tabindex="1"
-                        autocomplete="name"
-                        v-model="form.name"
-                        :placeholder="t('auth.name_placeholder')"
-                    />
-                    <InputError :message="form.errors.name" />
-                </div>
+        <Form layout="vertical" @submit.prevent="submit">
+            <FormItem :label="t('auth.name')" :validate-status="form.errors.name ? 'error' : undefined" :help="form.errors.name">
+                <Input v-model:value="form.name" size="large" :autofocus="autofocus" autocomplete="name" :placeholder="t('auth.name_placeholder')" />
+            </FormItem>
 
-                <div class="grid gap-2">
-                    <Label for="email">{{ t('auth.email') }}</Label>
-                    <Input
-                        id="email"
-                        type="email"
-                        required
-                        tabindex="2"
-                        autocomplete="email"
-                        v-model="form.email"
-                        dir="ltr"
-                        :placeholder="t('auth.email_placeholder')"
-                    />
-                    <InputError :message="form.errors.email" />
-                </div>
+            <FormItem :label="t('auth.email')" :validate-status="form.errors.email ? 'error' : undefined" :help="form.errors.email">
+                <Input v-model:value="form.email" type="email" size="large" autocomplete="email" dir="ltr" :placeholder="t('auth.email_placeholder')" />
+            </FormItem>
 
-                <div class="grid gap-2">
-                    <Label for="password">{{ t('auth.password') }}</Label>
-                    <Input
-                        id="password"
-                        type="password"
-                        required
-                        tabindex="3"
-                        autocomplete="new-password"
-                        v-model="form.password"
-                        dir="ltr"
-                        :placeholder="t('auth.password')"
-                    />
-                    <InputError :message="form.errors.password" />
-                </div>
+            <FormItem :label="t('auth.password')" :validate-status="form.errors.password ? 'error' : undefined" :help="form.errors.password">
+                <InputPassword v-model:value="form.password" size="large" autocomplete="new-password" dir="ltr" :placeholder="t('auth.password')" />
+            </FormItem>
 
-                <div class="grid gap-2">
-                    <Label for="password_confirmation">{{ t('auth.confirm_password') }}</Label>
-                    <Input
-                        id="password_confirmation"
-                        type="password"
-                        required
-                        tabindex="4"
-                        autocomplete="new-password"
-                        v-model="form.password_confirmation"
-                        dir="ltr"
-                        :placeholder="t('auth.confirm_password')"
-                    />
-                    <InputError :message="form.errors.password_confirmation" />
-                </div>
+            <FormItem
+                :label="t('auth.confirm_password')"
+                :validate-status="form.errors.password_confirmation ? 'error' : undefined"
+                :help="form.errors.password_confirmation"
+            >
+                <InputPassword
+                    v-model:value="form.password_confirmation"
+                    size="large"
+                    autocomplete="new-password"
+                    dir="ltr"
+                    :placeholder="t('auth.confirm_password')"
+                />
+            </FormItem>
 
-                <Button type="submit" class="mt-2 w-full" tabindex="5" :disabled="form.processing">
-                    <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
-                    {{ t('auth.create_account') }}
-                </Button>
-            </div>
+            <Button type="primary" size="large" block html-type="submit" :loading="form.processing">{{ t('auth.create_account') }}</Button>
 
-            <div class="text-center text-sm text-muted-foreground">
+            <p class="mt-6 text-center text-sm opacity-65">
                 {{ t('auth.have_account') }}
-                <TextLink :href="route('login')" class="underline underline-offset-4" tabindex="6">{{ t('auth.login') }}</TextLink>
-            </div>
-        </form>
+                <Link :href="route('login')" class="font-medium text-[#0F9D58] hover:underline">{{ t('auth.login') }}</Link>
+            </p>
+        </Form>
     </AuthBase>
 </template>

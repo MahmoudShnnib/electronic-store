@@ -1,30 +1,27 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-
 import AppearanceTabs from '@/components/AppearanceTabs.vue';
-import HeadingSmall from '@/components/HeadingSmall.vue';
-import { type BreadcrumbItem } from '@/types';
-
-import AppLayout from '@/layouts/AppLayout.vue';
+import StoreLayout from '@/layouts/StoreLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
+import { Head } from '@inertiajs/vue3';
+import { Card, Typography } from 'ant-design-vue';
+import { useI18n } from 'vue-i18n';
 
-const breadcrumbItems: BreadcrumbItem[] = [
-    {
-        title: 'Appearance settings',
-        href: '/settings/appearance',
-    },
-];
+defineOptions({ layout: StoreLayout });
+
+const { Title, Text } = Typography;
+
+const { t } = useI18n();
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbItems">
-        <Head title="Appearance settings" />
+    <Head :title="t('settings.appearance_title')" />
 
-        <SettingsLayout>
-            <div class="space-y-6">
-                <HeadingSmall title="Appearance settings" description="Update your account's appearance settings" />
-                <AppearanceTabs />
-            </div>
-        </SettingsLayout>
-    </AppLayout>
+    <SettingsLayout>
+        <Card>
+            <Title :level="2" class="!mb-1 !text-base !font-semibold">{{ t('settings.appearance_title') }}</Title>
+            <Text class="!mb-5 !block !text-sm opacity-60">{{ t('settings.appearance_description') }}</Text>
+
+            <AppearanceTabs />
+        </Card>
+    </SettingsLayout>
 </template>

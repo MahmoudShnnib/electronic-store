@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
+import { Input } from 'ant-design-vue';
 import { Search } from 'lucide-vue-next';
 import { onBeforeUnmount, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import AdminSelect from './AdminSelect.vue';
 import type { Option } from './types';
-import { searchInputClass } from './ui';
 
 const { t } = useI18n();
 
@@ -62,15 +62,22 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="mb-4 flex flex-wrap items-center gap-3">
-        <div class="relative min-w-56 flex-1 md:max-w-sm">
-            <Search class="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-                v-model="state[searchKey]"
-                type="search"
-                :placeholder="searchPlaceholder ?? t('admin.common.search_default')"
-                :class="searchInputClass"
-            />
-        </div>
+        <!-- Plain input, not InputSearch: the 400ms debounce already applies the
+             query, so the attached submit button was a dead control. -->
+        <Input
+            v-model:value="state[searchKey]"
+            :placeholder="searchPlaceholder ?? t('admin.common.search_default')"
+            :aria-label="searchPlaceholder ?? t('admin.common.search_default')"
+            type="search"
+            name="q"
+            autocomplete="off"
+            spellcheck="false"
+            allow-clear
+            class="min-w-56 flex-1 md:max-w-sm"
+            @press-enter="apply"
+        >
+            <template #prefix><Search class="h-4 w-4 text-black/25 dark:text-white/30" /></template>
+        </Input>
 
         <!-- `!w-auto`: the trigger carries w-full so it fills a form field, and
              that would stretch each filter across the whole bar and push the

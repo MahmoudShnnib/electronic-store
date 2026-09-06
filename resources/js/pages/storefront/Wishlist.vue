@@ -5,6 +5,7 @@ import ProductCard from '@/components/store/ProductCard.vue';
 import type { PaginationLink, ProductCardData } from '@/components/store/types';
 import StoreLayout from '@/layouts/StoreLayout.vue';
 import { Head } from '@inertiajs/vue3';
+import { Typography } from 'ant-design-vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
@@ -13,6 +14,8 @@ defineProps<{
     products: { data: ProductCardData[]; meta: { links: PaginationLink[]; total: number } };
 }>();
 
+const { Title } = Typography;
+
 const { t } = useI18n();
 </script>
 
@@ -20,7 +23,7 @@ const { t } = useI18n();
     <Head :title="t('wishlist.title')" />
 
     <div class="mx-auto w-full max-w-7xl px-4 py-8">
-        <h1 class="mb-6 text-2xl font-bold">{{ t('wishlist.title') }}</h1>
+        <Title :level="1" class="!mb-6 !text-2xl !font-bold">{{ t('wishlist.title') }}</Title>
 
         <EmptyState
             v-if="products.data.length === 0"

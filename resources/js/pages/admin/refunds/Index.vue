@@ -55,5 +55,5 @@ const columns: Column[] = [
         </template>
     </DataTable>
 
-    <Pagination :links="refunds.links" :total="refunds.total" :from="refunds.from" :to="refunds.to" />
+    <Pagination :paginator="refunds" />
 </template>
