@@ -4,6 +4,12 @@ import { useAntdTheme } from '@/composables/useAntdTheme';
 import { useAppearance } from '@/composables/useAppearance';
 import { switchLocale, type AppLocale } from '@/i18n';
 import { Link, router, usePage } from '@inertiajs/vue3';
+import { Avatar, Button, ConfigProvider, Drawer, Dropdown, Layout, Menu, MenuItem, MenuItemGroup, Tooltip, Typography } from 'ant-design-vue';
+import arEG from 'ant-design-vue/es/locale/ar_EG';
+import enGB from 'ant-design-vue/es/locale/en_GB';
+import dayjs from 'dayjs';
+import 'dayjs/locale/ar';
+import 'dayjs/locale/en-gb';
 import {
     ArchiveRestore,
     BarChart3,
@@ -13,16 +19,16 @@ import {
     CreditCard,
     FileClock,
     Home,
+    KeyRound,
     Languages,
     LayoutDashboard,
-    KeyRound,
     LogOut,
     Menu as MenuIcon,
     Moon,
     Package,
     Percent,
+    ScanLine,
     Settings,
-    UserCog,
     ShieldCheck,
     ShoppingCart,
     Star,
@@ -30,16 +36,11 @@ import {
     Sun,
     Tag,
     Truck,
+    UserCog,
     Users,
     Wallet,
     Warehouse,
 } from 'lucide-vue-next';
-import { Avatar, Button, ConfigProvider, Drawer, Dropdown, Layout, Menu, MenuItem, MenuItemGroup, Tooltip, Typography } from 'ant-design-vue';
-import arEG from 'ant-design-vue/es/locale/ar_EG';
-import enGB from 'ant-design-vue/es/locale/en_GB';
-import dayjs from 'dayjs';
-import 'dayjs/locale/ar';
-import 'dayjs/locale/en-gb';
 import { computed, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -139,6 +140,8 @@ const sections = computed<NavSection[]>(() =>
         {
             label: t('admin.nav.sales'),
             links: [
+                { label: t('admin.nav.pos'), href: route('admin.pos.register'), icon: ScanLine, permission: 'pos.use' },
+                { label: t('admin.nav.pos_shifts'), href: route('admin.pos.shifts.index'), icon: Wallet, permission: 'pos.shifts.view' },
                 { label: t('admin.nav.orders'), href: route('admin.orders.index'), icon: ShoppingCart, permission: 'orders.view' },
                 { label: t('admin.nav.refunds'), href: route('admin.refunds.index'), icon: CreditCard, permission: 'refunds.manage' },
                 { label: t('admin.nav.treasury'), href: route('admin.treasury.index'), icon: Wallet, permission: 'treasury.view' },
@@ -219,7 +222,7 @@ watchEffect(() => dayjs.locale(locale.value === 'ar' ? 'ar' : 'en-gb'));
                 breakpoint="lg"
                 collapsed-width="0"
                 :trigger="null"
-                class="admin-sider !fixed inset-y-0 start-0 z-50 hidden overflow-hidden border-e border-black/[0.06] lg:!block dark:border-white/[0.08]"
+                class="admin-sider !fixed inset-y-0 start-0 z-50 hidden overflow-hidden border-e border-black/[0.06] dark:border-white/[0.08] lg:!block"
             >
                 <div class="flex h-14 shrink-0 items-center gap-2 border-b border-black/[0.06] px-4 dark:border-white/[0.08]">
                     <Store class="h-5 w-5 shrink-0 text-blue-600" />
