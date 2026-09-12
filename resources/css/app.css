@@ -1180,9 +1180,7 @@ html.dark .store-drawer-brand {
 .gc-footer-v2 {
     position: relative;
     overflow: hidden;
-    background:
-        radial-gradient(90% 120% at 85% 0%, rgb(15 157 88 / 0.12) 0%, transparent 55%),
-        linear-gradient(180deg, #0c0f0e 0%, #080a09 100%);
+    background: radial-gradient(90% 120% at 85% 0%, rgb(15 157 88 / 0.12) 0%, transparent 55%), linear-gradient(180deg, #0c0f0e 0%, #080a09 100%);
     color: #eef1ef;
 }
 
@@ -1208,8 +1206,7 @@ html.dark .store-drawer-brand {
     inset: 0;
     pointer-events: none;
     background-image:
-        linear-gradient(rgb(74 222 155 / 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgb(74 222 155 / 0.05) 1px, transparent 1px);
+        linear-gradient(rgb(74 222 155 / 0.05) 1px, transparent 1px), linear-gradient(90deg, rgb(74 222 155 / 0.05) 1px, transparent 1px);
     background-size: 42px 42px;
     mask-image: linear-gradient(to top, #000 30%, transparent 90%);
 }
@@ -1643,8 +1640,6 @@ html.dark .store-drawer-brand {
     flex-shrink: 0;
     color: #0f9d58;
 }
-
-
 
 /*
  * Storefront components.
@@ -2659,7 +2654,6 @@ html:has(.store-shell) .store-cats-btn.ant-btn:hover {
     box-shadow: 0 0 22px rgb(18 180 101 / 0.5);
 }
 
-
 /* Mobile tab bar. Kept as bespoke chrome rather than an AntD component — AntD
    has no floating pill nav — but it takes the storefront accent so the active
    destination matches every other selected state in the shop. */
@@ -2700,7 +2694,6 @@ html.dark .store-tabbar-item-off {
 html:has(.store-shell) .store-slab-title.ant-typography {
     color: var(--st-slab-ink);
 }
-
 
 /* ---------------------------------------------------------------------------
    Interaction hygiene, shared by both shells.

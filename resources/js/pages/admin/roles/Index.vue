@@ -138,12 +138,16 @@ function destroy(): void {
 
             <div>
                 <Typography.Text strong class="mb-2 block text-sm">{{ t('admin.common.permissions') }}</Typography.Text>
-                <Typography.Text v-if="form.errors.permissions" type="danger" class="mb-2 block text-xs">{{ form.errors.permissions }}</Typography.Text>
+                <Typography.Text v-if="form.errors.permissions" type="danger" class="mb-2 block text-xs">{{
+                    form.errors.permissions
+                }}</Typography.Text>
                 <!-- One CheckboxGroup wraps every group, so the submitted array stays
                      `form.permissions` exactly as before while the visual grouping holds. -->
                 <CheckboxGroup v-model:value="form.permissions" class="grid max-h-96 gap-4 overflow-y-auto sm:grid-cols-2">
                     <div v-for="(list, group) in groupedPermissions" :key="group" class="rounded-md border border-gray-100 p-3 dark:border-gray-800">
-                        <Typography.Text type="secondary" class="mb-2 block text-xs font-semibold uppercase tracking-wide">{{ group }}</Typography.Text>
+                        <Typography.Text type="secondary" class="mb-2 block text-xs font-semibold uppercase tracking-wide">{{
+                            group
+                        }}</Typography.Text>
                         <div class="grid gap-0.5">
                             <Checkbox v-for="permission in list" :key="permission" :value="permission">{{ permission }}</Checkbox>
                         </div>

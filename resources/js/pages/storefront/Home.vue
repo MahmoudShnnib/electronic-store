@@ -167,9 +167,7 @@ const brandCopies = computed(() => (props.brands.length >= 2 ? 3 : 1));
 /** Two promo tiles beside the hero: best live discount first, then the biggest
  *  category — the truthful stand-ins for the reference site's ad banners. */
 const sideTiles = computed(() => {
-    const ranked = [...props.categories].sort(
-        (a, b) => b.max_discount - a.max_discount || b.products_count - a.products_count,
-    );
+    const ranked = [...props.categories].sort((a, b) => b.max_discount - a.max_discount || b.products_count - a.products_count);
     return ranked.slice(0, 2);
 });
 
@@ -212,10 +210,7 @@ function sectionTitle(section: CategorySection): string {
                         <div class="grid items-center gap-6 px-6 py-10 sm:px-10 lg:grid-cols-2 lg:py-14">
                             <div class="text-center lg:text-start">
                                 <Text class="store-slab-ink-soft !text-sm !font-semibold sm:!text-lg">{{ t('home.featured') }}</Text>
-                                <Title
-                                    :level="2"
-                                    class="store-slab-title !mt-2 !text-3xl !font-light !leading-tight !tracking-tight sm:!text-5xl"
-                                >
+                                <Title :level="2" class="store-slab-title !mt-2 !text-3xl !font-light !leading-tight !tracking-tight sm:!text-5xl">
                                     {{ splitName(slide.name).light }}
                                     <span class="font-semibold">{{ splitName(slide.name).bold }}</span>
                                 </Title>
@@ -326,7 +321,15 @@ function sectionTitle(section: CategorySection): string {
         <div class="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 lg:grid-cols-6 lg:gap-x-4">
             <Link v-for="category in categories" :key="category.id" :href="route('catalog.category', category.slug)" class="group block text-center">
                 <div class="store-category-card">
-                    <img v-if="category.image" :src="category.image" :alt="categoryName(category)" width="160" height="160" loading="lazy" decoding="async" />
+                    <img
+                        v-if="category.image"
+                        :src="category.image"
+                        :alt="categoryName(category)"
+                        width="160"
+                        height="160"
+                        loading="lazy"
+                        decoding="async"
+                    />
                     <component :is="categoryIcon(category)" v-else class="h-10 w-10 text-black/35" />
                 </div>
                 <span class="mt-2 line-clamp-2 block text-xs font-semibold leading-snug sm:text-sm">{{ categoryName(category) }}</span>

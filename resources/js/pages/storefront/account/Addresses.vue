@@ -120,7 +120,8 @@ function remove(address: AddressData) {
                     </div>
 
                     <Text class="!mt-2 !block !text-sm opacity-65" dir="auto">
-                        {{ address.name }} · <span dir="ltr">{{ address.phone }}</span><br />
+                        {{ address.name }} · <span dir="ltr">{{ address.phone }}</span
+                        ><br />
                         {{ [address.area, address.city].filter(Boolean).join(', ') }}
                     </Text>
 

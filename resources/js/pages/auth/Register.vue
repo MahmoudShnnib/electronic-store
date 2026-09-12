@@ -37,7 +37,14 @@ const submit = () => {
             </FormItem>
 
             <FormItem :label="t('auth.email')" :validate-status="form.errors.email ? 'error' : undefined" :help="form.errors.email">
-                <Input v-model:value="form.email" type="email" size="large" autocomplete="email" dir="ltr" :placeholder="t('auth.email_placeholder')" />
+                <Input
+                    v-model:value="form.email"
+                    type="email"
+                    size="large"
+                    autocomplete="email"
+                    dir="ltr"
+                    :placeholder="t('auth.email_placeholder')"
+                />
             </FormItem>
 
             <FormItem :label="t('auth.password')" :validate-status="form.errors.password ? 'error' : undefined" :help="form.errors.password">

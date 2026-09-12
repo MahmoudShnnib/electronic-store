@@ -184,7 +184,14 @@ onBeforeUnmount(() => {
                                 :aria-label="social.label"
                                 translate="no"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" :viewBox="social.viewBox" fill="currentColor" width="22" height="22" aria-hidden="true">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    :viewBox="social.viewBox"
+                                    fill="currentColor"
+                                    width="22"
+                                    height="22"
+                                    aria-hidden="true"
+                                >
                                     <path :d="social.d" fill="currentColor"></path>
                                 </svg>
                                 <span class="gc-social-glow"></span>
@@ -225,10 +232,18 @@ onBeforeUnmount(() => {
                             <span class="gc-heading-line"></span>
                         </h4>
                         <ul id="gc-footer-quick-links" class="gc-footer-links gc-accordion-content" :class="{ open: openSections['quick-links'] }">
-                            <li><Link :href="route('profile.edit')">{{ t('nav.account') }}</Link></li>
-                            <li><Link :href="route('wishlist.index')">{{ t('nav.wishlist') }}</Link></li>
-                            <li><Link :href="route('cart.show')">{{ t('nav.cart') }}</Link></li>
-                            <li><Link :href="route('account.orders.index')">{{ t('nav.orders') }}</Link></li>
+                            <li>
+                                <Link :href="route('profile.edit')">{{ t('nav.account') }}</Link>
+                            </li>
+                            <li>
+                                <Link :href="route('wishlist.index')">{{ t('nav.wishlist') }}</Link>
+                            </li>
+                            <li>
+                                <Link :href="route('cart.show')">{{ t('nav.cart') }}</Link>
+                            </li>
+                            <li>
+                                <Link :href="route('account.orders.index')">{{ t('nav.orders') }}</Link>
+                            </li>
                         </ul>
                     </div>
 
@@ -261,7 +276,11 @@ onBeforeUnmount(() => {
                             </button>
                             <span class="gc-heading-line"></span>
                         </h4>
-                        <ul id="gc-footer-customer-service" class="gc-footer-links gc-accordion-content" :class="{ open: openSections['customer-service'] }">
+                        <ul
+                            id="gc-footer-customer-service"
+                            class="gc-footer-links gc-accordion-content"
+                            :class="{ open: openSections['customer-service'] }"
+                        >
                             <li v-for="item in footerPages" :key="item.page">
                                 <Link :href="route('pages.show', item.page)">{{ t(item.key) }}</Link>
                             </li>
@@ -307,14 +326,47 @@ onBeforeUnmount(() => {
                         </div>
                         <div class="gc-payment-badges">
                             <div class="gc-badge">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M3 21h18" /><path d="M3 10h18" /><path d="M5 6l7-3 7 3" /><path d="M4 10v11" /><path d="M20 10v11" /><path d="M8 14v3" /><path d="M12 14v3" /><path d="M16 14v3" />
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M3 21h18" />
+                                    <path d="M3 10h18" />
+                                    <path d="M5 6l7-3 7 3" />
+                                    <path d="M4 10v11" />
+                                    <path d="M20 10v11" />
+                                    <path d="M8 14v3" />
+                                    <path d="M12 14v3" />
+                                    <path d="M16 14v3" />
                                 </svg>
                                 <span>{{ t('footer.bank_transfer') }}</span>
                             </div>
                             <div class="gc-badge">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18H9" /><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" /><circle cx="17" cy="18" r="2" /><circle cx="7" cy="18" r="2" />
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+                                    <path d="M15 18H9" />
+                                    <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
+                                    <circle cx="17" cy="18" r="2" />
+                                    <circle cx="7" cy="18" r="2" />
                                 </svg>
                                 <span>{{ t('footer.cod') }}</span>
                             </div>

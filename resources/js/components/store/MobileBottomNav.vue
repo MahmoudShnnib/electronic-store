@@ -78,11 +78,7 @@ const items = computed<NavItem[]>(() => [
             class="relative flex h-12 items-center justify-center rounded-full transition-[background-color,color,flex,width,padding] duration-200"
             :aria-current="item.active ? 'page' : undefined"
             :aria-label="item.badge && item.badge > 0 ? `${item.label} (${item.badge})` : item.label"
-            :class="
-                item.active
-                    ? 'store-tabbar-item-on flex-1 gap-2 px-4'
-                    : 'store-tabbar-item-off w-12 shrink-0'
-            "
+            :class="item.active ? 'store-tabbar-item-on flex-1 gap-2 px-4' : 'store-tabbar-item-off w-12 shrink-0'"
         >
             <component :is="item.icon" class="h-5 w-5 shrink-0" />
             <span v-if="item.active" class="truncate text-sm font-semibold">{{ item.label }}</span>
