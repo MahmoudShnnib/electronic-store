@@ -16,7 +16,7 @@ return [
     // the ISO code. ICU is not used for placement — it puts the code first in
     // English, which is not how prices are read here.
     'currency_symbols' => [
-        'ar' => 'د.ل.',
+        'ar' => 'د.ل',
     ],
 
     // The store ships to one country; it is never a checkout input.

@@ -30,6 +30,9 @@ final class SettingController extends Controller implements HasMiddleware
         return Inertia::render('admin/settings/Index', [
             'settings' => collect(self::EDITABLE)
                 ->mapWithKeys(fn (string $key) => [$key => Setting::get($key)]),
+            // Not in EDITABLE: it is written by its own upload endpoint, which
+            // converts the image before storing it.
+            'receiptLogo' => Setting::get('receipt_logo'),
         ]);
     }
 

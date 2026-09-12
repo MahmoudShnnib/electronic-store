@@ -20,7 +20,7 @@ enum RefundMethod: string
     public static function fromPaymentMethod(PaymentMethod $method): self
     {
         return match ($method) {
-            PaymentMethod::CashOnDelivery => self::Cash,
+            PaymentMethod::CashOnDelivery, PaymentMethod::Cash => self::Cash,
             PaymentMethod::BankTransfer => self::BankTransfer,
         };
     }

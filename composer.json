@@ -16,6 +16,7 @@
         "laravel/sanctum": "*",
         "laravel/socialite": "^5.29",
         "laravel/tinker": "^2.10.1",
+        "mike42/escpos-php": "^5.0",
         "spatie/laravel-activitylog": "*",
         "spatie/laravel-permission": "*",
         "tightenco/ziggy": "^2.4"

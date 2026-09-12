@@ -45,8 +45,23 @@ final class PlaceOrder
         private readonly RecordMovement $recordMovement,
     ) {}
 
-    public function handle(Cart $cart, CheckoutData $data, ?User $user, string $placedVia = 'web'): Order
-    {
+    /**
+     * @param  ?Warehouse  $warehouse  Forces every line to ship from this warehouse
+     *                                 instead of letting warehouseFor() choose. The
+     *                                 register sells what is physically on its own
+     *                                 shelf; null keeps the storefront's behaviour.
+     * @param  int  $manualDiscountCents  An order-level discount keyed in by hand at
+     *                                    the counter, on top of any coupon. Applied to
+     *                                    the total only — line prices stay as sold.
+     */
+    public function handle(
+        Cart $cart,
+        CheckoutData $data,
+        ?User $user,
+        string $placedVia = 'web',
+        ?Warehouse $warehouse = null,
+        int $manualDiscountCents = 0,
+    ): Order {
         // Idempotency: replaying the same checkout returns the original order.
         if ($data->idempotencyKey !== null) {
             $existing = Order::query()
@@ -77,9 +92,11 @@ final class PlaceOrder
             }
         }
 
+        $manualDiscountCents = $this->validateManualDiscount($manualDiscountCents, $totals);
+
         try {
-            $order = DB::transaction(function () use ($cart, $data, $user, $totals, $placedVia): Order {
-                $order = $this->createOrderRow($data, $user, $totals, $placedVia);
+            $order = DB::transaction(function () use ($cart, $data, $user, $totals, $placedVia, $warehouse, $manualDiscountCents): Order {
+                $order = $this->createOrderRow($data, $user, $totals, $placedVia, $manualDiscountCents);
 
                 // Deterministic lock order prevents deadlocks between
                 // concurrent checkouts sharing products.
@@ -88,14 +105,15 @@ final class PlaceOrder
 
                 foreach ($lines as $line) {
                     // The storefront advertises stock summed across warehouses,
-                    // so fulfilment must look beyond the default one too.
-                    $warehouse = $this->warehouseFor($line);
+                    // so fulfilment must look beyond the default one too. A caller
+                    // that names a warehouse (the register) overrides that.
+                    $lineWarehouse = $warehouse ?? $this->warehouseFor($line);
 
                     // Throws InsufficientStockException when quantity would go
                     // negative — which aborts and rolls back the whole order.
                     $this->recordMovement->handle(
                         type: MovementType::CustomerOrder,
-                        warehouse: $warehouse,
+                        warehouse: $lineWarehouse,
                         product: $line->product,
                         variant: $line->variant,
                         quantityChange: -$line->quantity,
@@ -107,7 +125,7 @@ final class PlaceOrder
                     $order->items()->create([
                         'product_id' => $line->product->id,
                         'product_variant_id' => $line->variant?->id,
-                        'warehouse_id' => $warehouse->id,
+                        'warehouse_id' => $lineWarehouse->id,
                         'product_name' => $line->product->name,
                         'variant_name' => $line->variant?->name,
                         'sku' => $line->sku(),
@@ -180,7 +198,25 @@ final class PlaceOrder
         return $stocked->first()?->warehouse ?? $default;
     }
 
-    private function createOrderRow(CheckoutData $data, ?User $user, CartTotals $totals, string $placedVia): Order
+    /**
+     * A manual discount can only ever reduce what is already owed: it is capped
+     * at the computed total, so no combination of coupon and keyed-in discount
+     * can produce a negative order.
+     */
+    private function validateManualDiscount(int $manualDiscountCents, CartTotals $totals): int
+    {
+        if ($manualDiscountCents < 0) {
+            throw ValidationException::withMessages(['discount' => __('A discount cannot be negative.')]);
+        }
+
+        if ($manualDiscountCents > $totals->totalCents) {
+            throw ValidationException::withMessages(['discount' => __('The discount cannot exceed the order total.')]);
+        }
+
+        return $manualDiscountCents;
+    }
+
+    private function createOrderRow(CheckoutData $data, ?User $user, CartTotals $totals, string $placedVia, int $manualDiscountCents = 0): Order
     {
         $attributes = [
             'user_id' => $user?->id,
@@ -192,9 +228,11 @@ final class PlaceOrder
             'payment_method' => $data->paymentMethod,
             'currency' => (string) config('store.currency'),
             'subtotal_cents' => $totals->subtotalCents,
-            'discount_cents' => $totals->discountCents,
+            // Both discounts land in one column: the coupon code alongside it
+            // says how much of it was the coupon.
+            'discount_cents' => $totals->discountCents + $manualDiscountCents,
             'coupon_code' => $totals->discountCents > 0 ? $totals->coupon?->code : null,
-            'total_cents' => $totals->totalCents,
+            'total_cents' => $totals->totalCents - $manualDiscountCents,
             'customer_note' => $data->customerNote,
             'idempotency_key' => $data->idempotencyKey,
             'placed_via' => $placedVia,

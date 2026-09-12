@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\StockLevel;
 use App\Models\TreasuryTransaction;
+use App\Support\Money;
 use Illuminate\Support\Facades\Notification;
 
 beforeEach(function (): void {
@@ -111,4 +112,29 @@ it('leaves no scaffolding cart behind', function (): void {
     $this->actingAs(staff('order_manager'))->post(route('admin.orders.store'), manualOrderPayload($product, 1));
 
     expect(Cart::query()->count())->toBe(0);
+});
+
+it('prints a delivery slip carrying the recipient, the items and the cash to collect', function (): void {
+    $product = Product::factory()->create(['price_cents' => 120_00, 'name' => 'USB-C Cable']);
+    giveStock($product, 10);
+
+    $this->actingAs(staff('order_manager'))
+        ->post(route('admin.orders.store'), manualOrderPayload($product));
+
+    $order = Order::query()->sole();
+
+    $this->actingAs(staff('order_manager'))
+        ->get(route('admin.orders.slip', $order))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/orders/DeliverySlip')
+            ->where('order.recipient.name', 'Salem Ali')
+            ->where('order.recipient.phone', '0911234567')
+            ->where('order.recipient.address', ['Hay Andalus', 'Tripoli'])
+            ->where('order.items.0.name', 'USB-C Cable')
+            ->where('order.items.0.quantity', 2)
+            // Unpaid COD: the driver comes back with the full total. No LTR
+            // isolate — the slip prints on the 80mm head, like a receipt.
+            ->where('order.collect_formatted', Money::format($order->total_cents, $order->currency, isolate: false))
+            ->where('order.customer_note', 'Ordered on WhatsApp'));
 });

@@ -53,6 +53,12 @@ return [
     'payment_method' => [
         'cod' => 'الدفع عند الاستلام',
         'bank_transfer' => 'تحويل بنكي',
+        'cash' => 'نقدي',
+    ],
+
+    'cashier_shift_status' => [
+        'open' => 'مفتوحة',
+        'closed' => 'مغلقة',
     ],
 
     'payment_status' => [

@@ -9,6 +9,12 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
+use App\Services\Pos\PrinterConfig;
+use App\Services\Pos\Printers\CommandPrinter;
+use App\Services\Pos\Printers\DevicePrinter;
+use App\Services\Pos\Printers\NetworkPrinter;
+use App\Services\Pos\Printers\NullPrinter;
+use App\Services\Pos\Printers\PrinterConnection;
 use App\Services\Storefront\HomePageService;
 use App\Support\HomeCache;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -26,7 +32,19 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Which wire the register's receipt goes down. Bound rather than newed
+        // up so a shop can change transport in .env alone, and so tests can
+        // swap in NullPrinter and read the ESC/POS back.
+        $this->app->bind(PrinterConnection::class, function (): PrinterConnection {
+            $printer = PrinterConfig::all();
+
+            return match ($printer['driver']) {
+                'network' => new NetworkPrinter((string) $printer['host'], (int) $printer['port'], (float) $printer['timeout']),
+                'device' => new DevicePrinter((string) $printer['device']),
+                'command' => new CommandPrinter((string) $printer['command'], (float) $printer['timeout']),
+                default => new NullPrinter,
+            };
+        });
     }
 
     public function boot(): void

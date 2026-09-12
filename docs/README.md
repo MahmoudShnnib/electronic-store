@@ -11,6 +11,7 @@ Start here. Read the file that matches what you are about to touch — not all o
 | Changing storefront styling | [`agents/storefront-ui.md`](agents/storefront-ui.md) |
 | Filing or working an issue | [`agents/issue-tracker.md`](agents/issue-tracker.md) |
 | Domain terms and decisions | [`agents/domain.md`](agents/domain.md) |
+| Wiring or debugging the counter receipt printer | [`agents/pos-printing.md`](agents/pos-printing.md) |
 
 `agents/admin-ui.md` and `agents/storefront-ui.md` are the **architecture maps** — class
 hooks, scoping rules, and the named traps that make one bug look like fifty. The storefront

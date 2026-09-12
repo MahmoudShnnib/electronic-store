@@ -83,6 +83,76 @@ Findings from that pass that are **not** fixed and are worth knowing:
   whole bidi block) is scoped `html:has(.admin-shell, .store-shell)` — **shared by both
   shells**. Change it once, check both sides.
 
+## Counter receipt printing (2026-09-10)
+
+The register no longer needs the browser print dialog. `Receipt.vue` rasterises its own
+`.receipt` node with `html2canvas-pro` and posts the PNG to `admin.pos.receipt.print`;
+`ReceiptPrinter` wraps it in ESC/POS and pushes it down one of three transports
+(`network` / `device` / `command`, chosen by `POS_PRINTER_DRIVER`). Cut and cash-drawer
+kick included; the drawer only fires on cash, read from the order rather than the request.
+
+**Leaving `POS_PRINTER_DRIVER` empty is supported** — the page falls back to
+`window.print()`, which is still a correct slip. Nothing about this can fail a sale.
+
+Read `agents/pos-printing.md` before touching it. The one thing worth knowing up front:
+a bitmap is used instead of ESC/POS text runs *because no printer code page renders joined
+Arabic, Latin product names and `Money::format()`'s LTR isolate on one line*. Do not
+"simplify" it into text commands.
+
+**The hardware, as wired on 2026-09-10:** an Xprinter POS-80 (fw 3.027PR6M), **USB only**,
+576-dot head, running on `driver=cups` through queue `XP80` built on the vendor PPD
+(`XP-80.ppd`, from Xprinter's macOS driver package). A full receipt prints in ~3s.
+
+**Why the vendor driver rather than our own ESC/POS:** the controller overruns on a real
+receipt. Text and a 13KB raster print clean; an 83KB one produces a foot of GB18030
+gibberish. Pacing it ourselves works but costs a CUPS job per chunk — 88 seconds a slip.
+The vendor filter streams inside one job and exposes cut, drawer and density as job
+options, so nothing was given up. The hand-rolled ESC/POS paths are still there and still
+correct for `network` / `device` / `command`. **Do not "simplify" the cups path back into
+raw ESC/POS over USB** — that is the bug, not a cleanup.
+
+**The till does not change screen.** Taking payment prints from the register and confirms
+in a modal; it no longer routes to the receipt page. The slip markup lives in
+`components/pos/ReceiptPaper.vue` and the rasterise-and-post in
+`composables/usePosPrinting.ts`, shared by the register and the reprint page — one copy,
+so the paper cannot drift between them.
+
+**Configured, and not through `.env`.** `.env` is permission-blocked from Claude, and a
+printer bolted to a desk is the wrong thing to need a redeploy anyway — so printer wiring
+resolves through `PrinterConfig`: `.env` first, then a `pos_printer` row in the `settings`
+table written by `php artisan pos:printer`. **Never read `config('pos.printer.*')`
+directly** or stored settings are silently ignored.
+
+**Not built:** a local bridge (QZ Tray). If the app ever moves to a remote VPS while the
+printer stays USB-attached at the shop, none of the three drivers can reach it — the LAN
+variant plus the `network` driver is the answer there.
+
+## The register's stock is live (2026-09-12)
+
+`Register.vue` no longer trusts the catalogue it was rendered with. Two things changed:
+
+- **A tile shows what is left to sell, not what the warehouse holds.** `available` is the
+  shelf figure minus whatever the basket already holds, and a tile with nothing left is
+  **filtered out of the grid** rather than dimmed. Two in stock means two taps, then the
+  tile is gone. Emptying the basket brings it back.
+- **`usePoll` re-reads `products` / `categories` / `shift` / `recentSales` every ten
+  seconds**, so another till's sale or a delivery booked in the back office shows up
+  without a reload. The partial reload keeps the basket, the search box and the scroll.
+
+Two things there are load-bearing and easy to undo by accident:
+
+- The poll is **stopped while a sale is in flight** (`midSale`), *and* guarded with
+  `onBefore`. An Inertia visit started while the checkout POST is running cancels it, and
+  the poll restarts itself when the tab returns to the foreground, which is the case
+  stop() alone does not cover.
+- Basket lines hold **no frozen `available`**. They read `stockByKey` live, and a poll that
+  lands under the basket trims the line — or removes it — with a warning, so the cashier
+  cannot reach the confirmation dialog holding a quantity the server will refuse.
+
+Verified in the browser against the real register: 2 → tap → 1 → tap → gone; stock dropped
+to 0 from outside removed the line with its toast inside one poll cycle; restocking put the
+tile back at "9 left" with no reload.
+
 ## Verify commands
 
 Run these before claiming anything is done. All four were green at the time of writing.
@@ -91,7 +161,7 @@ Run these before claiming anything is done. All four were green at the time of w
 npm run lint                  # eslint --fix
 npm run build                 # vite build
 ./vendor/bin/pint --dirty     # PHP formatting
-./vendor/bin/pest             # 149 passed (660 assertions)
+./vendor/bin/pest             # 198 passed (888 assertions)
 ```
 
 Visual QA is worth doing in all four combinations: light/dark × LTR/RTL. Both toggles are in

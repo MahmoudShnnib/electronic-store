@@ -2,8 +2,9 @@
 import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
-import { Button, Card, Input, Textarea } from 'ant-design-vue';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { Button, Card, Input, Textarea, Upload } from 'ant-design-vue';
+import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
@@ -12,6 +13,8 @@ const { t } = useI18n();
 
 const props = defineProps<{
     settings: Record<string, unknown>;
+    /** Already converted to a black-on-white data URI; null when unset. */
+    receiptLogo: string | null;
 }>();
 
 interface ContactInfo {
@@ -33,6 +36,33 @@ const form = useForm({
     page_terms: String(props.settings['page.terms'] ?? ''),
     page_returns: String(props.settings['page.return-policy'] ?? ''),
 });
+
+const uploadingLogo = ref(false);
+
+/**
+ * The logo posts on its own, not with the rest of the form.
+ *
+ * It is a file, and the settings form is a JSON map; more to the point the
+ * server converts the image on upload — reduces it to one bit and flips it if
+ * needed — so what comes back is not what was sent, and a normal round-trip
+ * would fight that.
+ */
+function uploadLogo(file: File): boolean {
+    uploadingLogo.value = true;
+
+    router.post(
+        route('admin.settings.receipt-logo.store'),
+        { logo: file },
+        { preserveScroll: true, forceFormData: true, onFinish: () => (uploadingLogo.value = false) },
+    );
+
+    // Returning false keeps AntD from trying to upload it itself.
+    return false;
+}
+
+function removeLogo(): void {
+    router.delete(route('admin.settings.receipt-logo.destroy'), { preserveScroll: true });
+}
 
 function submit(): void {
     form.transform((data) => ({
@@ -82,6 +112,23 @@ function submit(): void {
                 </Field>
                 <Field :label="t('admin.settings.invoice_footer')" :hint="t('admin.settings.invoice_footer_hint')">
                     <Textarea v-model:value="form.invoice_details" :rows="2" />
+                </Field>
+
+                <Field :label="t('admin.settings.receipt_logo')" :hint="t('admin.settings.receipt_logo_hint')">
+                    <div class="flex items-center gap-3">
+                        <!-- Shown on the same white the paper is, because that is
+                             exactly what will be printed — no colour, no greys. -->
+                        <img
+                            v-if="receiptLogo"
+                            :src="receiptLogo"
+                            alt=""
+                            class="h-16 w-auto rounded border border-gray-200 bg-white p-1 dark:border-neutral-700"
+                        />
+                        <Upload :show-upload-list="false" accept="image/*" :before-upload="uploadLogo">
+                            <Button :loading="uploadingLogo">{{ t('admin.settings.receipt_logo_upload') }}</Button>
+                        </Upload>
+                        <Button v-if="receiptLogo" danger type="text" @click="removeLogo">{{ t('admin.common.remove') }}</Button>
+                    </div>
                 </Field>
             </Card>
         </div>

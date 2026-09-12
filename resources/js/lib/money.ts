@@ -11,7 +11,7 @@
  * is ours, for the same reason it is in PHP — CLDR puts the code in front for
  * `en`, which is not how prices are read here.
  */
-const SYMBOLS: Record<string, string> = { ar: 'د.ل.' };
+const SYMBOLS: Record<string, string> = { ar: 'د.ل' };
 
 export function formatMoney(amount: number, locale: string, currency = 'LYD'): string {
     const figure = new Intl.NumberFormat(locale === 'ar' ? 'ar-LY-u-nu-latn' : 'en-US', {

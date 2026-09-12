@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Actions\Orders;
 
 use App\Actions\Cart\AddToCart;
+use App\Actions\Cart\ApplyCoupon;
 use App\Actions\Checkout\PlaceOrder;
 use App\DTOs\CheckoutData;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Warehouse;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,14 +25,24 @@ final class CreateManualOrder
 {
     public function __construct(
         private readonly AddToCart $addToCart,
+        private readonly ApplyCoupon $applyCoupon,
         private readonly PlaceOrder $placeOrder,
     ) {}
 
     /**
      * @param  list<array{product_id: int, product_variant_id?: ?int, quantity: int}>  $items
+     * @param  ?Warehouse  $warehouse  Forces fulfilment from one warehouse (the register).
+     * @param  int  $manualDiscountCents  Order-level discount keyed in by hand.
      */
-    public function handle(array $items, CheckoutData $data, ?int $userId = null, string $placedVia = 'manual'): Order
-    {
+    public function handle(
+        array $items,
+        CheckoutData $data,
+        ?int $userId = null,
+        string $placedVia = 'manual',
+        ?string $couponCode = null,
+        ?Warehouse $warehouse = null,
+        int $manualDiscountCents = 0,
+    ): Order {
         $cart = Cart::create([]);
 
         try {
@@ -43,7 +55,13 @@ final class CreateManualOrder
                 );
             }
 
-            return $this->placeOrder->handle($cart->refresh(), $data, null, $placedVia);
+            // After the lines exist, so the coupon's minimum-order rule is
+            // checked against the real subtotal.
+            if ($couponCode !== null && trim($couponCode) !== '') {
+                $this->applyCoupon->handle($cart->refresh(), $couponCode, $userId);
+            }
+
+            return $this->placeOrder->handle($cart->refresh(), $data, null, $placedVia, $warehouse, $manualDiscountCents);
         } finally {
             // The cart is scaffolding, not a record: drop it either way so a
             // failed attempt leaves nothing behind.

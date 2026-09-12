@@ -78,6 +78,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isStaff(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'admin', 'inventory_manager', 'order_manager']);
+        return $this->hasAnyRole(['super_admin', 'admin', 'inventory_manager', 'order_manager', 'cashier']);
     }
 }

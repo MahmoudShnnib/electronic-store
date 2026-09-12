@@ -23,7 +23,7 @@ final class Order extends Model
         'status', 'payment_status', 'payment_method',
         'currency', 'subtotal_cents', 'discount_cents', 'coupon_code',
         'total_cents', 'customer_note',
-        'internal_note', 'idempotency_key', 'placed_via', 'confirmed_at',
+        'internal_note', 'idempotency_key', 'placed_via', 'cashier_shift_id', 'confirmed_at',
         'shipped_at', 'delivered_at', 'completed_at', 'cancelled_at',
     ];
 
@@ -50,6 +50,11 @@ final class Order extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function cashierShift(): BelongsTo
+    {
+        return $this->belongsTo(CashierShift::class);
     }
 
     public function items(): HasMany

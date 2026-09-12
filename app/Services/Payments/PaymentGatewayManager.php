@@ -16,6 +16,7 @@ final class PaymentGatewayManager
     {
         $this->register(new CashOnDeliveryGateway);
         $this->register(new BankTransferGateway);
+        $this->register(new CashGateway);
     }
 
     public function register(PaymentGateway $gateway): void

@@ -29,13 +29,23 @@ final class Money
      * "LYD 1,234.00" with the code in front, which is not how prices are read
      * here. The whole string is wrapped in an LTR isolate so it keeps that
      * order inside Arabic (RTL) text as well.
+     *
+     * @param  bool  $isolate  Pass false to drop the LTR isolate and let the
+     *                         amount follow its container's direction instead.
+     *                         Only for surfaces where the amount stands alone in
+     *                         its own element — a table cell, a total line — and
+     *                         has no neighbouring text to be mangled by. In an
+     *                         RTL layout that puts the number first (rightmost)
+     *                         and the symbol after it, which is how a price is
+     *                         read on an Arabic receipt. Anywhere an amount sits
+     *                         inside a sentence, keep the isolate.
      */
-    public static function format(int $cents, ?string $currency = null): string
+    public static function format(int $cents, ?string $currency = null, bool $isolate = true): string
     {
         $currency ??= config('store.currency', 'USD');
         $symbol = config('store.currency_symbols.'.app()->getLocale(), $currency);
         $amount = number_format(self::toDecimal($cents), 3, '.', ',');
 
-        return "\u{2066}{$amount} {$symbol}\u{2069}";
+        return $isolate ? "\u{2066}{$amount} {$symbol}\u{2069}" : "{$amount} {$symbol}";
     }
 }

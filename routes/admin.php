@@ -54,6 +54,16 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
         Route::post('orders/{order}/payments', Admin\Orders\ConfirmOrderPaymentController::class)->name('orders.payments.store');
         Route::get('orders/{order}/invoice', Admin\Orders\OrderInvoiceController::class)->name('orders.invoice');
 
+        // Point of sale
+        Route::get('pos', Admin\Pos\RegisterController::class)->name('pos.register');
+        Route::post('pos/shifts', [Admin\Pos\ShiftController::class, 'store'])->name('pos.shifts.store');
+        Route::get('pos/shifts/close', [Admin\Pos\ShiftController::class, 'open'])->name('pos.shifts.close');
+        Route::post('pos/shifts/close', [Admin\Pos\ShiftController::class, 'close'])->name('pos.shifts.closed');
+        Route::get('pos/shifts', [Admin\Pos\ShiftController::class, 'index'])->name('pos.shifts.index');
+        Route::post('pos/sales', Admin\Pos\CompleteSaleController::class)->name('pos.sales.store');
+        Route::get('pos/sales/{order}/receipt', Admin\Pos\ReceiptController::class)->name('pos.receipt');
+        Route::post('pos/sales/{order}/receipt/print', Admin\Pos\PrintReceiptController::class)->name('pos.receipt.print');
+
         // Refunds
         Route::get('refunds', [Admin\Refunds\RefundController::class, 'index'])->name('refunds.index');
         Route::post('orders/{order}/refunds', Admin\Refunds\StoreRefundController::class)->name('refunds.store');
@@ -91,4 +101,6 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
 
         Route::get('settings', [Admin\SettingController::class, 'index'])->name('settings.index');
         Route::post('settings', [Admin\SettingController::class, 'update'])->name('settings.update');
+        Route::post('settings/receipt-logo', [Admin\Settings\ReceiptLogoController::class, 'store'])->name('settings.receipt-logo.store');
+        Route::delete('settings/receipt-logo', [Admin\Settings\ReceiptLogoController::class, 'destroy'])->name('settings.receipt-logo.destroy');
     });

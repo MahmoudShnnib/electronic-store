@@ -32,6 +32,11 @@ final class RolesAndPermissionsSeeder extends Seeder
         'orders' => [
             'orders.view', 'orders.manage',
         ],
+        // pos.discount is deliberately separate from pos.use: ringing up a sale
+        // and deciding what a customer pays are different levels of trust.
+        'pos' => [
+            'pos.use', 'pos.discount', 'pos.shifts.view',
+        ],
         'refunds' => [
             'refunds.manage',
         ],
@@ -73,8 +78,16 @@ final class RolesAndPermissionsSeeder extends Seeder
             'reports.view',
         ]);
 
+        Role::findOrCreate('cashier')->syncPermissions([
+            'pos.use', 'pos.shifts.view',
+            'products.view',
+            'inventory.view',
+            'orders.view',
+        ]);
+
         Role::findOrCreate('order_manager')->syncPermissions([
             'orders.view', 'orders.manage',
+            'pos.use', 'pos.discount', 'pos.shifts.view',
             'refunds.manage',
             'treasury.view',
             'customers.view',

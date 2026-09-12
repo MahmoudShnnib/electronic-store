@@ -54,6 +54,12 @@ return [
     'payment_method' => [
         'cod' => 'Cash on delivery',
         'bank_transfer' => 'Bank transfer',
+        'cash' => 'Cash',
+    ],
+
+    'cashier_shift_status' => [
+        'open' => 'Open',
+        'closed' => 'Closed',
     ],
 
     'payment_status' => [
