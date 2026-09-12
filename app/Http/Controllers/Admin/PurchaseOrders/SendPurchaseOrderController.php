@@ -8,10 +8,14 @@ use App\Actions\Purchasing\SendPurchaseOrder;
 use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use InvalidArgumentException;
 
-/** Marks a draft PO as sent to the supplier and books the incoming stock. */
+/**
+ * Marks the purchase order as placed with its supplier and books the ordered
+ * quantities as incoming stock. Sends no mail — see SendPurchaseOrder.
+ */
 final class SendPurchaseOrderController extends Controller implements HasMiddleware
 {
     public static function middleware(): array
@@ -19,14 +23,14 @@ final class SendPurchaseOrderController extends Controller implements HasMiddlew
         return ['can:purchase_orders.manage'];
     }
 
-    public function __invoke(PurchaseOrder $purchaseOrder, SendPurchaseOrder $sendPurchaseOrder): RedirectResponse
+    public function __invoke(Request $request, PurchaseOrder $purchaseOrder, SendPurchaseOrder $sendPurchaseOrder): RedirectResponse
     {
         try {
-            $sendPurchaseOrder->handle($purchaseOrder);
+            $sendPurchaseOrder->handle($purchaseOrder, $request->user()->id);
         } catch (InvalidArgumentException $e) {
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', __('Purchase order sent to supplier.'));
+        return back()->with('success', __('Purchase order marked as sent.'));
     }
 }

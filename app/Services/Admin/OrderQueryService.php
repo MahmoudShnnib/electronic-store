@@ -14,6 +14,8 @@ use App\Models\OrderStatusHistory;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Setting;
+use App\Services\Pos\PrinterConfig;
+use App\Services\Pos\ReceiptPrinter;
 use App\Services\Reports\ReportDateRange;
 use App\Support\Money;
 use Illuminate\Http\Request;
@@ -230,6 +232,69 @@ final class OrderQueryService
                 // The dashboard's store name; app.name is only the fallback.
                 'name' => Setting::get('store_name') ?: config('app.name'),
                 'details' => Setting::get('invoice_details'),
+            ],
+        ];
+    }
+
+    /**
+     * Props for admin/orders/DeliverySlip: who the parcel goes to, what is in
+     * it, and what the driver has to collect. No unit prices — the slip is
+     * handled by people who have no business reading the margin.
+     *
+     * Sized and priced like a counter receipt because it prints on the same
+     * 80mm head: amounts drop the LTR isolate so each one follows its own line
+     * in Arabic, exactly as they do on a POS slip.
+     *
+     * @return array<string, mixed>
+     */
+    public function deliverySlipProps(Order $order): array
+    {
+        $order->load('items');
+
+        $shipping = $order->shipping_address ?? [];
+        $customer = $order->customer ?? [];
+
+        return [
+            'order' => [
+                'id' => $order->id,
+                'number' => $order->number,
+                'created_at' => $order->created_at->toDateString(),
+                'recipient' => [
+                    'name' => $shipping['name'] ?? $customer['name'] ?? null,
+                    'phone' => $shipping['phone'] ?? $customer['phone'] ?? null,
+                    'address' => array_values(array_filter([
+                        $shipping['area'] ?? null,
+                        $shipping['city'] ?? null,
+                    ])),
+                    'notes' => $shipping['notes'] ?? null,
+                ],
+                'items' => $order->items->map(fn ($item) => [
+                    'name' => $item->variant_name !== null
+                        ? "{$item->product_name} — {$item->variant_name}"
+                        : $item->product_name,
+                    'sku' => $item->sku,
+                    'quantity' => $item->quantity,
+                ]),
+                'payment_method' => $order->payment_method->label(),
+                'total_formatted' => Money::format($order->total_cents, $order->currency, isolate: false),
+                // Cash the driver has to come back with. Anything already settled
+                // must not be collected twice, so only unpaid orders show it.
+                'collect_formatted' => $order->payment_status === PaymentStatus::Unpaid
+                    ? Money::format($order->total_cents, $order->currency, isolate: false)
+                    : null,
+                'customer_note' => $order->customer_note,
+            ],
+            'store' => [
+                'name' => Setting::get('store_name') ?: config('app.name'),
+                'details' => Setting::get('invoice_details'),
+                'logo' => Setting::get('receipt_logo'),
+            ],
+            // Same contract as the receipt page: with no printer wired up the
+            // slip still has to reach the driver, so the page falls back to the
+            // browser dialog rather than silently doing nothing.
+            'printer' => [
+                'direct' => ReceiptPrinter::isConfigured(),
+                'width' => (int) PrinterConfig::get('width'),
             ],
         ];
     }

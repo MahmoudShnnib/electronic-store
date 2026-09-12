@@ -10,6 +10,7 @@ use App\Models\PurchaseOrder;
 use App\Models\StockLevel;
 use App\Models\Supplier;
 use App\Support\ReferenceNumber;
+use Illuminate\Support\Facades\Mail;
 
 function makePo(Product $product, int $quantity = 10): PurchaseOrder
 {
@@ -114,3 +115,34 @@ it('rejects receiving more than outstanding', function (): void {
 
     app(ReceivePurchaseOrder::class)->handle($po, [$po->items->first()->id => 6]);
 })->throws(InvalidArgumentException::class);
+
+// -- Sending records that the order was placed; nothing is mailed -------------
+
+it('stamps when the order was sent and books the incoming stock', function (): void {
+    Mail::fake();
+
+    $po = makePo(Product::factory()->create(), 10);
+
+    app(SendPurchaseOrder::class)->handle($po, staff('inventory_manager')->id);
+
+    Mail::assertNothingQueued();
+
+    expect($po->refresh()->status)->toBe(PurchaseOrderStatus::Sent)
+        ->and($po->sent_at)->not->toBeNull()
+        ->and(StockLevel::query()->sole()->incoming)->toBe(10);
+});
+
+it('refuses to send a purchase order that is already sent', function (): void {
+    $po = makePo(Product::factory()->create(), 10);
+
+    app(SendPurchaseOrder::class)->handle($po);
+    app(SendPurchaseOrder::class)->handle($po->refresh());
+})->throws(InvalidArgumentException::class);
+
+it('renders the printable purchase order', function (): void {
+    $po = makePo(Product::factory()->create(), 3);
+
+    $this->actingAs(staff('inventory_manager'))
+        ->get(route('admin.purchase-orders.print', $po))
+        ->assertOk();
+});

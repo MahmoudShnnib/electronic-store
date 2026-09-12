@@ -227,6 +227,12 @@ function addressRows(address: Address): { label: string; value: string }[] {
                     {{ t('admin.orders.invoice') }}
                 </Button>
             </Link>
+            <Link :href="route('admin.orders.slip', order.id)">
+                <Button>
+                    <template #icon><Printer class="h-4 w-4" /></template>
+                    {{ t('admin.orders.delivery_slip') }}
+                </Button>
+            </Link>
         </template>
     </PageHeader>
 

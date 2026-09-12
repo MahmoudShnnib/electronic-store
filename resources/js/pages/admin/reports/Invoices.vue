@@ -103,14 +103,7 @@ function exportUrl(): string {
                 {{ t('admin.common.csv') }}
             </Button>
         </template>
-        <Table
-            :columns="columns"
-            :data-source="invoices"
-            row-key="order_id"
-            :pagination="false"
-            size="middle"
-            :scroll="{ x: 'max-content' }"
-        >
+        <Table :columns="columns" :data-source="invoices" row-key="order_id" :pagination="false" size="middle" :scroll="{ x: 'max-content' }">
             <template #bodyCell="{ column, record }">
                 <Link
                     v-if="column.key === 'number'"

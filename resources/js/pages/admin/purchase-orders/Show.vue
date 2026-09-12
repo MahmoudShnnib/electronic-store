@@ -38,6 +38,7 @@ const props = defineProps<{
         status_label: string;
         is_editable: boolean;
         is_receivable: boolean;
+        sent_at: string | null;
         discount_formatted: string;
         shipping_formatted: string;
         total_formatted: string;
@@ -100,8 +101,18 @@ function submitReceive(): void {
     });
 }
 
+const sending = ref(false);
+
 function send(): void {
-    router.post(route('admin.purchase-orders.send', props.purchaseOrder.id), {}, { preserveScroll: true });
+    router.post(
+        route('admin.purchase-orders.send', props.purchaseOrder.id),
+        {},
+        {
+            preserveScroll: true,
+            onStart: () => (sending.value = true),
+            onFinish: () => (sending.value = false),
+        },
+    );
 }
 
 function cancel(): void {
@@ -130,7 +141,10 @@ function cancel(): void {
             <Link v-if="purchaseOrder.is_editable" :href="route('admin.purchase-orders.edit', purchaseOrder.id)">
                 <Button>{{ t('admin.common.edit') }}</Button>
             </Link>
-            <Button v-if="purchaseOrder.is_editable" type="primary" @click="send">
+            <a :href="route('admin.purchase-orders.print', purchaseOrder.id)" target="_blank" rel="noopener">
+                <Button>{{ t('admin.purchase_orders.print') }}</Button>
+            </a>
+            <Button v-if="purchaseOrder.is_editable" type="primary" :loading="sending" @click="send">
                 {{ t('admin.purchase_orders.send_to_supplier') }}
             </Button>
             <Button v-if="purchaseOrder.is_receivable" type="primary" @click="openReceive">
@@ -161,6 +175,7 @@ function cancel(): void {
                 </template>
                 <Descriptions :column="1" size="small">
                     <DescriptionsItem :label="t('admin.common.warehouse')">{{ purchaseOrder.warehouse.name }}</DescriptionsItem>
+                    <DescriptionsItem :label="t('admin.purchase_orders.sent_at')">{{ purchaseOrder.sent_at ?? '—' }}</DescriptionsItem>
                     <DescriptionsItem :label="t('admin.common.expected')">{{ purchaseOrder.expected_at ?? '—' }}</DescriptionsItem>
                     <DescriptionsItem :label="t('admin.purchase_orders.fully_received')">
                         {{ purchaseOrder.received_at ?? '—' }}

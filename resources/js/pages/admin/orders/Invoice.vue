@@ -45,7 +45,7 @@ function printInvoice(): void {
             <div class="mb-8 flex items-start justify-between">
                 <div>
                     <h1 class="text-2xl font-bold">{{ store.name }}</h1>
-                    <p v-if="store.details" class="mt-1 whitespace-pre-line text-sm text-gray-500">{{ store.details }}</p>
+                    <p v-if="store.details" dir="auto" class="mt-1 whitespace-pre-line text-sm text-gray-500">{{ store.details }}</p>
                 </div>
                 <div class="text-end">
                     <h2 class="text-xl font-semibold">{{ t('admin.orders.invoice') }}</h2>

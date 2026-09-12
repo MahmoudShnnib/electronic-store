@@ -20,7 +20,7 @@ final class PurchaseOrder extends Model
     protected $fillable = [
         'po_number', 'supplier_id', 'warehouse_id', 'status', 'subtotal_cents',
         'discount_cents', 'shipping_cents', 'total_cents',
-        'expected_at', 'received_at', 'notes', 'created_by',
+        'expected_at', 'received_at', 'sent_at', 'notes', 'created_by',
     ];
 
     protected function casts(): array
@@ -33,6 +33,7 @@ final class PurchaseOrder extends Model
             'total_cents' => 'integer',
             'expected_at' => 'immutable_date',
             'received_at' => 'immutable_datetime',
+            'sent_at' => 'immutable_datetime',
         ];
     }
 

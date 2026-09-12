@@ -41,6 +41,7 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
         Route::get('purchase-orders/{purchaseOrder}/edit', [Admin\PurchaseOrders\PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit');
         Route::patch('purchase-orders/{purchaseOrder}', [Admin\PurchaseOrders\PurchaseOrderController::class, 'update'])->name('purchase-orders.update');
         Route::post('purchase-orders/{purchaseOrder}/send', Admin\PurchaseOrders\SendPurchaseOrderController::class)->name('purchase-orders.send');
+        Route::get('purchase-orders/{purchaseOrder}/print', Admin\PurchaseOrders\PrintPurchaseOrderController::class)->name('purchase-orders.print');
         Route::post('purchase-orders/{purchaseOrder}/receive', Admin\PurchaseOrders\ReceivePurchaseOrderController::class)->name('purchase-orders.receive');
         Route::post('purchase-orders/{purchaseOrder}/cancel', Admin\PurchaseOrders\CancelPurchaseOrderController::class)->name('purchase-orders.cancel');
 
@@ -53,6 +54,8 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
         Route::post('orders/{order}/status', Admin\Orders\UpdateOrderStatusController::class)->name('orders.status');
         Route::post('orders/{order}/payments', Admin\Orders\ConfirmOrderPaymentController::class)->name('orders.payments.store');
         Route::get('orders/{order}/invoice', Admin\Orders\OrderInvoiceController::class)->name('orders.invoice');
+        Route::get('orders/{order}/slip', Admin\Orders\OrderDeliverySlipController::class)->name('orders.slip');
+        Route::post('orders/{order}/slip/print', Admin\Orders\PrintDeliverySlipController::class)->name('orders.slip.print');
 
         // Point of sale
         Route::get('pos', Admin\Pos\RegisterController::class)->name('pos.register');

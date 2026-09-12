@@ -7,6 +7,7 @@ namespace App\Services\Admin;
 use App\Enums\PurchaseOrderStatus;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
+use App\Models\Setting;
 use App\Models\Supplier;
 use App\Models\Warehouse;
 use App\Support\Money;
@@ -123,6 +124,7 @@ final class PurchaseOrderQueryService
                 'status_label' => $purchaseOrder->status->label(),
                 'is_editable' => $purchaseOrder->status->isEditable(),
                 'is_receivable' => $purchaseOrder->status->isReceivable(),
+                'sent_at' => $purchaseOrder->sent_at?->toDateTimeString(),
                 'discount_formatted' => Money::format($purchaseOrder->discount_cents),
                 'shipping_formatted' => Money::format($purchaseOrder->shipping_cents),
                 'total_formatted' => Money::format($purchaseOrder->total_cents),
@@ -143,6 +145,48 @@ final class PurchaseOrderQueryService
                     'unit_cost_formatted' => Money::format($item->unit_cost_cents),
                     'line_total_formatted' => Money::format($item->line_total_cents),
                 ]),
+            ],
+        ];
+    }
+
+    /**
+     * Props for admin/purchase-orders/Print: the purchase order laid out for
+     * paper — for suppliers who want a signed copy or take orders over the
+     * counter.
+     *
+     * @return array<string, mixed>
+     */
+    public function printProps(PurchaseOrder $purchaseOrder): array
+    {
+        $purchaseOrder->load(['supplier', 'warehouse', 'items.product:id,name,sku', 'items.variant:id,name,sku']);
+
+        return [
+            'purchaseOrder' => [
+                'po_number' => $purchaseOrder->po_number,
+                'created_at' => $purchaseOrder->created_at->toDateString(),
+                'status_label' => $purchaseOrder->status->label(),
+                'sent_at' => $purchaseOrder->sent_at?->toDateTimeString(),
+                'expected_at' => $purchaseOrder->expected_at?->toDateString(),
+                'supplier' => $purchaseOrder->supplier->only(['company_name', 'contact_person', 'email', 'phone', 'address']),
+                'warehouse' => $purchaseOrder->warehouse->only(['name', 'address']),
+                'notes' => $purchaseOrder->notes,
+                'items' => $purchaseOrder->items->map(fn ($item) => [
+                    'name' => $item->variant !== null
+                        ? "{$item->product->name} — {$item->variant->name}"
+                        : $item->product->name,
+                    'sku' => $item->variant?->sku ?? $item->product->sku,
+                    'quantity_ordered' => $item->quantity_ordered,
+                    'unit_cost_formatted' => Money::format($item->unit_cost_cents),
+                    'line_total_formatted' => Money::format($item->line_total_cents),
+                ]),
+                'discount_formatted' => Money::format($purchaseOrder->discount_cents),
+                'shipping_formatted' => Money::format($purchaseOrder->shipping_cents),
+                'total_formatted' => Money::format($purchaseOrder->total_cents),
+            ],
+            'store' => [
+                // The dashboard's store name; app.name is only the fallback.
+                'name' => Setting::get('store_name') ?: config('app.name'),
+                'details' => Setting::get('invoice_details'),
             ],
         ];
     }
