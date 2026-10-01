@@ -160,7 +160,9 @@ final class Product extends Model
 
     public function scopeVisibleInStore(Builder $query): Builder
     {
-        return $query->whereIn('status', [ProductStatus::Active, ProductStatus::OutOfStock]);
+        return $query->whereIn('status', [ProductStatus::Active, ProductStatus::OutOfStock])
+            // A deactivated category takes its products off the shop with it.
+            ->whereHas('category', fn (Builder $q) => $q->where('is_active', true));
     }
 
     public function scopePurchasable(Builder $query): Builder
@@ -173,15 +175,17 @@ final class Product extends Model
      * rows carry this product's id too). Nothing ever flips a product to
      * `out_of_stock`, so the grid has to ask the warehouse, not the status.
      */
+    // An order line ships from one warehouse, so a customer can buy at most the
+    // biggest single stock row — never the total spread across warehouses.
     public function scopeWithStock(Builder $query): Builder
     {
-        return $query->withSum(['stockLevels as stock_quantity' => fn ($q) => $q->sellable()], 'quantity');
+        return $query->withMax(['stockLevels as stock_quantity' => fn ($q) => $q->sellable()], 'quantity');
     }
 
     /** Falls back to a query only when scopeWithStock() was not applied. */
     public function availableQuantity(): int
     {
-        return (int) ($this->stock_quantity ?? $this->stockLevels()->sellable()->sum('quantity'));
+        return max(0, (int) ($this->stock_quantity ?? $this->stockLevels()->sellable()->max('quantity')));
     }
 
     public function scopeFeatured(Builder $query): Builder

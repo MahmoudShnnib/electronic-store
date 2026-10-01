@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\MovementType;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
@@ -96,5 +97,48 @@ final class Order extends Model
             ->orWhereRaw("customer->>'name' ILIKE ?", [$like])
             ->orWhereRaw("customer->>'email' ILIKE ?", [$like])
             ->orWhereRaw("customer->>'phone' ILIKE ?", [$like]));
+    }
+
+    /** Whether the customer may cancel it: still open and no money held (that needs a refund first). */
+    public function canBeCancelled(): bool
+    {
+        return $this->status->isCancellable() && $this->netPaidCents() <= 0;
+    }
+
+    /** Money the shop currently holds for this order: confirmed payments minus completed refunds. */
+    public function netPaidCents(): int
+    {
+        return (int) $this->payments()->where('status', 'confirmed')->sum('amount_cents')
+            - (int) $this->refunds()->where('status', 'completed')->sum('amount_cents');
+    }
+
+    /**
+     * Per order line, how many units can still come back: sold minus already
+     * returned (customer-return ledger rows for this order).
+     *
+     * @return array<int, int> order_item_id => units
+     */
+    public function returnableQuantities(): array
+    {
+        $returned = InventoryMovement::query()
+            ->where('type', MovementType::CustomerReturn)
+            ->where('reference_type', $this->getMorphClass())
+            ->where('reference_id', $this->id)
+            ->selectRaw('product_id, product_variant_id, warehouse_id, SUM(quantity_change) AS qty')
+            ->groupBy('product_id', 'product_variant_id', 'warehouse_id')
+            ->get()
+            ->mapWithKeys(fn ($row) => ["{$row->product_id}:{$row->product_variant_id}:{$row->warehouse_id}" => (int) $row->qty])
+            ->all();
+
+        $left = [];
+
+        foreach ($this->items()->orderBy('id')->get() as $item) {
+            $key = "{$item->product_id}:{$item->product_variant_id}:{$item->warehouse_id}";
+            $already = min($item->quantity, $returned[$key] ?? 0);
+            $returned[$key] = ($returned[$key] ?? 0) - $already;
+            $left[$item->id] = $item->quantity - $already;
+        }
+
+        return $left;
     }
 }

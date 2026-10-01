@@ -21,6 +21,8 @@ final class ToggleCustomerActiveController extends Controller implements HasMidd
     public function __invoke(Request $request, User $customer): RedirectResponse
     {
         abort_if($customer->id === $request->user()->id, 403);
+        // Staff accounts are managed on the Staff page; this switch is for customers only.
+        abort_if($customer->roles()->where('name', '!=', 'customer')->exists(), 403);
 
         $customer->update(['is_active' => ! $customer->is_active]);
 

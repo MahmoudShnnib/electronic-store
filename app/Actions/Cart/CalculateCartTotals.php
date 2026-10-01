@@ -8,6 +8,7 @@ use App\DTOs\CartLine;
 use App\DTOs\CartTotals;
 use App\Enums\CouponType;
 use App\Models\Cart;
+use App\Models\Category;
 use App\Models\Coupon;
 
 /**
@@ -44,7 +45,8 @@ final class CalculateCartTotals
         // Distribute the discount proportionally across the lines the coupon
         // actually covers. A product-limited coupon must not shave money off
         // items it doesn't apply to.
-        $eligible = array_map(fn (array $line) => $coupon !== null && $this->lineIsEligible($coupon, $line), $lines);
+        $scopeIds = $coupon !== null ? $this->scopeIds($coupon) : [];
+        $eligible = array_map(fn (array $line) => $coupon !== null && $this->lineIsEligible($coupon, $line, $scopeIds), $lines);
         $eligibleSubtotal = array_sum(array_map(
             fn (array $line, bool $ok) => $ok ? $line['subtotal'] : 0,
             $lines,
@@ -136,20 +138,35 @@ final class CalculateCartTotals
     /** Subtotal of the lines the coupon's product/category/brand scope covers. */
     private function eligibleSubtotal(Coupon $coupon, array $lines): int
     {
+        $ids = $this->scopeIds($coupon);
+
         return array_sum(array_map(
-            fn (array $line): int => $this->lineIsEligible($coupon, $line) ? $line['subtotal'] : 0,
+            fn (array $line): int => $this->lineIsEligible($coupon, $line, $ids) ? $line['subtotal'] : 0,
             $lines,
         ));
     }
 
     /** Whether one cart line falls inside the coupon's scope. */
-    private function lineIsEligible(Coupon $coupon, array $line): bool
+    /**
+     * Ids the coupon is scoped to; a coupon on a parent category covers
+     * everything filed beneath it.
+     *
+     * @return list<int>
+     */
+    private function scopeIds(Coupon $coupon): array
+    {
+        $ids = array_map('intval', $coupon->applies_to_ids ?? []);
+
+        return $coupon->applies_to === 'categories' ? Category::subtreeIds($ids) : $ids;
+    }
+
+    /** @param  list<int>  $ids */
+    private function lineIsEligible(Coupon $coupon, array $line, array $ids): bool
     {
         if ($coupon->applies_to === 'all') {
             return true;
         }
 
-        $ids = array_map('intval', $coupon->applies_to_ids ?? []);
         $product = $line['item']->product;
 
         return match ($coupon->applies_to) {

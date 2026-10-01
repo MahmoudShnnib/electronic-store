@@ -12,7 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 final class AddToCart
 {
-    public function handle(Cart $cart, Product $product, ?ProductVariant $variant, int $quantity): CartItem
+    /** @param  bool  $customerLimit  the per-item cap guards the shop; staff ringing up a sale skip it */
+    public function handle(Cart $cart, Product $product, ?ProductVariant $variant, int $quantity, bool $customerLimit = true): CartItem
     {
         if ($quantity < 1) {
             throw ValidationException::withMessages(['quantity' => __('Quantity must be at least 1.')]);
@@ -37,7 +38,7 @@ final class AddToCart
 
         $newQuantity = ($existing?->quantity ?? 0) + $quantity;
 
-        $this->assertQuantityAvailable($product, $variant, $newQuantity);
+        $this->assertQuantityAvailable($product, $variant, $newQuantity, $customerLimit);
 
         if ($existing !== null) {
             $existing->update(['quantity' => $newQuantity]);
@@ -56,11 +57,11 @@ final class AddToCart
      * Soft availability check for cart UX. The authoritative check happens
      * under row locks inside PlaceOrder.
      */
-    public function assertQuantityAvailable(Product $product, ?ProductVariant $variant, int $quantity): void
+    public function assertQuantityAvailable(Product $product, ?ProductVariant $variant, int $quantity, bool $customerLimit = true): void
     {
         $max = (int) config('store.max_quantity_per_item');
 
-        if ($quantity > $max) {
+        if ($customerLimit && $quantity > $max) {
             throw ValidationException::withMessages(['quantity' => __('You can order at most :max of one item.', ['max' => $max])]);
         }
 

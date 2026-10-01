@@ -9,11 +9,12 @@ use Laravel\Socialite\Two\User as GoogleUser;
 
 function fakeGoogleUser(string $id = 'google-123', string $email = 'g@example.com', string $name = 'Google Person'): GoogleUser
 {
-    return (new GoogleUser)->setRaw([])->map([
-        'id' => $id,
-        'name' => $name,
-        'email' => $email,
-    ]);
+    return (new GoogleUser)->setRaw(['email_verified' => true]) // Google always reports this for its accounts
+        ->map([
+            'id' => $id,
+            'name' => $name,
+            'email' => $email,
+        ]);
 }
 
 function mockGoogleCallback(GoogleUser $user): void

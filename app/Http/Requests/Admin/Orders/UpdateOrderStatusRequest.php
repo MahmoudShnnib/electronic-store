@@ -22,7 +22,9 @@ final class UpdateOrderStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', Rule::enum(OrderStatus::class)],
+            // Refunded is reached only through the return/problem form, which moves
+            // the money and the stock; a bare status flip would do neither.
+            'status' => ['required', Rule::enum(OrderStatus::class)->except([OrderStatus::Refunded])],
             'comment' => ['nullable', 'string', 'max:500'],
         ];
     }

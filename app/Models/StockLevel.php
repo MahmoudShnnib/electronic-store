@@ -48,7 +48,14 @@ final class StockLevel extends Model
     /** Stock sitting in an inactive warehouse isn't sellable — a single order still ships from one active warehouse. */
     public function scopeSellable(Builder $query): Builder
     {
-        return $query->whereHas('warehouse', fn ($w) => $w->where('is_active', true));
+        // Only stock a customer can actually pick: a live, active variant's row, or
+        // a plain product's own row. Rows left on removed/disabled variants and the
+        // product-level row of a variant product stay on the Stock page only.
+        return $query->whereHas('warehouse', fn ($w) => $w->where('is_active', true))
+            ->where(fn (Builder $q) => $q
+                ->where(fn (Builder $q) => $q->whereNull('product_variant_id')
+                    ->whereHas('product', fn ($p) => $p->where('has_variants', false)))
+                ->orWhereHas('variant', fn ($v) => $v->whereNull('deleted_at')->where('is_active', true)));
     }
 
     // Products and variants soft-delete, but their stock rows stay behind. Without

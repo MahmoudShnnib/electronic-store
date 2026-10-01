@@ -20,7 +20,21 @@ final class ProductCardResource extends JsonResource
     public function toArray(Request $request): array
     {
         $locale = app()->getLocale();
-        $onSale = $this->saleIsActive();
+
+        // A variant product is priced by its variants: the card shows the
+        // cheapest active one ("from …") instead of the product's base price.
+        // ponytail: loads variants per variant product on the page; eager-load activeVariants in the listing if that ever shows up in profiling.
+        $priced = $this->resource;
+        $variantPrices = collect();
+
+        if ($this->has_variants) {
+            $variants = $this->resource->loadMissing('activeVariants')->activeVariants
+                ->each(fn ($variant) => $variant->setRelation('product', $this->resource));
+            $priced = $variants->sortBy(fn ($variant) => $variant->currentPriceCents())->first() ?? $priced;
+            $variantPrices = $variants->map(fn ($variant) => $variant->currentPriceCents())->unique();
+        }
+
+        $onSale = $priced->saleIsActive();
 
         $image = $this->relationLoaded('images')
             ? ($this->images->firstWhere('is_primary', true) ?? $this->images->first())
@@ -35,14 +49,15 @@ final class ProductCardResource extends JsonResource
                 'name' => $this->brand->name,
                 'slug' => $this->brand->slug,
             ]),
-            'price_cents' => $this->price_cents,
-            'price_formatted' => Money::format($this->price_cents),
-            'sale_price_cents' => $onSale ? $this->sale_price_cents : null,
-            'sale_price_formatted' => $onSale ? Money::format((int) $this->sale_price_cents) : null,
-            'current_price_formatted' => Money::format($this->currentPriceCents()),
+            'price_cents' => $priced->price_cents,
+            'price_formatted' => Money::format($priced->price_cents),
+            'sale_price_cents' => $onSale ? $priced->sale_price_cents : null,
+            'sale_price_formatted' => $onSale ? Money::format((int) $priced->sale_price_cents) : null,
+            'current_price_formatted' => Money::format($priced->currentPriceCents()),
+            'price_from' => $variantPrices->count() > 1,
             'on_sale' => $onSale,
-            'discount_percent' => $onSale && $this->price_cents > 0
-                ? (int) round((1 - $this->sale_price_cents / $this->price_cents) * 100)
+            'discount_percent' => $onSale && $priced->price_cents > 0
+                ? (int) round((1 - $priced->sale_price_cents / $priced->price_cents) * 100)
                 : null,
             'image' => $image !== null ? Storage::disk('public')->url($image->path) : null,
             'status' => $this->status->value,

@@ -20,10 +20,15 @@ final class ReportDateRange
     {
         self::validate($request);
 
-        $from = $request->filled('from') ? $request->date('from')->toImmutable()->startOfDay() : now()->toImmutable()->subDays(29)->startOfDay();
-        $to = $request->filled('to') ? $request->date('to')->toImmutable()->endOfDay() : now()->toImmutable()->endOfDay();
+        // A day means the shop's local day (Libya is UTC+2), converted back to
+        // UTC because that is how timestamps are stored.
+        $tz = (string) config('store.timezone');
+        $today = now($tz)->toImmutable();
 
-        return [$from, $to];
+        $from = $request->filled('from') ? CarbonImmutable::parse((string) $request->query('from'), $tz)->startOfDay() : $today->subDays(29)->startOfDay();
+        $to = $request->filled('to') ? CarbonImmutable::parse((string) $request->query('to'), $tz)->endOfDay() : $today->endOfDay();
+
+        return [$from->utc(), $to->utc()];
     }
 
     /**

@@ -5,7 +5,7 @@ import StatusBadge from '@/components/admin/StatusBadge.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import type { TableColumnType } from 'ant-design-vue';
-import { Card, Col, List, ListItem, Row, Table, Typography } from 'ant-design-vue';
+import { Alert, Card, Col, List, ListItem, Row, Table, Typography } from 'ant-design-vue';
 import { BarElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip } from 'chart.js';
 import { computed } from 'vue';
 import { Bar, Line } from 'vue-chartjs';
@@ -57,12 +57,14 @@ const props = defineProps<{
         orders_in_progress: number;
         orders_completed: number;
         orders_cancelled: number;
+        orders_refunded: number;
         customers_total: number;
         products_total: number;
         products_active: number;
         low_stock: number;
         out_of_stock: number;
     };
+    staleCodOrders: { id: number; number: string; customer: string; days: number; total_formatted: string }[];
     revenueSeries: RevenuePoint[];
     bestSellers: BestSeller[];
     recentOrders: RecentOrder[];
@@ -127,6 +129,18 @@ const recentOrderColumns: TableColumnType[] = [
 
     <PageHeader :title="t('admin.dashboard.title')" :subtitle="t('admin.dashboard.subtitle')" />
 
+    <Alert v-if="staleCodOrders.length > 0" type="warning" show-icon class="mb-4" :message="t('admin.dashboard.stale_cod_title')">
+        <template #description>
+            <div>{{ t('admin.dashboard.stale_cod_hint') }}</div>
+            <ul class="mt-2 space-y-1">
+                <li v-for="order in staleCodOrders" :key="order.id">
+                    <Link :href="route('admin.orders.show', order.id)" class="text-blue-600 hover:underline dark:text-blue-400">{{ order.number }}</Link>
+                    — {{ order.customer }} — {{ order.total_formatted }} — {{ t('admin.dashboard.days_old', { days: order.days }) }}
+                </li>
+            </ul>
+        </template>
+    </Alert>
+
     <Row :gutter="[16, 16]">
         <Col :xs="12" :md="8" :xl="6">
             <StatCard :label="t('admin.dashboard.revenue_today')" :value="kpis.revenue_today" tone="success" />
@@ -149,6 +163,9 @@ const recentOrderColumns: TableColumnType[] = [
         </Col>
         <Col :xs="12" :md="8" :xl="6">
             <StatCard :label="t('admin.dashboard.cancelled_orders')" :value="kpis.orders_cancelled" />
+        </Col>
+        <Col :xs="12" :md="8" :xl="6">
+            <StatCard :label="t('admin.dashboard.refunded_orders')" :value="kpis.orders_refunded" />
         </Col>
         <Col :xs="12" :md="8" :xl="6">
             <StatCard :label="t('admin.dashboard.customers')" :value="kpis.customers_total" />

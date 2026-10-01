@@ -143,7 +143,9 @@ it('applies a manual discount to the total without touching line prices', functi
     expect($order->subtotal_cents)->toBe(100_000)
         ->and($order->discount_cents)->toBe(15_000)
         ->and($order->total_cents)->toBe(85_000)
-        ->and($order->items()->sole()->line_total_cents)->toBe(100_000);
+        ->and($order->items()->sole()->unit_price_cents)->toBe(100_000)
+        // The line carries its share, so product revenue adds up to the order.
+        ->and($order->items()->sole()->line_total_cents)->toBe(85_000);
 });
 
 it('refuses a discount larger than the total', function (): void {

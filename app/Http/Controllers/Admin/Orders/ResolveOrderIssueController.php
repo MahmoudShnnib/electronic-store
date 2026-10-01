@@ -34,6 +34,7 @@ final class ResolveOrderIssueController extends Controller implements HasMiddlew
             restock: (bool) ($validated['restock'] ?? true),
             reference: $validated['reference'] ?? null,
             userId: $request->user()->id,
+            restockQuantities: isset($validated['items']) ? array_map('intval', $validated['items']) : null,
         );
 
         return back()->with('success', $refundCents > 0

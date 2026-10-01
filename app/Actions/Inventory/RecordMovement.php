@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Actions\Inventory;
 
 use App\Enums\MovementType;
+use App\Enums\ProductStatus;
 use App\Models\InventoryMovement;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\StockLevel;
 use App\Models\Warehouse;
+use App\Support\HomeCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -76,6 +78,17 @@ final class RecordMovement
         $stock->damaged = max(0, $stock->damaged + $damagedChange);
         $stock->incoming = max(0, $stock->incoming + $incomingChange);
         $stock->save();
+
+        // The cached home page shows "in stock" badges; refresh it when a shelf
+        // empties or gets its first units back.
+        if (($before > 0) !== ($after > 0)) {
+            HomeCache::flush();
+        }
+
+        // A product someone marked "Out of stock" goes back on sale once units arrive.
+        if ($before <= 0 && $after > 0 && $product->status === ProductStatus::OutOfStock) {
+            $product->update(['status' => ProductStatus::Active]);
+        }
 
         return InventoryMovement::create([
             'warehouse_id' => $warehouse->id,

@@ -36,70 +36,90 @@ final class ResolveOrderIssue
         bool $restock = true,
         ?string $reference = null,
         ?int $userId = null,
+        ?array $restockQuantities = null,
     ): Order {
         // No method given means "give it back the way it came in" — resolved to
         // a concrete channel here so the refund record never stores a
         // placeholder the reader has to look up the order to understand.
         $method ??= RefundMethod::fromPaymentMethod($order->payment_method);
 
-        if ($order->status !== OrderStatus::Completed) {
-            throw ValidationException::withMessages([
-                'reason' => __('Only a completed order can be returned (status: :status).', [
-                    'status' => $order->status->label(),
-                ]),
+        // One transaction around everything: a refund that fails validation must
+        // not leave the goods restocked, and the order lock makes a double-click
+        // wait for the first submit instead of running alongside it.
+        return DB::transaction(function () use ($order, $reason, $refundCents, $method, $restock, $reference, $userId, $restockQuantities): Order {
+            $order = Order::query()->lockForUpdate()->findOrFail($order->id);
+
+            if ($order->status !== OrderStatus::Completed) {
+                throw ValidationException::withMessages([
+                    'reason' => __('Only a completed order can be returned (status: :status).', [
+                        'status' => $order->status->label(),
+                    ]),
+                ]);
+            }
+
+            // The reason is the point of the action, so it is logged even when no
+            // money moves — a problem worth recording is not always worth a refund.
+            $order->statusHistories()->create([
+                'from_status' => OrderStatus::Completed,
+                'to_status' => OrderStatus::Completed,
+                'comment' => $reason,
+                'user_id' => $userId,
             ]);
-        }
 
-        // The reason is the point of the action, so it is logged even when no
-        // money moves — a problem worth recording is not always worth a refund.
-        $order->statusHistories()->create([
-            'from_status' => OrderStatus::Completed,
-            'to_status' => OrderStatus::Completed,
-            'comment' => $reason,
-            'user_id' => $userId,
-        ]);
+            if ($restock) {
+                $this->restock($order, $reason, $userId, $restockQuantities);
+            }
 
-        if ($restock) {
-            $this->restock($order, $reason, $userId);
-        }
+            if ($refundCents > 0) {
+                $this->createRefund->handle(
+                    order: $order,
+                    amountCents: $refundCents,
+                    method: $method,
+                    reference: $reference,
+                    reason: $reason,
+                    createdBy: $userId,
+                );
 
-        if ($refundCents > 0) {
-            $this->createRefund->handle(
-                order: $order,
-                amountCents: $refundCents,
-                method: $method,
-                reference: $reference,
-                reason: $reason,
-                createdBy: $userId,
-            );
+                $order = $this->updateOrderStatus->handle($order->refresh(), OrderStatus::Refunded, $reason, $userId);
+            }
 
-            $order = $this->updateOrderStatus->handle($order->refresh(), OrderStatus::Refunded, $reason, $userId);
-        }
-
-        return $order;
+            return $order;
+        });
     }
 
-    /** Puts the returned goods back on the shelf they shipped from. */
-    private function restock(Order $order, string $reason, ?int $userId): void
+    /**
+     * Puts the returned goods back on the shelf they shipped from — only the
+     * units staff say came back (all by default), and never more than are still
+     * out, so a partial return or a second report can't create phantom stock.
+     *
+     * @param  array<int, int>|null  $quantities  order_item_id => units back; null = everything still out
+     */
+    private function restock(Order $order, string $reason, ?int $userId, ?array $quantities): void
     {
-        DB::transaction(function () use ($order, $reason, $userId): void {
-            foreach ($order->items()->with(['product', 'variant', 'warehouse'])->get() as $item) {
-                if ($item->product === null || $item->warehouse === null) {
-                    continue;
-                }
+        $left = $order->returnableQuantities();
 
-                $this->recordMovement->handle(
-                    type: MovementType::CustomerReturn,
-                    warehouse: $item->warehouse,
-                    product: $item->product,
-                    variant: $item->variant,
-                    quantityChange: $item->quantity,
-                    reservedChange: 0,
-                    reference: $order,
-                    reason: $reason,
-                    userId: $userId,
-                );
+        foreach ($order->items()->with(['product', 'variant', 'warehouse'])->get() as $item) {
+            if ($item->product === null || $item->warehouse === null) {
+                continue;
             }
-        });
+
+            $quantity = min($left[$item->id] ?? 0, $quantities === null ? PHP_INT_MAX : max(0, (int) ($quantities[$item->id] ?? 0)));
+
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            $this->recordMovement->handle(
+                type: MovementType::CustomerReturn,
+                warehouse: $item->warehouse,
+                product: $item->product,
+                variant: $item->variant,
+                quantityChange: $quantity,
+                reservedChange: 0,
+                reference: $order,
+                reason: $reason,
+                userId: $userId,
+            );
+        }
     }
 }

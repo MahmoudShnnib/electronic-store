@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin\Inventory;
 
+use App\Enums\MovementType;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,17 +29,30 @@ final class AdjustStockRequest extends FormRequest
             'product_id' => ['required', 'integer', 'exists:products,id'],
             // A product that already has variants can't gain new product-level stock
             // (B23 residual: nothing reads it back once variant rows exist) — draining
-            // an existing orphan row is still allowed, so only positive changes require it.
+            // an existing orphan row is still allowed, so only additions require it.
+            // A removed variant's leftover can be drained too, but never topped up.
             'product_variant_id' => [
-                Rule::requiredIf(fn () => (int) $this->input('quantity_change') > 0
+                Rule::requiredIf(fn () => $this->adds()
                     && Product::whereKey($this->input('product_id'))->value('has_variants') === true),
-                'nullable', 'integer', 'exists:product_variants,id',
+                'nullable', 'integer',
+                Rule::exists('product_variants', 'id')->where('product_id', $this->input('product_id')),
+                Rule::prohibitedIf(fn () => $this->adds()
+                    && ProductVariant::onlyTrashed()->whereKey($this->input('product_variant_id'))->exists()),
             ],
             'quantity_change' => ['required', 'integer', 'not_in:0', 'min:-100000', 'max:100000'],
             'type' => ['required', Rule::in([
                 'initial', 'manual_increase', 'manual_decrease', 'damaged', 'correction', 'supplier_return',
             ])],
             'reason' => ['required', 'string', 'max:255'],
+            'from_damaged' => ['boolean'],
         ];
+    }
+
+    /** Whether this adjustment adds stock, mirroring how AdjustStock applies the sign. */
+    private function adds(): bool
+    {
+        $type = MovementType::tryFrom((string) $this->input('type'));
+
+        return (int) $this->input('quantity_change') > 0 && ! ($type?->isDecrease() ?? false);
     }
 }

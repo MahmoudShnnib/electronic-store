@@ -8,9 +8,14 @@ use App\Models\Order;
 use App\Support\Money;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
+/**
+ * Order confirmation. Sent in the customer's language (User::preferredLocale,
+ * or the language a guest checked out in) and lists what was bought.
+ */
 final class OrderPlacedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
@@ -19,18 +24,32 @@ final class OrderPlacedNotification extends Notification implements ShouldQueue
 
     public function via(object $notifiable): array
     {
-        return ['mail', 'database'];
+        // A guest has no account to keep an in-app notification on.
+        return $notifiable instanceof AnonymousNotifiable ? ['mail'] : ['mail', 'database'];
     }
 
     public function toMail(object $notifiable): MailMessage
     {
-        return (new MailMessage)
-            ->subject("Order {$this->order->number} received")
-            ->greeting('Thank you for your order!')
-            ->line("We've received order {$this->order->number} totalling ".Money::format($this->order->total_cents, $this->order->currency).'.')
-            ->line('Payment method: '.$this->order->payment_method->label())
-            ->action('Track your order', url("/account/orders/{$this->order->id}"))
-            ->line('We will notify you as your order progresses.');
+        $currency = $this->order->currency;
+        $mail = (new MailMessage)
+            ->subject(__('Order :number received', ['number' => $this->order->number]))
+            ->greeting(__('Thank you for your order!'))
+            ->line(__("We've received order :number.", ['number' => $this->order->number]));
+
+        foreach ($this->order->items()->get() as $item) {
+            $name = $item->variant_name !== null ? "{$item->product_name} — {$item->variant_name}" : $item->product_name;
+            $mail->line("{$item->quantity} × {$name} — ".Money::format($item->line_total_cents, $currency, isolate: false));
+        }
+
+        $mail->line(__('Total: :total', ['total' => Money::format($this->order->total_cents, $currency, isolate: false)]))
+            ->line(__('Payment method: :method', ['method' => $this->order->payment_method->label()]));
+
+        // Guests have no account page to open.
+        if (! $notifiable instanceof AnonymousNotifiable) {
+            $mail->action(__('Track your order'), url("/account/orders/{$this->order->id}"));
+        }
+
+        return $mail->line(__('We will notify you as your order progresses.'));
     }
 
     public function toArray(object $notifiable): array

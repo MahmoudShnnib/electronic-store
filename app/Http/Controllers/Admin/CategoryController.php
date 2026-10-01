@@ -69,7 +69,8 @@ final class CategoryController extends Controller implements HasMiddleware
 
     public function destroy(Category $category): RedirectResponse
     {
-        if ($category->products()->exists() || $category->children()->exists()) {
+        // Trashed products count: restoring one must never land it in a deleted category.
+        if ($category->products()->withTrashed()->exists() || $category->children()->exists()) {
             return back()->with('error', __('Cannot delete a category that has products or subcategories.'));
         }
 

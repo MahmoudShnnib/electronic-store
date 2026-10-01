@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Actions\Cart\MergeGuestCart;
+use App\Actions\Cart\ResolveCart;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Models\ProductVariant;
 use App\Models\User;
+use App\Models\Warehouse;
 use App\Services\Pos\PrinterConfig;
 use App\Services\Pos\Printers\CommandPrinter;
 use App\Services\Pos\Printers\DevicePrinter;
@@ -17,9 +21,11 @@ use App\Services\Pos\Printers\NullPrinter;
 use App\Services\Pos\Printers\PrinterConnection;
 use App\Services\Storefront\HomePageService;
 use App\Support\HomeCache;
+use Illuminate\Auth\Events\Login;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
@@ -75,10 +81,18 @@ class AppServiceProvider extends ServiceProvider
 
         // Anything the homepage renders busts its cache, so dashboard edits show
         // up immediately instead of after the 10-minute TTL.
-        foreach ([Brand::class, Category::class, Product::class, ProductImage::class] as $model) {
+        foreach ([Brand::class, Category::class, Product::class, ProductImage::class, ProductVariant::class, Warehouse::class] as $model) {
             $model::saved(HomeCache::flush(...));
             $model::deleted(HomeCache::flush(...));
         }
+
+        // Signing in on the web (password, registration or Google) keeps whatever
+        // the visitor put in the cart as a guest.
+        Event::listen(Login::class, function (Login $event): void {
+            if ($event->user instanceof User && request()->hasCookie(ResolveCart::GUEST_COOKIE)) {
+                app(MergeGuestCart::class)->handle((string) request()->cookie(ResolveCart::GUEST_COOKIE), $event->user);
+            }
+        });
 
         // Stamp every audit record with request context.
         Activity::creating(function (Activity $activity): void {

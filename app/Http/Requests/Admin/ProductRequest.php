@@ -6,6 +6,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Enums\ProductStatus;
 use App\Models\Category;
+use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\SpecificationAttribute;
 use App\Support\Money;
@@ -30,7 +31,7 @@ final class ProductRequest extends FormRequest
             'slug' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('products', 'slug')->ignore($productId)],
             'sku' => ['required', 'string', 'max:64', Rule::unique('products', 'sku')->ignore($productId)],
             'barcode' => ['nullable', 'string', 'max:64'],
-            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'category_id' => ['required', 'integer', Rule::exists('categories', 'id')->whereNull('deleted_at')],
             'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
             'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id'],
             'short_description' => ['nullable', 'string', 'max:500'],
@@ -48,6 +49,12 @@ final class ProductRequest extends FormRequest
 
             'variants' => ['nullable', 'array', 'max:50'],
             'variants.*.id' => ['nullable', 'integer'],
+            'stock_split' => ['nullable', 'array', 'max:500'],
+            'stock_split.*.warehouse_id' => ['required', 'integer'],
+            'stock_split.*.sku' => ['required', 'string'],
+            'stock_split.*.quantity' => ['required', 'integer', 'min:0'],
+            'known_variant_ids' => ['nullable', 'array'],
+            'known_variant_ids.*' => ['integer'],
             'variants.*.name' => ['required_with:variants', 'string', 'max:255'],
             'variants.*.sku' => ['required_with:variants', 'string', 'max:64', 'distinct'],
             'variants.*.barcode' => ['nullable', 'string', 'max:64'],
@@ -105,7 +112,33 @@ final class ProductRequest extends FormRequest
                     "variants.{$index}.sku",
                     __('The SKU ":sku" is already used by another variant.', ['sku' => $sku]),
                 );
+            } elseif (Product::withTrashed()->where('sku', $sku)->when($productId !== null, fn ($q) => $q->whereKeyNot($productId))->exists()) {
+                // Barcode scanners and search look SKUs up across products AND variants.
+                $v->errors()->add(
+                    "variants.{$index}.sku",
+                    __('The SKU ":sku" is already used by another product.', ['sku' => $sku]),
+                );
             }
+        }
+
+        // Two variants with the same options (e.g. both "Red") can't be told apart by a customer.
+        $seen = [];
+
+        foreach ($this->input('variants', []) ?? [] as $index => $variant) {
+            $attributes = array_filter((array) ($variant['attributes'] ?? []), fn ($value) => filled($value));
+
+            if ($attributes === []) {
+                continue;
+            }
+
+            ksort($attributes);
+            $key = json_encode($attributes);
+
+            if (isset($seen[$key])) {
+                $v->errors()->add("variants.{$index}.attributes", __('Another variant already has these options.'));
+            }
+
+            $seen[$key] = true;
         }
     }
 
@@ -228,6 +261,35 @@ final class ProductRequest extends FormRequest
             'low_stock_threshold' => $v['low_stock_threshold'] ?? 5,
             'is_active' => (bool) ($v['is_active'] ?? true),
         ], $variants);
+    }
+
+    /**
+     * How a plain product's shelf stock is split between its new variants.
+     *
+     * @return list<array{warehouse_id: int, sku: string, quantity: int}>|null
+     */
+    public function stockSplit(): ?array
+    {
+        $split = $this->validated()['stock_split'] ?? null;
+
+        return $split === null ? null : array_map(fn (array $row) => [
+            'warehouse_id' => (int) $row['warehouse_id'],
+            'sku' => (string) $row['sku'],
+            'quantity' => (int) $row['quantity'],
+        ], array_values($split));
+    }
+
+    /**
+     * Variant ids the form was opened with; null when the client didn't say
+     * (API, older pages), which keeps "omitted = removed" for every variant.
+     *
+     * @return list<int>|null
+     */
+    public function knownVariantIds(): ?array
+    {
+        return $this->has('known_variant_ids')
+            ? array_map('intval', $this->validated()['known_variant_ids'] ?? [])
+            : null;
     }
 
     /**

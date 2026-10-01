@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin\Purchasing;
 
+use App\Rules\ItemVariantsMatchProducts;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * Decimal money fields (discount, tax, shipping, unit_cost) are converted to
@@ -21,7 +23,7 @@ final class PurchaseOrderRequest extends FormRequest
     {
         return [
             'supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
-            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
+            'warehouse_id' => ['required', 'integer', Rule::exists('warehouses', 'id')->where('is_active', true)->whereNull('deleted_at')],
             'discount' => ['nullable', 'numeric', 'min:0'],
             'shipping' => ['nullable', 'numeric', 'min:0'],
             'expected_at' => ['nullable', 'date'],
@@ -32,5 +34,10 @@ final class PurchaseOrderRequest extends FormRequest
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
             'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
         ];
+    }
+
+    public function after(): array
+    {
+        return [new ItemVariantsMatchProducts];
     }
 }

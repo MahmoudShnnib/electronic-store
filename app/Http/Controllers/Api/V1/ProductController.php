@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\ProductDetailResource;
 use App\Http\Resources\V1\ProductResource;
+use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -23,10 +24,11 @@ final class ProductController extends Controller
             ->with(['brand:id,name,slug', 'category:id,name,slug', 'images'])
             ->withAvg('approvedReviews as rating_avg', 'rating')
             ->withCount('approvedReviews as rating_count')
+            ->withStock()
             ->when($request->filled('q'), fn ($q) => $q->search((string) $request->query('q')))
-            ->when($request->filled('category'), fn ($q) => $q->whereHas(
-                'category',
-                fn ($qq) => $qq->where('slug', (string) $request->query('category')),
+            ->when($request->filled('category'), fn ($q) => $q->whereIn(
+                'category_id',
+                Category::subtreeIds(Category::query()->where('slug', (string) $request->query('category'))->pluck('id')->all(), activeOnly: true),
             ))
             ->when($request->filled('brand'), fn ($q) => $q->whereHas(
                 'brand',

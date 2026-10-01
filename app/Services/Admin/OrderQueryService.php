@@ -124,6 +124,7 @@ final class OrderQueryService
 
         $paidCents = (int) $order->payments->where('status', 'confirmed')->sum('amount_cents');
         $refundedCents = (int) $order->refunds->where('status', 'completed')->sum('amount_cents');
+        $returnable = $order->returnableQuantities();
 
         return [
             'order' => [
@@ -133,7 +134,8 @@ final class OrderQueryService
                 'status_label' => $order->status->label(),
                 'allowed_transitions' => array_map(
                     fn (OrderStatus $s) => ['value' => $s->value, 'label' => $s->label()],
-                    $order->status->allowedTransitions(),
+                    // Refunded has its own form (refund + restock), never a bare button.
+                    array_values(array_filter($order->status->allowedTransitions(), fn (OrderStatus $s) => $s !== OrderStatus::Refunded)),
                 ),
                 'payment_status' => $order->payment_status->value,
                 'payment_status_label' => $order->payment_status->label(),
@@ -152,6 +154,7 @@ final class OrderQueryService
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
                 'total_cents' => $order->total_cents,
                 'paid_cents' => $paidCents,
+                'refunded_cents' => $refundedCents,
                 'paid_formatted' => Money::format($paidCents, $order->currency),
                 'outstanding_formatted' => Money::format(max(0, $order->total_cents - $paidCents), $order->currency),
                 'refunded_formatted' => Money::format($refundedCents, $order->currency),
@@ -159,9 +162,15 @@ final class OrderQueryService
                 // Drives the "return / product problem" button: only a
                 // finished order can be sent back.
                 'can_resolve_issue' => $order->status === OrderStatus::Completed,
+                // Hide what this staff member can't do, instead of showing buttons that answer "forbidden".
+                'can' => [
+                    'manage' => (bool) request()->user()?->can('orders.manage'),
+                    'refund' => (bool) request()->user()?->can('refunds.manage'),
+                ],
                 'created_at' => $order->created_at->toDateTimeString(),
                 'items' => $order->items->map(fn ($item) => [
                     'id' => $item->id,
+                    'returnable' => $returnable[$item->id] ?? 0,
                     'name' => $item->variant_name !== null
                         ? "{$item->product_name} — {$item->variant_name}"
                         : $item->product_name,

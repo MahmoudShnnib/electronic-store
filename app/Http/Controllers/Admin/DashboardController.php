@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
@@ -34,7 +36,12 @@ final class DashboardController extends Controller
             ->where('stock_levels.quantity', '>', 0)
             ->count();
 
-        $outOfStock = StockLevel::query()->where('quantity', '<=', 0)->count();
+        // Products on sale that a customer cannot buy anywhere right now — counted
+        // per product, from the same sellable stock the storefront reads.
+        $outOfStock = Product::query()
+            ->whereIn('status', [ProductStatus::Active, ProductStatus::OutOfStock])
+            ->whereDoesntHave('stockLevels', fn ($q) => $q->sellable()->where('quantity', '>', 0))
+            ->count();
 
         // Last 30 days of revenue for the chart.
         $revenueSeries = Order::query()
@@ -74,12 +81,30 @@ final class DashboardController extends Controller
                 'orders_in_progress' => Order::query()->where('status', OrderStatus::InProgress)->count(),
                 'orders_completed' => Order::query()->where('status', OrderStatus::Completed)->count(),
                 'orders_cancelled' => Order::query()->where('status', OrderStatus::Cancelled)->count(),
+                'orders_refunded' => Order::query()->where('status', OrderStatus::Refunded)->count(),
                 'customers_total' => User::query()->role('customer')->count(),
                 'products_total' => Product::query()->count(),
                 'products_active' => Product::query()->where('status', ProductStatus::Active)->count(),
                 'low_stock' => $lowStock,
                 'out_of_stock' => $outOfStock,
             ],
+            // Cash-on-delivery orders still open and unpaid after 3 days: not delivered
+            // and no cash collected yet. Never cancelled automatically — just flagged.
+            'staleCodOrders' => Order::query()
+                ->where('status', OrderStatus::InProgress)
+                ->where('payment_method', PaymentMethod::CashOnDelivery)
+                ->where('payment_status', PaymentStatus::Unpaid)
+                ->where('created_at', '<=', now()->subDays(3))
+                ->oldest()
+                ->take(10)
+                ->get()
+                ->map(fn (Order $o) => [
+                    'id' => $o->id,
+                    'number' => $o->number,
+                    'customer' => $o->customer['name'] ?? '—',
+                    'days' => (int) $o->created_at->diffInDays(now()),
+                    'total_formatted' => Money::format($o->total_cents, $o->currency),
+                ]),
             'revenueSeries' => $revenueSeries,
             'bestSellers' => $bestSellers,
             'recentOrders' => Order::query()
@@ -95,7 +120,8 @@ final class DashboardController extends Controller
                     'total_formatted' => Money::format($o->total_cents, $o->currency),
                     'created_at' => Dates::relative($o->created_at),
                 ]),
-            'recentActivity' => Activity::query()
+            // The audit trail names staff and customers: only for those allowed to read it.
+            'recentActivity' => ! request()->user()?->can('audit.view') ? [] : Activity::query()
                 ->with('causer')
                 ->latest()
                 ->take(10)

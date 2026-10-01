@@ -11,6 +11,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Models\CashierShift;
 use App\Models\Order;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -57,6 +58,30 @@ final class CompleteSale
 
         $shift->loadMissing('warehouse');
 
+        if (! $shift->warehouse->is_active) {
+            throw ValidationException::withMessages([
+                'shift' => __('This branch has been deactivated. Close the shift; it can no longer sell.'),
+            ]);
+        }
+
+        // One transaction: a sale that fails to complete must not leave a
+        // half-made order holding stock.
+        return DB::transaction(fn (): Order => $this->ringUp($shift, $lines, $paymentMethod, $customer, $couponCode, $manualDiscountCents, $note));
+    }
+
+    /**
+     * @param  list<array{product_id: int, product_variant_id?: ?int, quantity: int}>  $lines
+     * @param  array{name?: ?string, phone?: ?string, email?: ?string}  $customer
+     */
+    private function ringUp(
+        CashierShift $shift,
+        array $lines,
+        PaymentMethod $paymentMethod,
+        array $customer,
+        ?string $couponCode,
+        int $manualDiscountCents,
+        ?string $note,
+    ): Order {
         $order = $this->createManualOrder->handle(
             items: $lines,
             data: $this->checkoutData($customer, $paymentMethod, $shift, $note),

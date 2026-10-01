@@ -33,7 +33,7 @@ final class OrderController extends Controller
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
                 'items_count' => (int) $order->items_count,
                 'created_at' => Dates::dayDateTime($order->created_at),
-                'cancellable' => $order->status->isCancellable(),
+                'cancellable' => $order->canBeCancelled(),
             ]);
 
         return Inertia::render('storefront/account/Orders', ['orders' => $orders]);
@@ -61,7 +61,7 @@ final class OrderController extends Controller
                 'coupon_code' => $order->coupon_code,
                 'customer_note' => $order->customer_note,
                 'created_at' => Dates::dayDateTime($order->created_at),
-                'cancellable' => $order->status->isCancellable(),
+                'cancellable' => $order->canBeCancelled(),
                 'items' => $order->items->map(fn ($item) => [
                     'id' => $item->id,
                     'name' => $item->variant_name !== null

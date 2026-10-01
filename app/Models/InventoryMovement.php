@@ -37,7 +37,7 @@ final class InventoryMovement extends Model
 
     public function warehouse(): BelongsTo
     {
-        return $this->belongsTo(Warehouse::class);
+        return $this->belongsTo(Warehouse::class)->withTrashed();
     }
 
     // The ledger outlives the things it references: a deleted product or variant

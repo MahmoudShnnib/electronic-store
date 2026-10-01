@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin\Catalog;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -16,6 +17,14 @@ final class BrandRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /** A blank slug is derived from the name here, so a clash is a validation error, not a 500. */
+    protected function prepareForValidation(): void
+    {
+        if (blank($this->input('slug')) && is_string($this->input('name'))) {
+            $this->merge(['slug' => Str::slug($this->input('name'))]);
+        }
     }
 
     public function rules(): array

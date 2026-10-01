@@ -9,7 +9,7 @@ import Pagination from '@/components/admin/Pagination.vue';
 import type { Option, Paginator } from '@/components/admin/types';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { Button, Input, InputNumber, Tooltip, TypographyText } from 'ant-design-vue';
+import { Button, Checkbox, Input, InputNumber, Tooltip, TypographyText } from 'ant-design-vue';
 import { ArrowLeftRight, PencilRuler } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -61,6 +61,7 @@ const adjustForm = useForm({
     quantity_change: 0,
     type: 'manual_increase',
     reason: '',
+    from_damaged: false,
     label: '',
 });
 
@@ -199,6 +200,9 @@ function submitTransfer(): void {
                     <AdminSelect v-model="adjustForm.type" :options="movementTypes" />
                 </Field>
             </div>
+            <Checkbox v-if="adjustForm.type === 'supplier_return'" v-model:checked="adjustForm.from_damaged">
+                {{ t('admin.inventory.return_damaged') }}
+            </Checkbox>
             <Field :label="t('admin.common.reason')" required :error="adjustForm.errors.reason">
                 <Input v-model:value="adjustForm.reason" :placeholder="t('admin.inventory.adjust_reason_hint')" />
             </Field>

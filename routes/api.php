@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1;
+use App\Http\Middleware\AuthenticateIfTokenPresent;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,17 +23,19 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     Route::get('categories', [V1\CategoryController::class, 'index'])->name('categories.index');
     Route::get('brands', [V1\BrandController::class, 'index'])->name('brands.index');
 
-    // Cart (guest via X-Cart-Token, or authenticated)
-    Route::get('cart', [V1\CartController::class, 'show'])->name('cart.show');
-    Route::post('cart/items', [V1\CartController::class, 'addItem'])->name('cart.items.store');
-    Route::patch('cart/items/{item}', [V1\CartController::class, 'updateItem'])->name('cart.items.update');
-    Route::delete('cart/items/{item}', [V1\CartController::class, 'removeItem'])->name('cart.items.destroy');
-    Route::post('cart/coupon', [V1\CartCouponController::class, 'store'])->name('cart.coupon.apply');
-    Route::delete('cart/coupon', [V1\CartCouponController::class, 'destroy'])->name('cart.coupon.remove');
+    // Cart and checkout: guest via X-Cart-Token, or a customer via Bearer token.
+    Route::middleware(AuthenticateIfTokenPresent::class)->group(function (): void {
+        Route::get('cart', [V1\CartController::class, 'show'])->name('cart.show');
+        Route::post('cart/items', [V1\CartController::class, 'addItem'])->name('cart.items.store');
+        Route::patch('cart/items/{item}', [V1\CartController::class, 'updateItem'])->name('cart.items.update');
+        Route::delete('cart/items/{item}', [V1\CartController::class, 'removeItem'])->name('cart.items.destroy');
+        Route::post('cart/coupon', [V1\CartCouponController::class, 'store'])->name('cart.coupon.apply');
+        Route::delete('cart/coupon', [V1\CartCouponController::class, 'destroy'])->name('cart.coupon.remove');
 
-    // Checkout — allowed for guests and users alike; heavily rate limited +
-    // idempotent via the Idempotency-Key header.
-    Route::post('checkout', [V1\CheckoutController::class, 'store'])->middleware('throttle:checkout')->name('checkout');
+        // Checkout — allowed for guests and users alike; heavily rate limited +
+        // idempotent via the Idempotency-Key header.
+        Route::post('checkout', [V1\CheckoutController::class, 'store'])->middleware('throttle:checkout')->name('checkout');
+    });
 
     // Authenticated
     Route::middleware('auth:sanctum')->group(function (): void {

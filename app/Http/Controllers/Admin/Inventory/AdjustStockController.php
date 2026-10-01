@@ -31,11 +31,12 @@ final class AdjustStockController extends Controller implements HasMiddleware
             $adjustStock->handle(
                 Warehouse::query()->findOrFail($validated['warehouse_id']),
                 Product::query()->findOrFail($validated['product_id']),
-                isset($validated['product_variant_id']) ? ProductVariant::query()->find($validated['product_variant_id']) : null,
+                isset($validated['product_variant_id']) ? ProductVariant::withTrashed()->find($validated['product_variant_id']) : null,
                 (int) $validated['quantity_change'],
                 MovementType::from($validated['type']),
                 $validated['reason'],
                 $request->user()->id,
+                (bool) ($validated['from_damaged'] ?? false),
             );
         } catch (InsufficientStockException $e) {
             return back()->withErrors(['quantity_change' => $e->getMessage()]);

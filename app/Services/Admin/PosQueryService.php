@@ -118,7 +118,8 @@ final class PosQueryService
                         : $item->product_name,
                     'quantity' => $item->quantity,
                     'unit_price_formatted' => Money::format($item->unit_price_cents, $order->currency, isolate: false),
-                    'line_total_formatted' => Money::format($item->line_total_cents, $order->currency, isolate: false),
+                    // Before discount: the slip subtracts the discount once, on its own line.
+                    'line_total_formatted' => Money::format($item->unit_price_cents * $item->quantity, $order->currency, isolate: false),
                 ]),
                 'subtotal_formatted' => Money::format($order->subtotal_cents, $order->currency, isolate: false),
                 'discount_cents' => $order->discount_cents,
@@ -232,6 +233,8 @@ final class PosQueryService
                     'amount_formatted' => Money::format($cents),
                 ])
                 ->values(),
+            'cash_refunded_formatted' => Money::format($shift->cashRefundedCents()),
+            'has_cash_refunds' => $shift->cashRefundedCents() > 0,
             'expected_cash_cents' => $expected,
             'expected_cash_formatted' => Money::format($expected),
         ];
@@ -256,7 +259,7 @@ final class PosQueryService
             ->where('status', ProductStatus::Active)
             ->with([
                 'category:id,name,name_ar',
-                'variants:id,product_id,name,sku,price_cents,sale_price_cents,image_path,is_active',
+                'variants:id,product_id,name,sku,barcode,price_cents,sale_price_cents,image_path,is_active',
                 // Primary first, then by position: the tile shows exactly one,
                 // and firstWhere() over an unordered set picked at random.
                 'images' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('position'),
@@ -284,6 +287,7 @@ final class PosQueryService
                         'id' => $v->id,
                         'name' => $v->name,
                         'sku' => $v->sku,
+                        'barcode' => $v->barcode,
                         'price' => Money::toDecimal($v->setRelation('product', $p)->currentPriceCents()),
                         'price_formatted' => Money::format($v->currentPriceCents()),
                         'available' => $available[$p->id.':'.$v->id] ?? 0,
