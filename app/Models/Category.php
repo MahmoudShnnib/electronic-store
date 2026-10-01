@@ -63,6 +63,37 @@ final class Category extends Model
         return $query->whereNull('parent_id');
     }
 
+    /**
+     * The given categories plus every category below them, at any depth.
+     *
+     * @param  int|list<int>  $roots
+     * @return list<int>
+     */
+    public static function subtreeIds(int|array $roots, bool $activeOnly = false): array
+    {
+        $byParent = self::query()
+            ->when($activeOnly, fn (Builder $q) => $q->active())
+            ->get(['id', 'parent_id'])
+            ->groupBy('parent_id');
+
+        $ids = [];
+        $queue = (array) $roots;
+
+        // The visited check also stops a parent/child loop from spinning forever.
+        while ($queue !== []) {
+            $id = (int) array_shift($queue);
+
+            if (in_array($id, $ids, true)) {
+                continue;
+            }
+
+            $ids[] = $id;
+            array_push($queue, ...$byParent->get($id, collect())->pluck('id')->all());
+        }
+
+        return $ids;
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()->logOnly(['name', 'slug', 'parent_id', 'is_active'])->logOnlyDirty()->dontLogEmptyChanges();

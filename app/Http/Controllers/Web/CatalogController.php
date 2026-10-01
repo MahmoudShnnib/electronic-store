@@ -76,8 +76,7 @@ final class CatalogController extends Controller
             ->withCount('approvedReviews as rating_count')
             ->withStock()
             ->when($category !== null, function (Builder $q) use ($category): void {
-                $ids = [$category->id, ...$category->children()->pluck('id')->all()];
-                $q->whereIn('category_id', $ids);
+                $q->whereIn('category_id', Category::subtreeIds($category->id, activeOnly: true));
             })
             ->when($brand !== null, fn (Builder $q) => $q->where('brand_id', $brand->id))
             ->when($request->filled('q'), fn (Builder $q) => $q->search((string) $request->query('q')))

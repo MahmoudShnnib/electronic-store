@@ -21,6 +21,7 @@ final class WishlistController extends Controller
             ->with(['brand:id,name,slug', 'images'])
             ->withAvg('approvedReviews as rating_avg', 'rating')
             ->withCount('approvedReviews as rating_count')
+            ->withStock()
             ->paginate(min(50, max(1, (int) $request->query('per_page', '20'))));
 
         return ProductResource::collection($products);

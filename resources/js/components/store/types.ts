@@ -9,6 +9,8 @@ export interface ProductCardData {
     sale_price_cents: number | null;
     sale_price_formatted: string | null;
     current_price_formatted: string;
+    /** Variants cost different amounts: the price shown is the cheapest. */
+    price_from?: boolean;
     on_sale: boolean;
     discount_percent: number | null;
     image: string | null;

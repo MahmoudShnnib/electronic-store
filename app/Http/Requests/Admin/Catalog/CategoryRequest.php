@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Admin\Catalog;
 
+use App\Models\Category;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -18,6 +20,14 @@ final class CategoryRequest extends FormRequest
         return true;
     }
 
+    /** A blank slug is derived from the name here, so a clash is a validation error, not a 500. */
+    protected function prepareForValidation(): void
+    {
+        if (blank($this->input('slug')) && is_string($this->input('name'))) {
+            $this->merge(['slug' => Str::slug($this->input('name'))]);
+        }
+    }
+
     public function rules(): array
     {
         $category = $this->route('category');
@@ -29,7 +39,11 @@ final class CategoryRequest extends FormRequest
                 'nullable', 'string', 'max:140', 'alpha_dash',
                 Rule::unique('categories', 'slug')->ignore($category?->id),
             ],
-            'parent_id' => ['nullable', 'integer', 'exists:categories,id', Rule::notIn([$category?->id])],
+            // Never under itself or anything below it — that would make a loop.
+            'parent_id' => [
+                'nullable', 'integer', Rule::exists('categories', 'id')->whereNull('deleted_at'),
+                Rule::notIn($category !== null ? Category::subtreeIds($category->id) : []),
+            ],
             'description' => ['nullable', 'string', 'max:2000'],
             'position' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],

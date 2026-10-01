@@ -40,7 +40,7 @@ class ProductResource extends JsonResource
             'currency' => (string) config('store.currency'),
             'on_sale' => $onSale,
             'image' => $image !== null ? Storage::disk('public')->url($image->path) : null,
-            'in_stock' => $this->status->isPurchasable(),
+            'in_stock' => $this->status->isPurchasable() && $this->availableQuantity() > 0,
             'is_featured' => $this->is_featured,
             'rating_avg' => isset($this->rating_avg) ? round((float) $this->rating_avg, 1) : null,
             'rating_count' => (int) ($this->rating_count ?? 0),

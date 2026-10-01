@@ -107,7 +107,9 @@ function toggleWishlist() {
 
             <!-- Price line: what you pay, what it was, what you save. -->
             <div class="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                <span class="store-product-price">{{ product.current_price_formatted }}</span>
+                <span class="store-product-price">
+                    <template v-if="product.price_from">{{ t('product.from_price') }} </template>{{ product.current_price_formatted }}
+                </span>
                 <template v-if="product.on_sale">
                     <span class="store-product-was">{{ product.price_formatted }}</span>
                     <span class="store-product-save">{{ t('product.percent_off', { percent: product.discount_percent }) }}</span>
