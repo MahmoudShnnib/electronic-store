@@ -6,15 +6,17 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements HasLocalePreference, MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
@@ -76,8 +78,33 @@ class User extends Authenticatable implements MustVerifyEmail
 
     // -- Helpers --------------------------------------------------------------
 
+    protected static function booted(): void
+    {
+        // A deleted (soft-deleted) account keeps its orders but lets go of its
+        // email and Google link, so the person can sign up or sign in again.
+        static::deleted(function (User $user): void {
+            if ($user->isForceDeleting()) {
+                return;
+            }
+
+            $user->tokens()->delete();
+            $user->forceFill([
+                'email' => "deleted-{$user->id}-".Str::lower(Str::random(8)).'@deleted.invalid',
+                'google_id' => null,
+            ])->saveQuietly();
+        });
+    }
+
+    /** Emails and notifications go out in the language the customer uses the shop in. */
+    public function preferredLocale(): ?string
+    {
+        return $this->locale;
+    }
+
     public function isStaff(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'admin', 'inventory_manager', 'order_manager', 'cashier']);
+        // Any role other than "customer" is a staff role — including custom roles
+        // built in Admin → Roles. What each can open is still decided by permissions.
+        return $this->roles->contains(fn ($role) => $role->name !== 'customer');
     }
 }

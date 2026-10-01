@@ -53,6 +53,9 @@ class NewPasswordController extends Controller
                     'remember_token' => Str::random(60),
                 ])->save();
 
+                // Whoever had the old password may still hold an app token.
+                $user->tokens()->delete();
+
                 event(new PasswordReset($user));
             }
         );
