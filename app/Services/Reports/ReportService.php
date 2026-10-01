@@ -6,6 +6,7 @@ namespace App\Services\Reports;
 
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
+use App\Models\User;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -20,14 +21,27 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 final class ReportService
 {
-    /** Everything except cancelled and refunded counts as revenue. */
-    private const REVENUE_STATUSES = ['in_progress', 'completed'];
+    /**
+     * Everything except cancelled counts as revenue. Refunded orders stay in,
+     * because money given back is subtracted per order (see NET_TOTAL): a small
+     * refund must not wipe the whole sale out, and a full one nets to zero.
+     */
+    private const REVENUE_STATUSES = ['in_progress', 'completed', 'refunded'];
+
+    /** An order's total minus what was refunded on it; needs revenueOrders()'s join. */
+    private const NET_TOTAL = '(orders.total_cents - COALESCE(rf.refunded_cents, 0))';
 
     private function revenueOrders(CarbonImmutable $from, CarbonImmutable $to): Builder
     {
+        $refunds = DB::table('refunds')
+            ->where('status', 'completed')
+            ->groupBy('order_id')
+            ->selectRaw('order_id, SUM(amount_cents) AS refunded_cents');
+
         // Columns are qualified because salesByCustomer() joins users, which
         // shares column names (deleted_at, created_at) with orders.
         return DB::table('orders')
+            ->leftJoinSub($refunds, 'rf', 'rf.order_id', '=', 'orders.id')
             ->whereIn('orders.status', self::REVENUE_STATUSES)
             ->whereNull('orders.deleted_at')
             ->whereBetween('orders.created_at', [$from, $to]);
@@ -35,9 +49,11 @@ final class ReportService
 
     private function revenueItems(CarbonImmutable $from, CarbonImmutable $to): Builder
     {
+        // Per-product lines can't be netted against an order-level refund, so
+        // refunded orders stay out of the product/category/brand breakdowns.
         return DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->whereIn('orders.status', self::REVENUE_STATUSES)
+            ->whereIn('orders.status', ['in_progress', 'completed'])
             ->whereNull('orders.deleted_at')
             ->whereBetween('orders.created_at', [$from, $to]);
     }
@@ -45,17 +61,19 @@ final class ReportService
     public function salesSummary(CarbonImmutable $from, CarbonImmutable $to): array
     {
         $row = $this->revenueOrders($from, $to)
-            ->selectRaw('COUNT(*) as orders, COALESCE(SUM(total_cents),0) as revenue, COALESCE(SUM(discount_cents),0) as discounts, COALESCE(AVG(total_cents),0) as avg_order')
+            ->selectRaw('COUNT(*) as orders, COALESCE(SUM('.self::NET_TOTAL.'),0) as revenue, COALESCE(SUM(orders.discount_cents),0) as discounts, COALESCE(AVG('.self::NET_TOTAL.'),0) as avg_order')
             ->first();
 
         $cost = (int) $this->revenueItems($from, $to)
             ->leftJoin('product_variants', 'product_variants.id', '=', 'order_items.product_variant_id')
             ->leftJoin('products', 'products.id', '=', 'order_items.product_id')
-            ->selectRaw('COALESCE(SUM(order_items.quantity * COALESCE(product_variants.cost_price_cents, products.cost_price_cents, 0)),0) as cost')
+            // The cost recorded at sale time; older lines without one use today's cost.
+            ->selectRaw('COALESCE(SUM(order_items.quantity * COALESCE(order_items.unit_cost_cents, NULLIF(product_variants.cost_price_cents, 0), products.cost_price_cents, 0)),0) as cost')
             ->value('cost');
 
         $refunded = (int) DB::table('refunds')->where('status', 'completed')->whereBetween('created_at', [$from, $to])->sum('amount_cents');
-        $newCustomers = (int) DB::table('users')->whereBetween('created_at', [$from, $to])->whereNull('deleted_at')->count();
+        // Customers only — staff accounts are not new customers.
+        $newCustomers = User::query()->role('customer')->whereBetween('created_at', [$from, $to])->count();
 
         return [
             'orders' => (int) $row->orders,
@@ -72,9 +90,9 @@ final class ReportService
     public function salesByDay(CarbonImmutable $from, CarbonImmutable $to): Collection
     {
         return $this->revenueOrders($from, $to)
-            ->groupByRaw('DATE(created_at)')
-            ->orderByRaw('DATE(created_at)')
-            ->selectRaw('DATE(created_at) as day, COUNT(*) as orders, SUM(total_cents) as revenue_cents')
+            ->groupByRaw(self::localDay())
+            ->orderByRaw(self::localDay())
+            ->selectRaw(self::localDay().' as day, COUNT(*) as orders, SUM('.self::NET_TOTAL.') as revenue_cents')
             ->get()
             ->map(fn ($r) => [
                 'day' => $r->day,
@@ -83,12 +101,12 @@ final class ReportService
             ]);
     }
 
-    public function salesByProduct(CarbonImmutable $from, CarbonImmutable $to, int $limit = 25): Collection
+    public function salesByProduct(CarbonImmutable $from, CarbonImmutable $to, ?int $limit = null): Collection
     {
         return $this->revenueItems($from, $to)
             ->groupBy('order_items.product_id', 'order_items.product_name', 'order_items.sku')
             ->orderByDesc(DB::raw('SUM(order_items.line_total_cents)'))
-            ->limit($limit)
+            ->when($limit !== null, fn ($q) => $q->limit($limit))
             ->selectRaw('order_items.product_id, order_items.product_name, order_items.sku, SUM(order_items.quantity) as units, SUM(order_items.line_total_cents) as revenue_cents')
             ->get()
             ->map(fn ($r) => [
@@ -138,7 +156,7 @@ final class ReportService
     {
         return $this->revenueOrders($from, $to)
             ->groupBy('payment_method')
-            ->selectRaw('payment_method, COUNT(*) as orders, SUM(total_cents) as revenue_cents')
+            ->selectRaw('orders.payment_method, COUNT(*) as orders, SUM('.self::NET_TOTAL.') as revenue_cents')
             ->get()
             ->map(fn ($r) => [
                 'method' => $r->payment_method,
@@ -162,15 +180,15 @@ final class ReportService
             ]);
     }
 
-    public function salesByCustomer(CarbonImmutable $from, CarbonImmutable $to, int $limit = 25): Collection
+    public function salesByCustomer(CarbonImmutable $from, CarbonImmutable $to, ?int $limit = null): Collection
     {
         return $this->revenueOrders($from, $to)
             ->whereNotNull('orders.user_id')
             ->join('users', 'users.id', '=', 'orders.user_id')
             ->groupBy('users.id', 'users.name', 'users.email')
-            ->orderByDesc(DB::raw('SUM(orders.total_cents)'))
-            ->limit($limit)
-            ->selectRaw('users.id, users.name, users.email, COUNT(*) as orders, SUM(orders.total_cents) as revenue_cents')
+            ->orderByDesc(DB::raw('SUM('.self::NET_TOTAL.')'))
+            ->when($limit !== null, fn ($q) => $q->limit($limit))
+            ->selectRaw('users.id, users.name, users.email, COUNT(*) as orders, SUM('.self::NET_TOTAL.') as revenue_cents')
             ->get()
             ->map(fn ($r) => [
                 'customer_id' => $r->id,
@@ -183,10 +201,20 @@ final class ReportService
 
     /** Totals for the invoice report — computed without the row limit so the
      *  headline numbers stay correct even when the table is truncated. */
+    /** The order's calendar day in the shop's timezone (timestamps are stored in UTC). */
+    private static function localDay(): string
+    {
+        $tz = preg_replace('/[^A-Za-z_\/+-]/', '', (string) config('store.timezone'));
+
+        return "DATE((orders.created_at AT TIME ZONE 'UTC') AT TIME ZONE '{$tz}')";
+    }
+
     public function invoiceSummary(CarbonImmutable $from, CarbonImmutable $to): array
     {
+        // A cancelled order was never owed.
         $orders = DB::table('orders')
             ->whereNull('deleted_at')
+            ->where('status', '!=', OrderStatus::Cancelled->value)
             ->whereBetween('created_at', [$from, $to])
             ->selectRaw('COUNT(*) as invoices, COALESCE(SUM(total_cents),0) as invoiced')
             ->first();
@@ -195,6 +223,7 @@ final class ReportService
             ->join('orders', 'orders.id', '=', 'payments.order_id')
             ->where('payments.status', 'confirmed')
             ->whereNull('orders.deleted_at')
+            ->where('orders.status', '!=', OrderStatus::Cancelled->value)
             ->whereBetween('orders.created_at', [$from, $to])
             ->sum('payments.amount_cents');
 
@@ -224,7 +253,7 @@ final class ReportService
             ->map(function ($r): array {
                 $customer = json_decode((string) $r->customer, true) ?: [];
                 $paid = (int) $r->paid_cents;
-                $outstanding = max(0, (int) $r->total_cents - $paid);
+                $outstanding = $r->status === OrderStatus::Cancelled->value ? 0 : max(0, (int) $r->total_cents - $paid);
 
                 return [
                     'order_id' => (int) $r->id,

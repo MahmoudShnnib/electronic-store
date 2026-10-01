@@ -19,6 +19,9 @@ return [
         'ar' => 'د.ل',
     ],
 
+    // Local time for "which day" questions (report ranges). The app itself runs in UTC.
+    'timezone' => env('STORE_TIMEZONE', 'Africa/Tripoli'),
+
     // The store ships to one country; it is never a checkout input.
     'country' => env('STORE_COUNTRY', 'LY'),
 
