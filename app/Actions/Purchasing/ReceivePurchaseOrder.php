@@ -40,7 +40,19 @@ final class ReceivePurchaseOrder
         $po->loadMissing(['warehouse', 'items']);
 
         return DB::transaction(function () use ($po, $quantities, $userId): PurchaseOrder {
+            // Locked and re-checked: a cancel landing at the same moment must win or lose cleanly.
+            $po = PurchaseOrder::query()->lockForUpdate()->findOrFail($po->id);
+
+            if (! $po->status->isReceivable()) {
+                throw new InvalidArgumentException("Purchase order {$po->po_number} is not receivable (status: {$po->status->value}).");
+            }
+
             $warehouse = $po->warehouse;
+
+            if (! $warehouse->is_active || $warehouse->trashed()) {
+                throw new InvalidArgumentException(__('Warehouse :name is not active; activate it before receiving into it.', ['name' => $warehouse->name]));
+            }
+
             $items = $po->items()
                 ->whereIn('id', array_keys($quantities))
                 ->with(['product', 'variant'])

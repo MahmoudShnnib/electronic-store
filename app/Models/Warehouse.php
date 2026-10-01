@@ -43,7 +43,8 @@ final class Warehouse extends Model
 
     public static function default(): self
     {
-        return self::query()->where('is_default', true)->firstOr(
+        // An inactive default can't ship anything, so fall back to an active one.
+        return self::query()->where('is_default', true)->where('is_active', true)->firstOr(
             fn () => self::query()->active()->orderBy('id')->firstOrFail(),
         );
     }

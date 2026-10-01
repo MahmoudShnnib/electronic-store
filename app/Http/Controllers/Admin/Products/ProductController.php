@@ -73,6 +73,8 @@ final class ProductController extends Controller
             $request->variantPayload(),
             $request->specificationPayload(),
             $request->user()->id,
+            $request->knownVariantIds(),
+            $request->stockSplit(),
         );
 
         return back()->with('success', __('Product updated.'));

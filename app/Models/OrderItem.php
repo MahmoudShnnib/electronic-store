@@ -14,7 +14,7 @@ final class OrderItem extends Model
 
     protected $fillable = [
         'order_id', 'product_id', 'product_variant_id', 'warehouse_id',
-        'product_name', 'variant_name', 'sku', 'unit_price_cents', 'quantity',
+        'product_name', 'variant_name', 'sku', 'unit_price_cents', 'unit_cost_cents', 'quantity',
         'discount_cents', 'line_total_cents',
     ];
 
@@ -35,16 +35,16 @@ final class OrderItem extends Model
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 
     public function variant(): BelongsTo
     {
-        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id')->withTrashed();
     }
 
     public function warehouse(): BelongsTo
     {
-        return $this->belongsTo(Warehouse::class);
+        return $this->belongsTo(Warehouse::class)->withTrashed();
     }
 }

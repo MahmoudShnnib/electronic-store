@@ -31,6 +31,15 @@ final class CancelPurchaseOrder
         $po->loadMissing(['warehouse', 'items.product', 'items.variant']);
 
         return DB::transaction(function () use ($po, $userId): PurchaseOrder {
+            // Locked and re-checked: a receipt landing at the same moment must win or lose cleanly.
+            $po = PurchaseOrder::query()->lockForUpdate()->findOrFail($po->id);
+
+            if (in_array($po->status, [PurchaseOrderStatus::Received, PurchaseOrderStatus::Cancelled], true)) {
+                throw new InvalidArgumentException(__('This purchase order cannot be cancelled.'));
+            }
+
+            $po->load(['warehouse', 'items.product', 'items.variant']);
+
             // Drafts never booked incoming stock; sent/partially received POs did.
             if ($po->status !== PurchaseOrderStatus::Draft) {
                 foreach ($po->items as $item) {

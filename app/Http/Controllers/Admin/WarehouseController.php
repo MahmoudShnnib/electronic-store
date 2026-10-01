@@ -65,9 +65,10 @@ final class WarehouseController extends Controller implements HasMiddleware
         }
 
         if ($warehouse->stockLevels()
-            ->where(fn ($q) => $q->where('quantity', '>', 0)->orWhere('reserved', '>', 0)->orWhere('incoming', '>', 0))
+            ->where(fn ($q) => $q->where('quantity', '>', 0)->orWhere('reserved', '>', 0)->orWhere('incoming', '>', 0)->orWhere('damaged', '>', 0))
             ->exists()) {
-            return back()->with('error', __('Transfer remaining stock out before deleting this warehouse.'));
+            // Damaged units count too: deleting would make them vanish from every report.
+            return back()->with('error', __('Transfer remaining stock out (or write off damaged units) before deleting this warehouse.'));
         }
 
         $warehouse->delete();

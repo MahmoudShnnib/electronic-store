@@ -8,7 +8,7 @@ import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Alert, Button, Card, Checkbox, Input, InputNumber, Tag, Textarea, Tooltip, Typography, Upload } from 'ant-design-vue';
 import { Plus, Trash2, Upload as UploadIcon } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
@@ -77,6 +77,8 @@ const props = defineProps<{
         attributes: { id: number; name: string; unit: string | null; type: string; category_ids: number[] }[];
     }[];
     statuses: Option[];
+    /** Shelf stock of a plain product, per warehouse (empty once it has variants). */
+    plainStock: { warehouse_id: number; warehouse: string | null; quantity: number }[];
 }>();
 
 const isEdit = props.product !== null;
@@ -105,6 +107,34 @@ const form = useForm({
     variants: (props.product?.variants ?? []) as VariantForm[],
     specifications: (props.product?.specifications ?? {}) as Record<number, SpecValue>,
 });
+
+const knownVariantIds = (props.product?.variants ?? []).flatMap((v) => (v.id ? [v.id] : []));
+
+/**
+ * A stocked plain product getting two or more variants in one save: staff say
+ * how the shelf units split between them, per warehouse. Each row lines up with
+ * form.variants by index and starts with everything on the first variant.
+ */
+const splitting = computed(() => (props.product?.variants.length ?? 0) === 0 && props.plainStock.length > 0 && form.variants.length > 1);
+const stockSplit = ref<Record<number, number[]>>({});
+
+// Keep one cell per variant as variants are added or removed.
+watch(
+    () => form.variants.length,
+    (count) => {
+        for (const level of props.plainStock) {
+            // Nothing typed yet: everything starts on the first variant.
+            const typed = stockSplit.value[level.warehouse_id] ?? [];
+            const row = typed.length > 0 ? typed : [level.quantity];
+            stockSplit.value[level.warehouse_id] = Array.from({ length: count }, (_, index) => row[index] ?? 0);
+        }
+    },
+    { immediate: true },
+);
+
+function splitLeft(warehouseId: number, quantity: number): number {
+    return quantity - (stockSplit.value[warehouseId] ?? []).reduce((sum, n) => sum + (Number(n) || 0), 0);
+}
 
 /**
  * Only the attributes that belong to the selected category (or its parent
@@ -152,6 +182,18 @@ function submit(): void {
         // Always send the array — an empty list means "delete every variant";
         // null would mean "leave variants untouched" and removals never save.
         variants: data.variants,
+        // Variants this page loaded with: only those may be removed by leaving
+        // them out, so one opened before a colleague added a variant can't delete it.
+        known_variant_ids: knownVariantIds,
+        stock_split: splitting.value
+            ? props.plainStock.flatMap((level) =>
+                  (stockSplit.value[level.warehouse_id] ?? []).map((quantity, index) => ({
+                      warehouse_id: level.warehouse_id,
+                      sku: data.variants[index]?.sku ?? '',
+                      quantity: Number(quantity) || 0,
+                  })),
+              )
+            : null,
         // Drop values for attributes the selected category doesn't have, so
         // switching category cleans up specs that no longer belong.
         // Vue's v-model on a `type="number"` input casts to a JS number, but
@@ -427,6 +469,38 @@ function deleteImage(image: ProductImage): void {
                         </div>
                     </div>
                 </Card>
+            </Card>
+
+            <!-- Split a plain product's stock between its new variants -->
+            <Card v-if="splitting" :title="t('admin.products.split_stock')">
+                <Alert type="info" show-icon :message="t('admin.products.split_stock_hint')" class="mb-3" />
+                <Typography.Text v-if="err('stock_split')" type="danger" class="mb-2 block text-xs">{{ err('stock_split') }}</Typography.Text>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-start">
+                                <th class="py-1 pe-3 text-start font-medium">{{ t('admin.common.warehouse') }}</th>
+                                <th v-for="(variant, index) in form.variants" :key="index" class="px-2 py-1 text-start font-medium">
+                                    {{ variant.name || variant.sku || `#${index + 1}` }}
+                                </th>
+                                <th class="ps-3 py-1 text-start font-medium">{{ t('admin.products.split_left') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="level in plainStock" :key="level.warehouse_id">
+                                <td class="py-1 pe-3">{{ level.warehouse }} ({{ level.quantity }})</td>
+                                <td v-for="(_, index) in form.variants" :key="index" class="px-2 py-1">
+                                    <InputNumber v-model:value="stockSplit[level.warehouse_id][index]" :min="0" :precision="0" class="w-24" />
+                                </td>
+                                <td class="ps-3 py-1">
+                                    <Typography.Text :type="splitLeft(level.warehouse_id, level.quantity) === 0 ? 'success' : 'danger'">
+                                        {{ splitLeft(level.warehouse_id, level.quantity) }}
+                                    </Typography.Text>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </Card>
 
             <!-- Specifications -->

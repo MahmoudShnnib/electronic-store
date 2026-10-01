@@ -172,6 +172,19 @@ final class ProductQueryService
                     ]),
                 ]),
             'statuses' => self::statusOptions(),
+            // A plain product's shelf stock, per warehouse: when it gains several
+            // variants at once, the form asks how to split these units between them.
+            'plainStock' => $product === null || $product->has_variants ? [] : $product->stockLevels()
+                ->whereNull('product_variant_id')
+                ->where('quantity', '>', 0)
+                ->with('warehouse:id,name')
+                ->get()
+                ->map(fn ($level) => [
+                    'warehouse_id' => $level->warehouse_id,
+                    'warehouse' => $level->warehouse?->name,
+                    'quantity' => $level->quantity,
+                ])
+                ->values(),
         ];
     }
 
