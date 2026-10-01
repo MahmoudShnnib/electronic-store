@@ -10,6 +10,7 @@ use App\Actions\Checkout\PlaceOrder;
 use App\Actions\Inventory\AdjustStock;
 use App\Actions\Orders\ResolveOrderIssue;
 use App\Actions\Orders\UpdateOrderStatus;
+use App\Actions\Payments\ConfirmPayment;
 use App\Actions\Pos\CompleteSale;
 use App\Actions\Pos\OpenShift;
 use App\Actions\Purchasing\CancelPurchaseOrder;
@@ -300,4 +301,19 @@ it('N2: a purchase order whose product was deleted can still be opened, sent, re
 
     expect($po->fresh()->status)->toBe(PurchaseOrderStatus::Received)
         ->and($draft->fresh()->status)->toBe(PurchaseOrderStatus::Cancelled);
+});
+
+it('a customer is not offered "cancel" on an order that already has a payment on it', function (): void {
+    $product = Product::factory()->create(['price_cents' => 10_000]);
+    giveStock($product, 5);
+    $user = customer();
+    $order = rfOrder($user, [[$product, 1]]);
+
+    $this->actingAs($user)->get(route('account.orders.show', $order))
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('order.cancellable', true));
+
+    app(ConfirmPayment::class)->handle($order, 2_000);
+
+    $this->actingAs($user)->get(route('account.orders.show', $order))
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('order.cancellable', false));
 });

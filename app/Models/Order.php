@@ -99,6 +99,12 @@ final class Order extends Model
             ->orWhereRaw("customer->>'phone' ILIKE ?", [$like]));
     }
 
+    /** Whether the customer may cancel it: still open and no money held (that needs a refund first). */
+    public function canBeCancelled(): bool
+    {
+        return $this->status->isCancellable() && $this->netPaidCents() <= 0;
+    }
+
     /** Money the shop currently holds for this order: confirmed payments minus completed refunds. */
     public function netPaidCents(): int
     {

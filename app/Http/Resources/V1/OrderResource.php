@@ -27,7 +27,7 @@ final class OrderResource extends JsonResource
             'discount' => Money::toDecimal($this->discount_cents),
             'total' => Money::toDecimal($this->total_cents),
             'coupon_code' => $this->coupon_code,
-            'cancellable' => $this->status->isCancellable(),
+            'cancellable' => $this->resource->canBeCancelled(),
             'created_at' => $this->created_at->toIso8601String(),
             'items_count' => $this->whenCounted('items'),
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [

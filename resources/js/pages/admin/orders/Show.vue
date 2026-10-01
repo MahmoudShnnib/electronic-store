@@ -120,6 +120,13 @@ const reasonRequired = ['cancelled', 'returned'];
 
 const statusForm = useForm({ status: '', comment: '' });
 
+/** Cancelling reports under "order" (e.g. "refund the payment first"), status changes under "status". */
+const statusError = computed(() => {
+    const errors = statusForm.errors as Record<string, string | undefined>;
+
+    return errors.status ?? errors.order;
+});
+
 /** The transition awaiting a typed reason, if any. */
 const pendingStatus = ref<string | null>(null);
 
@@ -180,6 +187,13 @@ const issueForm = useForm({
 });
 
 const issueOpen = ref(false);
+
+/** Opens the return form starting from the order as it is now (a payment may have landed since the page loaded). */
+function openIssue(): void {
+    issueForm.amount = Math.max(0, props.order.paid_cents - props.order.refunded_cents) / 100;
+    issueForm.items = Object.fromEntries(props.order.items.map((item) => [item.id, item.returnable]));
+    issueOpen.value = true;
+}
 
 function submitIssue(): void {
     issueForm.post(route('admin.orders.issue', props.order.id), {
@@ -354,7 +368,8 @@ function addressRows(address: Address): { label: string; value: string }[] {
                             {{ t('admin.common.confirm') }}
                         </Button>
                     </template>
-                    <Text v-if="statusForm.errors.status" type="danger" class="mt-2 block !text-sm">{{ statusForm.errors.status }}</Text>
+                    <!-- Cancelling reports under "order" (e.g. "refund the payment first"). -->
+                    <Text v-if="statusError" type="danger" class="mt-2 block !text-sm">{{ statusError }}</Text>
                 </template>
                 <Text v-else type="secondary">{{ t('admin.orders.final_state') }}</Text>
             </Card>
@@ -415,7 +430,7 @@ function addressRows(address: Address): { label: string; value: string }[] {
                 <!-- After the customer has the goods, returning and refunding is
                      one action so the reason, the money and the stock stay in sync. -->
                 <template v-if="order.can.refund && order.can_resolve_issue">
-                    <Button v-if="!issueOpen" danger block @click="issueOpen = true">
+                    <Button v-if="!issueOpen" danger block @click="openIssue">
                         {{ t('admin.orders.report_issue') }}
                     </Button>
                     <form v-else @submit.prevent="submitIssue">
