@@ -6,6 +6,8 @@ namespace App\Actions\Orders;
 
 use App\Actions\Payments\ConfirmPayment;
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\StockLevel;
 use App\Notifications\OrderStatusChangedNotification;
@@ -127,11 +129,24 @@ final class UpdateOrderStatus
      */
     private function settleOutstanding(Order $order, ?int $userId): void
     {
-        $paid = (int) $order->payments()->where('status', 'confirmed')->sum('amount_cents');
-        $outstanding = $order->total_cents - $paid;
+        $outstanding = $order->total_cents - $order->netPaidCents();
 
         if ($outstanding <= 0) {
+            // A fully discounted order owes nothing: it is settled, not unpaid.
+            if ($order->total_cents === 0 && $order->payment_status === PaymentStatus::Unpaid) {
+                $order->update(['payment_status' => PaymentStatus::Paid]);
+            }
+
             return;
+        }
+
+        // Cash is in the courier's / cashier's hand on completion; a bank transfer
+        // is only real once staff have seen it arrive and confirmed it.
+        // (At the register the cashier sees the transfer land before the sale rings up.)
+        if ($order->payment_method === PaymentMethod::BankTransfer && $order->placed_via !== 'pos') {
+            throw ValidationException::withMessages([
+                'status' => __('Confirm the bank transfer payment before completing order :number.', ['number' => $order->number]),
+            ]);
         }
 
         $this->confirmPayment->handle($order, $outstanding, null, $userId);

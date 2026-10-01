@@ -15,9 +15,23 @@ final class Money
         return round($cents / 100, 2);
     }
 
+    /**
+     * Rounds half-up on the digits as typed: as a float, 1.005 is 1.00499…
+     * and would round down, so the decimal is read as text instead.
+     */
     public static function fromDecimal(float|string $amount): int
     {
-        return (int) round(((float) $amount) * 100);
+        $text = is_string($amount) && preg_match('/^\s*-?\d+(\.\d+)?\s*$/', $amount)
+            ? trim($amount)
+            : sprintf('%.6F', (float) $amount);
+
+        $negative = str_starts_with($text, '-');
+        [$whole, $fraction] = array_pad(explode('.', ltrim($text, '-'), 2), 2, '');
+        $fraction = str_pad($fraction, 3, '0');
+
+        $cents = (int) $whole * 100 + (int) substr($fraction, 0, 2) + ((int) $fraction[2] >= 5 ? 1 : 0);
+
+        return $negative ? -$cents : $cents;
     }
 
     /**

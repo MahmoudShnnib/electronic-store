@@ -14,6 +14,7 @@ use App\Enums\MovementType;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Cart;
+use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\StockLevel;
 use App\Models\User;
@@ -22,6 +23,7 @@ use App\Notifications\OrderPlacedNotification;
 use App\Support\ReferenceNumber;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -51,8 +53,9 @@ final class PlaceOrder
      *                                 register sells what is physically on its own
      *                                 shelf; null keeps the storefront's behaviour.
      * @param  int  $manualDiscountCents  An order-level discount keyed in by hand at
-     *                                    the counter, on top of any coupon. Applied to
-     *                                    the total only — line prices stay as sold.
+     *                                    the counter, on top of any coupon. Spread over
+     *                                    the line totals like a coupon (unit prices stay
+     *                                    as sold), so per-product revenue adds up.
      */
     public function handle(
         Cart $cart,
@@ -63,15 +66,14 @@ final class PlaceOrder
         int $manualDiscountCents = 0,
     ): Order {
         // Idempotency: replaying the same checkout returns the original order.
-        if ($data->idempotencyKey !== null) {
-            $existing = Order::query()
-                ->where('idempotency_key', $data->idempotencyKey)
-                ->when($user !== null, fn ($q) => $q->where('user_id', $user->id))
-                ->first();
+        // The key is scoped to whoever sent it (account, or the guest's cart), so
+        // somebody else's key can never fetch their order.
+        $idempotencyKey = $data->idempotencyKey === null
+            ? null
+            : hash('sha256', ($user !== null ? 'user:'.$user->id : 'cart:'.$cart->id).'|'.$data->idempotencyKey);
 
-            if ($existing !== null) {
-                return $existing;
-            }
+        if ($idempotencyKey !== null && ($existing = Order::query()->where('idempotency_key', $idempotencyKey)->first()) !== null) {
+            return $existing;
         }
 
         $totals = $this->calculateTotals->handle($cart, $user?->id);
@@ -85,7 +87,11 @@ final class PlaceOrder
         }
 
         foreach ($totals->lines as $line) {
-            if (! $line->product->status->isPurchasable()) {
+            // A variant disabled or removed after it went into the cart (a removed
+            // one loads as null) is no longer for sale either.
+            $variantGone = $line->variant !== null ? ! $line->variant->is_active : $line->product->has_variants;
+
+            if (! $line->product->status->isPurchasable() || $variantGone) {
                 throw ValidationException::withMessages([
                     'cart' => __('":name" is no longer available. Please remove it from your cart.', ['name' => $line->product->name]),
                 ]);
@@ -95,15 +101,35 @@ final class PlaceOrder
         $manualDiscountCents = $this->validateManualDiscount($manualDiscountCents, $totals);
 
         try {
-            $order = DB::transaction(function () use ($cart, $data, $user, $totals, $placedVia, $warehouse, $manualDiscountCents): Order {
-                $order = $this->createOrderRow($data, $user, $totals, $placedVia, $manualDiscountCents);
+            $order = DB::transaction(function () use ($cart, $data, $user, $totals, $placedVia, $warehouse, $manualDiscountCents, $idempotencyKey): Order {
+                // A double-click sends the same cart twice: the second request waits
+                // here, then finds the cart already emptied by the first.
+                Cart::query()->whereKey($cart->id)->lockForUpdate()->first();
+
+                if (! $cart->items()->exists()) {
+                    throw ValidationException::withMessages(['cart' => __('This order was already placed.')]);
+                }
+
+                // Re-check the coupon's limits under a row lock: two checkouts racing
+                // for the last use of a coupon must not both get it.
+                if ($totals->coupon !== null && $totals->discountCents > 0) {
+                    $coupon = Coupon::query()->lockForUpdate()->findOrFail($totals->coupon->id);
+
+                    if (($coupon->usage_limit !== null && $coupon->used_count >= $coupon->usage_limit)
+                        || ($user !== null && $coupon->per_customer_limit !== null && $coupon->usesByUser($user->id) >= $coupon->per_customer_limit)) {
+                        throw ValidationException::withMessages(['coupon' => __('This coupon has reached its usage limit.')]);
+                    }
+                }
+
+                $order = $this->createOrderRow($data, $user, $totals, $placedVia, $manualDiscountCents, $idempotencyKey);
 
                 // Deterministic lock order prevents deadlocks between
                 // concurrent checkouts sharing products.
                 $lines = collect($totals->lines)
                     ->sortBy(fn (CartLine $l) => [$l->product->id, $l->variant?->id ?? 0]);
+                $manualShares = $this->spread($manualDiscountCents, array_map(fn (CartLine $l) => $l->lineTotalCents, $totals->lines));
 
-                foreach ($lines as $line) {
+                foreach ($lines as $index => $line) {
                     // The storefront advertises stock summed across warehouses,
                     // so fulfilment must look beyond the default one too. A caller
                     // that names a warehouse (the register) overrides that.
@@ -130,9 +156,11 @@ final class PlaceOrder
                         'variant_name' => $line->variant?->name,
                         'sku' => $line->sku(),
                         'unit_price_cents' => $line->unitPriceCents,
+                        // Cost at the moment of sale, for profit reports (a variant without its own cost uses the product's).
+                        'unit_cost_cents' => (int) ($line->variant?->cost_price_cents ?: $line->product->cost_price_cents),
                         'quantity' => $line->quantity,
-                        'discount_cents' => $line->lineDiscountCents,
-                        'line_total_cents' => $line->lineTotalCents,
+                        'discount_cents' => $line->lineDiscountCents + $manualShares[$index],
+                        'line_total_cents' => $line->lineTotalCents - $manualShares[$index],
                     ]);
                 }
 
@@ -159,10 +187,23 @@ final class PlaceOrder
             });
         } catch (InsufficientStockException $e) {
             throw ValidationException::withMessages(['cart' => $e->getMessage()]);
+        } catch (UniqueConstraintViolationException $e) {
+            // The same submit arrived twice at once: the other request won, hand back its order.
+            $existing = $idempotencyKey !== null ? Order::query()->where('idempotency_key', $idempotencyKey)->first() : null;
+
+            if ($existing === null) {
+                throw $e;
+            }
+
+            return $existing;
         }
 
         if ($user !== null) {
             $user->notify(new OrderPlacedNotification($order));
+        } elseif (filled($data->customer['email'] ?? null) && $placedVia !== 'pos') {
+            // Guests get their confirmation too, in the language they checked out in.
+            Notification::route('mail', $data->customer['email'])
+                ->notify((new OrderPlacedNotification($order))->locale(app()->getLocale()));
         }
 
         return $order;
@@ -216,7 +257,34 @@ final class PlaceOrder
         return $manualDiscountCents;
     }
 
-    private function createOrderRow(CheckoutData $data, ?User $user, CartTotals $totals, string $placedVia, int $manualDiscountCents = 0): Order
+    /**
+     * Splits an amount across lines in proportion to their totals; the last
+     * line takes the rounding remainder so the shares add up exactly.
+     *
+     * @param  array<int, int>  $weights
+     * @return array<int, int>
+     */
+    private function spread(int $amount, array $weights): array
+    {
+        $sum = array_sum($weights);
+        $shares = array_map(fn () => 0, $weights);
+
+        if ($amount <= 0 || $sum <= 0) {
+            return $shares;
+        }
+
+        $left = $amount;
+        $last = array_key_last($weights);
+
+        foreach ($weights as $i => $weight) {
+            $shares[$i] = $i === $last ? $left : intdiv($weight * $amount, $sum);
+            $left -= $shares[$i];
+        }
+
+        return $shares;
+    }
+
+    private function createOrderRow(CheckoutData $data, ?User $user, CartTotals $totals, string $placedVia, int $manualDiscountCents = 0, ?string $idempotencyKey = null): Order
     {
         $attributes = [
             'user_id' => $user?->id,
@@ -234,7 +302,7 @@ final class PlaceOrder
             'coupon_code' => $totals->discountCents > 0 ? $totals->coupon?->code : null,
             'total_cents' => $totals->totalCents - $manualDiscountCents,
             'customer_note' => $data->customerNote,
-            'idempotency_key' => $data->idempotencyKey,
+            'idempotency_key' => $idempotencyKey,
             'placed_via' => $placedVia,
         ];
 

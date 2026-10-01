@@ -35,6 +35,14 @@ final class CancelOrder
                 ]);
             }
 
+            // The customer's money must go back through a recorded refund first;
+            // cancelling around it would silently keep the money.
+            if ($order->netPaidCents() > 0) {
+                throw ValidationException::withMessages([
+                    'order' => __('Order :number has a payment on it. Refund the payment first, then cancel.', ['number' => $order->number]),
+                ]);
+            }
+
             $fromStatus = $order->status;
 
             foreach ($order->items()->with(['product', 'variant', 'warehouse'])->get() as $item) {

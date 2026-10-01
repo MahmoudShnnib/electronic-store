@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Actions\Payments;
 
 use App\Actions\Treasury\RecordTreasuryMovement;
+use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\TreasuryAccount;
 use App\Enums\TreasuryDirection;
@@ -40,9 +41,14 @@ final class ConfirmPayment
             /** @var Order $order */
             $order = Order::query()->lockForUpdate()->findOrFail($order->id);
 
-            $paidSoFar = (int) $order->payments()->where('status', 'confirmed')->sum('amount_cents');
+            if (in_array($order->status, [OrderStatus::Cancelled, OrderStatus::Refunded], true)) {
+                throw ValidationException::withMessages([
+                    'amount' => __('Order :number is :status; it cannot take a payment.', ['number' => $order->number, 'status' => $order->status->label()]),
+                ]);
+            }
 
-            if ($paidSoFar + $amountCents > $order->total_cents) {
+            // Net of refunds: after a deposit is given back the full total is owed again.
+            if ($order->netPaidCents() + $amountCents > $order->total_cents) {
                 throw ValidationException::withMessages([
                     'amount' => __('Payment would exceed the order total.'),
                 ]);
@@ -69,7 +75,7 @@ final class ConfirmPayment
                 userId: $confirmedBy,
             );
 
-            $totalPaid = $paidSoFar + $amountCents;
+            $totalPaid = $order->netPaidCents();
 
             $order->update([
                 'payment_status' => $totalPaid >= $order->total_cents

@@ -36,6 +36,11 @@ final class CreateRefund
             throw ValidationException::withMessages(['amount' => __('Refund amount must be positive.')]);
         }
 
+        // There is no customer credit balance to put it in, so the money would vanish.
+        if ($method === RefundMethod::StoreCredit) {
+            throw ValidationException::withMessages(['method' => __('Store credit is not available. Refund in cash or by bank transfer.')]);
+        }
+
         return DB::transaction(function () use ($order, $amountCents, $method, $reference, $reason, $createdBy): Refund {
             /** @var Order $order */
             $order = Order::query()->lockForUpdate()->findOrFail($order->id);

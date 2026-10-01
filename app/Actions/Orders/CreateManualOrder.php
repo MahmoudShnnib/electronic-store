@@ -12,6 +12,7 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\User;
 use App\Models\Warehouse;
 use Illuminate\Support\Facades\DB;
 
@@ -52,6 +53,7 @@ final class CreateManualOrder
                     Product::query()->findOrFail($item['product_id']),
                     isset($item['product_variant_id']) ? ProductVariant::query()->find($item['product_variant_id']) : null,
                     (int) $item['quantity'],
+                    customerLimit: false,
                 );
             }
 
@@ -61,7 +63,21 @@ final class CreateManualOrder
                 $this->applyCoupon->handle($cart->refresh(), $couponCode, $userId);
             }
 
-            return $this->placeOrder->handle($cart->refresh(), $data, null, $placedVia, $warehouse, $manualDiscountCents);
+            $order = $this->placeOrder->handle($cart->refresh(), $data, null, $placedVia, $warehouse, $manualDiscountCents);
+
+            // Keyed in by staff: the order belongs to the customer whose email it
+            // carries (so it shows in their account), and the timeline credits
+            // the staff member who entered it.
+            $email = $data->customer['email'] ?? null;
+            $customerId = filled($email) ? User::query()->where('email', $email)->value('id') : null;
+
+            if ($customerId !== null) {
+                $order->update(['user_id' => $customerId]);
+            }
+
+            $order->statusHistories()->whereNull('user_id')->update(['user_id' => $userId]);
+
+            return $order;
         } finally {
             // The cart is scaffolding, not a record: drop it either way so a
             // failed attempt leaves nothing behind.

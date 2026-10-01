@@ -19,14 +19,23 @@ final class CheckoutRequest extends FormRequest
     /** Libyan mobile: 09XXXXXXXX or +2189XXXXXXXX, separators ignored. */
     private const PHONE_PATTERN = '/^(?:\+?218|0)9\d{8}$/';
 
-    /** Strip the separators people type so the pattern only sees digits. */
+    /**
+     * Strip the separators people type and turn Arabic-Indic (٠-٩) and Persian
+     * (۰-۹) digits from an Arabic keyboard into 0-9, so the pattern only sees ASCII digits.
+     */
     protected function prepareForValidation(): void
     {
         $phone = $this->input('customer.phone');
 
         if (is_string($phone)) {
+            $digits = array_combine(
+                [...mb_str_split('٠١٢٣٤٥٦٧٨٩'), ...mb_str_split('۰۱۲۳۴۵۶۷۸۹')],
+                [...range('0', '9'), ...range('0', '9')],
+            );
+            $phone = strtr(preg_replace('/[\s\-().]/u', '', $phone), array_map('strval', $digits));
+
             $this->merge([
-                'customer' => [...(array) $this->input('customer'), 'phone' => preg_replace('/[\s\-().]/', '', $phone)],
+                'customer' => [...(array) $this->input('customer'), 'phone' => $phone],
             ]);
         }
     }

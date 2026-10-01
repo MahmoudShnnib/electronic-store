@@ -48,6 +48,7 @@ const props = defineProps<{
         status: string;
         status_label: string;
         allowed_transitions: Option[];
+        can: { manage: boolean; refund: boolean };
         payment_status: string;
         payment_status_label: string;
         payment_method: string;
@@ -62,6 +63,7 @@ const props = defineProps<{
         total_formatted: string;
         total_cents: number;
         paid_cents: number;
+        refunded_cents: number;
         paid_formatted: string;
         outstanding_formatted: string;
         refunded_formatted: string;
@@ -70,6 +72,7 @@ const props = defineProps<{
         created_at: string;
         items: {
             id: number;
+            returnable: number;
             name: string;
             sku: string;
             quantity: number;
@@ -107,7 +110,9 @@ const itemColumns: Column[] = [
  * exactly one way to send an order back.
  */
 const quickTransitions = computed(() =>
-    props.order.allowed_transitions.filter((option) => !(option.value === 'returned' && props.order.can_resolve_issue)),
+    props.order.can.manage
+        ? props.order.allowed_transitions.filter((option) => !(option.value === 'returned' && props.order.can_resolve_issue))
+        : [],
 );
 
 /** Transitions that undo the sale — always ask for a reason before firing. */
@@ -165,7 +170,10 @@ function submitRefund(): void {
  */
 const issueForm = useForm({
     reason: '',
-    amount: props.order.paid_cents / 100,
+    // What is still held after earlier refunds — the most that can go back.
+    amount: Math.max(0, props.order.paid_cents - props.order.refunded_cents) / 100,
+    // How many of each line came back; only these go back on the shelf.
+    items: Object.fromEntries(props.order.items.map((item) => [item.id, item.returnable])) as Record<number, number>,
     method: props.order.default_refund_method,
     restock: true,
     reference: '',
@@ -186,7 +194,6 @@ function submitIssue(): void {
 const refundMethods = computed(() => [
     { value: 'cash', label: t('admin.orders.cash') },
     { value: 'bank_transfer', label: t('admin.orders.bank_transfer') },
-    { value: 'store_credit', label: t('admin.orders.store_credit') },
 ]);
 
 /** Shown wherever the customer left a field empty, so the gap is obvious. */
@@ -380,7 +387,7 @@ function addressRows(address: Address): { label: string; value: string }[] {
                 <!-- Every payment and refund posts to the treasury, so what is
                      recorded here is what the accounts will show. -->
                 <Text type="secondary" class="mb-3 block !text-xs">{{ t('admin.orders.treasury_hint') }}</Text>
-                <form @submit.prevent="submitPayment">
+                <form v-if="order.can.manage" @submit.prevent="submitPayment">
                     <Field :label="t('admin.orders.record_payment')" :error="paymentForm.errors.amount">
                         <InputNumber
                             v-model:value="paymentForm.amount"
@@ -407,7 +414,7 @@ function addressRows(address: Address): { label: string; value: string }[] {
 
                 <!-- After the customer has the goods, returning and refunding is
                      one action so the reason, the money and the stock stay in sync. -->
-                <template v-if="order.can_resolve_issue">
+                <template v-if="order.can.refund && order.can_resolve_issue">
                     <Button v-if="!issueOpen" danger block @click="issueOpen = true">
                         {{ t('admin.orders.report_issue') }}
                     </Button>
@@ -422,7 +429,14 @@ function addressRows(address: Address): { label: string; value: string }[] {
                             <AdminSelect v-model="issueForm.method" :options="refundMethods" />
                         </Field>
                         <Input v-model:value="issueForm.reference" :placeholder="t('admin.common.reference_optional')" dir="ltr" class="mb-3" />
-                        <Checkbox v-model:checked="issueForm.restock" class="mb-4">{{ t('admin.orders.restock_items') }}</Checkbox>
+                        <Checkbox v-model:checked="issueForm.restock" class="mb-2">{{ t('admin.orders.restock_items') }}</Checkbox>
+                        <div v-if="issueForm.restock" class="mb-4 space-y-2">
+                            <Text type="secondary" class="block !text-xs">{{ t('admin.orders.items_back') }}</Text>
+                            <div v-for="item in order.items" :key="item.id" class="flex items-center justify-between gap-2">
+                                <Text class="!text-sm">{{ item.name }}</Text>
+                                <InputNumber v-model:value="issueForm.items[item.id]" :min="0" :max="item.returnable" :precision="0" class="!w-20" />
+                            </div>
+                        </div>
                         <div class="flex gap-2">
                             <Button
                                 danger
@@ -439,7 +453,7 @@ function addressRows(address: Address): { label: string; value: string }[] {
                 </template>
 
                 <!-- An order already sent back can still need money returned. -->
-                <form v-else @submit.prevent="submitRefund">
+                <form v-else-if="order.can.refund" @submit.prevent="submitRefund">
                     <Field :label="t('admin.common.amount')" :error="refundForm.errors.amount">
                         <InputNumber v-model:value="refundForm.amount" :min="0.01" :step="0.01" class="w-full" />
                     </Field>

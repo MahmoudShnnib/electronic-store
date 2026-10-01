@@ -76,7 +76,10 @@ it('routes a bank transfer order to the bank account', function (): void {
     giveStock($product, 10);
     $order = orderFor(customer(), $product, 1, PaymentMethod::BankTransfer);
 
-    advanceTo($order, OrderStatus::Completed);
+    // A transfer is banked when staff confirm it arrived, not by completing the order.
+    expect(fn () => advanceTo($order, OrderStatus::Completed))->toThrow(ValidationException::class);
+    app(ConfirmPayment::class)->handle($order->refresh(), 50_00, 'TRX-1');
+    advanceTo($order->refresh(), OrderStatus::Completed);
 
     expect(TreasuryTransaction::query()->sole()->account)->toBe(TreasuryAccount::Bank)
         ->and(app(TreasuryQueryService::class)->balances())->toMatchArray(['cash' => 0, 'bank' => 50_00]);
@@ -117,18 +120,18 @@ it('takes the refund back out of the treasury', function (): void {
         ->and(app(TreasuryQueryService::class)->balances()['total'])->toBe(0);
 });
 
-it('leaves the treasury untouched when the refund is store credit', function (): void {
+it('refuses a store-credit refund: there is no credit balance to hold it', function (): void {
     $product = Product::factory()->create(['price_cents' => 100_00]);
     giveStock($product, 10);
     $order = advanceTo(orderFor(customer(), $product, 1), OrderStatus::Completed);
 
-    app(ResolveOrderIssue::class)->handle(
+    expect(fn () => app(ResolveOrderIssue::class)->handle(
         order: $order->refresh(),
         reason: 'Customer took a voucher instead',
         refundCents: 100_00,
         method: RefundMethod::StoreCredit,
         restock: false,
-    );
+    ))->toThrow(ValidationException::class);
 
     expect(TreasuryTransaction::query()->where('direction', TreasuryDirection::Out)->count())->toBe(0)
         ->and(app(TreasuryQueryService::class)->balances()['total'])->toBe(100_00);
