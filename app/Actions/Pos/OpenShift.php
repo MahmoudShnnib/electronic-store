@@ -36,6 +36,8 @@ final class OpenShift
             // Locked, not just checked: two tabs hitting "open" together would
             // otherwise both pass the check and leave the cashier with two
             // drawers, and every later sale would land in an arbitrary one.
+            User::query()->whereKey($cashier->id)->lockForUpdate()->first();
+
             $existing = CashierShift::query()
                 ->where('user_id', $cashier->id)
                 ->where('status', CashierShiftStatus::Open)

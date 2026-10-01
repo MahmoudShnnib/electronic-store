@@ -23,6 +23,8 @@ const props = defineProps<{
         orders_count: number;
         opening_float_formatted: string;
         takings: { method: string; label: string; amount_formatted: string }[];
+        cash_refunded_formatted: string;
+        has_cash_refunds: boolean;
         expected_cash_cents: number;
         expected_cash_formatted: string;
     };
@@ -68,6 +70,9 @@ function submit(): void {
                 <DescriptionsItem :label="t('admin.pos.opening_float')">{{ shift.opening_float_formatted }}</DescriptionsItem>
                 <DescriptionsItem v-for="taking in shift.takings" :key="taking.method" :label="taking.label">
                     {{ taking.amount_formatted }}
+                </DescriptionsItem>
+                <DescriptionsItem v-if="shift.has_cash_refunds" :label="t('admin.pos.cash_refunded')">
+                    − {{ shift.cash_refunded_formatted }}
                 </DescriptionsItem>
                 <DescriptionsItem :label="t('admin.pos.expected_in_drawer')">
                     <span class="font-semibold">{{ shift.expected_cash_formatted }}</span>

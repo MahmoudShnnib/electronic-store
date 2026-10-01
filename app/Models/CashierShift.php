@@ -46,7 +46,7 @@ final class CashierShift extends Model
 
     public function warehouse(): BelongsTo
     {
-        return $this->belongsTo(Warehouse::class);
+        return $this->belongsTo(Warehouse::class)->withTrashed();
     }
 
     public function orders(): HasMany
@@ -90,12 +90,27 @@ final class CashierShift extends Model
     {
         $takings = (int) (($this->takingsByMethod()[PaymentMethod::Cash->value]) ?? 0);
 
-        $refunded = (int) Refund::query()
-            ->whereIn('order_id', $this->orders()->select('id'))
-            ->where('status', 'completed')
-            ->where('method', 'cash')
-            ->sum('amount_cents');
+        $refunded = $this->cashRefundedCents();
 
         return $this->opening_float_cents + $takings - $refunded;
+    }
+
+    /**
+     * Cash handed back out of this drawer: refunds on this shift's sales, plus
+     * cash this cashier paid back during the shift for a sale from an earlier one.
+     */
+    public function cashRefundedCents(): int
+    {
+        return (int) Refund::query()
+            ->where('status', 'completed')
+            ->where('method', 'cash')
+            ->where(fn ($q) => $q
+                ->whereIn('order_id', $this->orders()->select('id'))
+                ->orWhere(fn ($q) => $q
+                    ->where('created_by', $this->user_id)
+                    ->where('created_at', '>=', $this->opened_at)
+                    ->when($this->closed_at !== null, fn ($q) => $q->where('created_at', '<=', $this->closed_at))))
+            ->sum('amount_cents');
+
     }
 }
