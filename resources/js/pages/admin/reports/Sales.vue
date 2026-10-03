@@ -33,8 +33,8 @@ const props = defineProps<{
     byProduct: { product_id: number | null; name: string; sku: string; units: number; revenue_formatted: string }[];
     byCategory: { name: string; units: number; revenue_formatted: string; revenue: number }[];
     byBrand: { name: string; units: number; revenue_formatted: string; revenue: number }[];
-    byPaymentMethod: { method: string; orders: number; revenue_formatted: string }[];
-    byStatus: { status: string; orders: number; revenue_formatted: string }[];
+    byPaymentMethod: { method: string; label: string; orders: number; revenue_formatted: string }[];
+    byStatus: { status: string; label: string; orders: number; revenue_formatted: string }[];
     byCustomer: { customer_id: number; name: string; email: string; orders: number; revenue_formatted: string }[];
     filters: { from: string; to: string };
 }>();
@@ -289,7 +289,7 @@ function exportUrl(report: string): string {
                     :scroll="{ x: 'max-content' }"
                 >
                     <template #bodyCell="{ column, record }">
-                        <span v-if="column.key === 'method'" class="capitalize">{{ record.method.replaceAll('_', ' ') }}</span>
+                        <span v-if="column.key === 'method'">{{ record.label }}</span>
                         <span v-else-if="column.key === 'revenue_formatted'" class="font-medium">{{ record.revenue_formatted }}</span>
                     </template>
                 </Table>
@@ -302,7 +302,7 @@ function exportUrl(report: string): string {
                     :scroll="{ x: 'max-content' }"
                 >
                     <template #bodyCell="{ column, record }">
-                        <span v-if="column.key === 'status'" class="capitalize">{{ record.status.replaceAll('_', ' ') }}</span>
+                        <span v-if="column.key === 'status'">{{ record.label }}</span>
                         <span v-else-if="column.key === 'revenue_formatted'" class="font-medium">{{ record.revenue_formatted }}</span>
                     </template>
                 </Table>
