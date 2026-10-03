@@ -10,6 +10,7 @@ use App\Models\Order;
 use App\Models\TreasuryTransaction;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -49,7 +50,9 @@ final class RecordTreasuryMovement
         ];
 
         try {
-            $transaction = TreasuryTransaction::create($attributes);
+            // Its own savepoint: in Postgres a failed insert aborts the caller's
+            // whole transaction, so the catch below would leave it unusable.
+            $transaction = DB::transaction(fn () => TreasuryTransaction::create($attributes));
         } catch (UniqueConstraintViolationException) {
             // This source document was already posted — keep the ledger idempotent.
             return null;
