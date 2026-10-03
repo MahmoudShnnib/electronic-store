@@ -26,8 +26,11 @@ final class GoogleController extends Controller
     {
         try {
             $google = Socialite::driver('google')->user();
-        } catch (Throwable) {
-            // Denied consent, expired state, or a stale callback URL.
+        } catch (Throwable $e) {
+            // Denied consent, expired state, or a stale callback URL — but also a
+            // wrong client secret or Google being unreachable, so keep a trace.
+            report($e);
+
             return redirect()->route('login')
                 ->withErrors(['email' => __('Google sign-in was cancelled. Please try again.')]);
         }
