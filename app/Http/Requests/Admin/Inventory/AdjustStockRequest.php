@@ -7,6 +7,7 @@ namespace App\Http\Requests\Admin\Inventory;
 use App\Enums\MovementType;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Warehouse;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,7 +26,13 @@ final class AdjustStockRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
+            // The shop never sells from an inactive warehouse, so stock added there
+            // would vanish from sale. Draining one is still allowed.
+            'warehouse_id' => ['required', 'integer', 'exists:warehouses,id', function (string $attribute, mixed $value, \Closure $fail): void {
+                if ($this->adds() && ! Warehouse::whereKey($value)->where('is_active', true)->exists()) {
+                    $fail(__('This warehouse is inactive. Activate it before adding stock to it.'));
+                }
+            }],
             'product_id' => ['required', 'integer', 'exists:products,id'],
             // A product that already has variants can't gain new product-level stock
             // (B23 residual: nothing reads it back once variant rows exist) — draining
