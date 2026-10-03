@@ -24,10 +24,12 @@ final class DashboardController extends Controller
 {
     public function __invoke(): Response
     {
-        // Cancelled and refunded orders are not revenue; everything else is.
-        $revenueStatuses = [OrderStatus::InProgress, OrderStatus::Completed];
+        // Same rule as ReportService: everything except cancelled is revenue, net of
+        // refunds — a partly refunded sale keeps what wasn't given back.
+        $revenueStatuses = [OrderStatus::InProgress, OrderStatus::Completed, OrderStatus::Refunded];
+        $netTotal = "(total_cents - COALESCE((SELECT SUM(amount_cents) FROM refunds WHERE refunds.order_id = orders.id AND refunds.status = 'completed'), 0))";
 
-        $revenue = fn ($query) => (int) $query->whereIn('status', $revenueStatuses)->sum('total_cents');
+        $revenue = fn ($query) => (int) $query->whereIn('status', $revenueStatuses)->sum(DB::raw($netTotal));
 
         $lowStock = StockLevel::query()
             ->join('products', 'products.id', '=', 'stock_levels.product_id')
@@ -49,7 +51,7 @@ final class DashboardController extends Controller
             ->where('created_at', '>=', now()->subDays(29)->startOfDay())
             ->groupByRaw('DATE(created_at)')
             ->orderByRaw('DATE(created_at)')
-            ->selectRaw('DATE(created_at) as day, SUM(total_cents) as revenue_cents, COUNT(*) as orders_count')
+            ->selectRaw("DATE(created_at) as day, SUM({$netTotal}) as revenue_cents, COUNT(*) as orders_count")
             ->get()
             ->map(fn ($row) => [
                 'day' => $row->day,
