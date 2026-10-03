@@ -24,7 +24,7 @@ final class ResolveOrderIssueRequest extends FormRequest
     {
         return [
             'reason' => ['required', 'string', 'max:500'],
-            'amount' => ['nullable', 'numeric', 'min:0'],
+            'amount' => ['nullable', 'numeric', 'decimal:0,2', 'min:0'],
             'method' => ['required', Rule::enum(RefundMethod::class)->except([RefundMethod::StoreCredit])],
             'restock' => ['boolean'],
             // order_item_id => how many of that line came back

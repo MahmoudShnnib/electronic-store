@@ -24,15 +24,15 @@ final class PurchaseOrderRequest extends FormRequest
         return [
             'supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
             'warehouse_id' => ['required', 'integer', Rule::exists('warehouses', 'id')->where('is_active', true)->whereNull('deleted_at')],
-            'discount' => ['nullable', 'numeric', 'min:0'],
-            'shipping' => ['nullable', 'numeric', 'min:0'],
+            'discount' => ['nullable', 'numeric', 'decimal:0,2', 'min:0'],
+            'shipping' => ['nullable', 'numeric', 'decimal:0,2', 'min:0'],
             'expected_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'items' => ['required', 'array', 'min:1', 'max:200'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.product_variant_id' => ['nullable', 'integer', 'exists:product_variants,id'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:1000000'],
-            'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
+            'items.*.unit_cost' => ['required', 'numeric', 'decimal:0,2', 'min:0'],
         ];
     }
 

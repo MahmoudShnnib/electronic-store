@@ -32,11 +32,11 @@ final class CouponRequest extends FormRequest
                     ->where(fn ($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now())),
             ],
             'type' => ['required', Rule::enum(CouponType::class)],
-            'value' => ['nullable', 'required_if:type,fixed', 'numeric', 'min:0.01'],
+            'value' => ['nullable', 'required_if:type,fixed', 'numeric', 'decimal:0,2', 'min:0.01'],
             'percent' => ['nullable', 'required_if:type,percentage', 'numeric', 'min:0.01', 'max:100'],
             // Whole units only — a 0.03 minimum is a rule that can never bind.
             'min_order' => ['nullable', 'integer', 'min:1'],
-            'max_discount' => ['nullable', 'numeric', 'min:0'],
+            'max_discount' => ['nullable', 'numeric', 'decimal:0,2', 'min:0'],
             'usage_limit' => ['nullable', 'integer', 'min:1'],
             'per_customer_limit' => ['nullable', 'integer', 'min:1'],
             'applies_to' => ['required', Rule::in(['all', 'products', 'categories', 'brands'])],

@@ -22,7 +22,7 @@ final class StoreRefundRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', 'numeric', 'decimal:0,2', 'min:0.01'],
             'method' => ['required', Rule::enum(RefundMethod::class)->except([RefundMethod::StoreCredit])],
             'reference' => ['nullable', 'string', 'max:120'],
             'reason' => ['nullable', 'string', 'max:500'],
