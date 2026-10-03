@@ -18,7 +18,7 @@ final class OpenShiftRequest extends FormRequest
         return [
             'warehouse_id' => ['required', 'integer', 'exists:warehouses,id'],
             // Sent as a decimal amount; the controller converts it to cents.
-            'opening_float' => ['required', 'numeric', 'min:0', 'max:1000000'],
+            'opening_float' => ['required', 'numeric', 'decimal:0,2', 'min:0', 'max:1000000'],
             'note' => ['nullable', 'string', 'max:500'],
         ];
     }

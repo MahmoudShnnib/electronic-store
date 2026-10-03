@@ -143,5 +143,7 @@
     "Thank you for shopping with us.": "شكرًا لتسوقك معنا.",
     "This order was already placed.": "تم تقديم هذا الطلب بالفعل.",
     "Transfer remaining stock out (or write off damaged units) before deleting this warehouse.": "انقل المخزون المتبقي (أو اشطب الوحدات التالفة) قبل حذف هذا المستودع.",
-    "Warehouse :name is not active; activate it before receiving into it.": "المستودع :name غير مفعّل؛ فعّله قبل الاستلام فيه."
+    "Warehouse :name is not active; activate it before receiving into it.": "المستودع :name غير مفعّل؛ فعّله قبل الاستلام فيه.",
+    "The :account account only holds :balance, not enough for this refund.": "حساب :account لا يحتوي إلا على :balance، وهذا لا يكفي لهذا الاسترداد.",
+    "This warehouse is inactive. Activate it before adding stock to it.": "هذا المستودع غير مفعّل. فعّله قبل إضافة مخزون إليه."
 }

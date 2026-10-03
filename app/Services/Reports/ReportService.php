@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Reports;
 
+use App\Enums\MovementType;
 use App\Enums\OrderStatus;
+use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Models\Order;
 use App\Models\User;
 use App\Support\Money;
 use Carbon\CarbonImmutable;
@@ -64,11 +67,28 @@ final class ReportService
             ->selectRaw('COUNT(*) as orders, COALESCE(SUM('.self::NET_TOTAL.'),0) as revenue, COALESCE(SUM(orders.discount_cents),0) as discounts, COALESCE(AVG('.self::NET_TOTAL.'),0) as avg_order')
             ->first();
 
-        $cost = (int) $this->revenueItems($from, $to)
+        // Cost of what the customer kept: every order counted as revenue above
+        // (refunded ones included, since their kept money is), minus the units
+        // that came back on a return. Otherwise a partly refunded sale adds its
+        // revenue but none of its cost, and profit is overstated.
+        $returned = DB::table('inventory_movements')
+            ->where('type', MovementType::CustomerReturn->value)
+            ->where('reference_type', (new Order)->getMorphClass())
+            ->whereColumn('reference_id', 'orders.id')
+            ->whereColumn('inventory_movements.product_id', 'order_items.product_id')
+            ->whereRaw('inventory_movements.product_variant_id IS NOT DISTINCT FROM order_items.product_variant_id')
+            ->whereColumn('inventory_movements.warehouse_id', 'order_items.warehouse_id')
+            ->selectRaw('COALESCE(SUM(quantity_change), 0)');
+
+        $cost = (int) DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->whereIn('orders.status', self::REVENUE_STATUSES)
+            ->whereNull('orders.deleted_at')
+            ->whereBetween('orders.created_at', [$from, $to])
             ->leftJoin('product_variants', 'product_variants.id', '=', 'order_items.product_variant_id')
             ->leftJoin('products', 'products.id', '=', 'order_items.product_id')
             // The cost recorded at sale time; older lines without one use today's cost.
-            ->selectRaw('COALESCE(SUM(order_items.quantity * COALESCE(order_items.unit_cost_cents, NULLIF(product_variants.cost_price_cents, 0), products.cost_price_cents, 0)),0) as cost')
+            ->selectRaw('COALESCE(SUM(GREATEST(order_items.quantity - ('.$returned->toSql().'), 0) * COALESCE(order_items.unit_cost_cents, NULLIF(product_variants.cost_price_cents, 0), products.cost_price_cents, 0)),0) as cost', $returned->getBindings())
             ->value('cost');
 
         $refunded = (int) DB::table('refunds')->where('status', 'completed')->whereBetween('created_at', [$from, $to])->sum('amount_cents');
@@ -81,7 +101,8 @@ final class ReportService
             'discounts_formatted' => Money::format((int) $row->discounts),
             'avg_order_formatted' => Money::format((int) round((float) $row->avg_order)),
             'estimated_cost_formatted' => Money::format($cost),
-            'estimated_profit_formatted' => Money::format(max(0, (int) $row->revenue - $cost)),
+            // A loss shows as a loss, not as zero.
+            'estimated_profit_formatted' => Money::format((int) $row->revenue - $cost),
             'refunded_formatted' => Money::format($refunded),
             'new_customers' => $newCustomers,
         ];
@@ -160,6 +181,7 @@ final class ReportService
             ->get()
             ->map(fn ($r) => [
                 'method' => $r->payment_method,
+                'label' => PaymentMethod::tryFrom((string) $r->payment_method)?->label() ?? $r->payment_method,
                 'orders' => (int) $r->orders,
                 'revenue_formatted' => Money::format((int) $r->revenue_cents),
             ]);
@@ -167,14 +189,21 @@ final class ReportService
 
     public function salesByStatus(CarbonImmutable $from, CarbonImmutable $to): Collection
     {
+        // Net of refunds like every other figure on the page, so a partly refunded
+        // order doesn't show here at its full total.
         return DB::table('orders')
-            ->whereNull('deleted_at')
-            ->whereBetween('created_at', [$from, $to])
-            ->groupBy('status')
-            ->selectRaw('status, COUNT(*) as orders, SUM(total_cents) as revenue_cents')
+            ->leftJoinSub(
+                DB::table('refunds')->where('status', 'completed')->groupBy('order_id')->selectRaw('order_id, SUM(amount_cents) AS refunded_cents'),
+                'rf', 'rf.order_id', '=', 'orders.id',
+            )
+            ->whereNull('orders.deleted_at')
+            ->whereBetween('orders.created_at', [$from, $to])
+            ->groupBy('orders.status')
+            ->selectRaw('orders.status, COUNT(*) as orders, SUM('.self::NET_TOTAL.') as revenue_cents')
             ->get()
             ->map(fn ($r) => [
                 'status' => $r->status,
+                'label' => OrderStatus::tryFrom((string) $r->status)?->label() ?? $r->status,
                 'orders' => (int) $r->orders,
                 'revenue_formatted' => Money::format((int) $r->revenue_cents),
             ]);

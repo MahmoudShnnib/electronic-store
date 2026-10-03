@@ -37,7 +37,7 @@ final class CompleteSaleRequest extends FormRequest
             'customer.phone' => ['nullable', 'string', 'max:32'],
             'customer.email' => ['nullable', 'email', 'max:255'],
             'coupon_code' => ['nullable', 'string', 'max:64'],
-            'discount' => ['nullable', 'numeric', 'min:0', 'max:1000000'],
+            'discount' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:1000000'],
             'note' => ['nullable', 'string', 'max:1000'],
         ];
     }

@@ -23,7 +23,6 @@ use Illuminate\Validation\ValidationException;
 final class ResolveOrderIssue
 {
     public function __construct(
-        private readonly UpdateOrderStatus $updateOrderStatus,
         private readonly CreateRefund $createRefund,
         private readonly RecordMovement $recordMovement,
     ) {}
@@ -79,11 +78,10 @@ final class ResolveOrderIssue
                     reason: $reason,
                     createdBy: $userId,
                 );
-
-                $order = $this->updateOrderStatus->handle($order->refresh(), OrderStatus::Refunded, $reason, $userId);
             }
 
-            return $order;
+            // CreateRefund moves the order to refunded itself.
+            return $order->refresh();
         });
     }
 

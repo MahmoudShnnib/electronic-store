@@ -21,7 +21,7 @@ final class StoreTreasuryTransactionRequest extends FormRequest
         return [
             'direction' => ['required', Rule::enum(TreasuryDirection::class)],
             'account' => ['required', Rule::enum(TreasuryAccount::class)],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', 'numeric', 'decimal:0,2', 'min:0.01'],
             'reference' => ['nullable', 'string', 'max:120'],
             'note' => ['nullable', 'string', 'max:500'],
         ];

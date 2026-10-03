@@ -6,6 +6,7 @@ use App\Actions\Cart\AddToCart;
 use App\Actions\Catalog\SaveProduct;
 use App\Actions\Checkout\PlaceOrder;
 use App\Actions\Inventory\AdjustStock;
+use App\Actions\Payments\ConfirmPayment;
 use App\Actions\Purchasing\CancelPurchaseOrder;
 use App\Actions\Purchasing\SendPurchaseOrder;
 use App\Actions\Refunds\CreateRefund;
@@ -118,9 +119,8 @@ it('refuses to refund an order with no confirmed payment', function (): void {
 
 it('caps refunds at the amount actually paid, not the order total', function (): void {
     $order = unpaidOrder(customer(), 10_000);
-    $order->payments()->create([
-        'amount_cents' => 4_000, 'method' => 'cash', 'status' => 'confirmed',
-    ]);
+    // Through the real action, so the money also lands in the treasury a refund draws on.
+    app(ConfirmPayment::class)->handle($order, 4_000);
 
     expect(fn () => app(CreateRefund::class)->handle($order, 5_000, RefundMethod::Cash))
         ->toThrow(ValidationException::class);
@@ -220,7 +220,6 @@ it('moves product-level stock onto the first variant when variants are added', f
     expect((int) $product->stockLevels()->whereNull('product_variant_id')->sum('quantity'))->toBe(0)
         ->and((int) $product->stockLevels()->where('product_variant_id', $variant->id)->sum('quantity'))->toBe(12);
 });
-
 
 // -- B8 residual: split-warehouse stock is not summed across warehouses ------
 

@@ -20,7 +20,7 @@ final class ConfirmPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', 'numeric', 'decimal:0,2', 'min:0.01'],
             'reference' => ['nullable', 'string', 'max:120'],
         ];
     }

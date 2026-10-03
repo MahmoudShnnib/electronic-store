@@ -65,7 +65,8 @@ final class Order extends Model
 
     public function statusHistories(): HasMany
     {
-        return $this->hasMany(OrderStatusHistory::class)->latest('created_at');
+        // id breaks ties: a return logs two rows in the same second.
+        return $this->hasMany(OrderStatusHistory::class)->latest('created_at')->latest('id');
     }
 
     public function payments(): HasMany

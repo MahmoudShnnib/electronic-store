@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace App\Actions\Refunds;
 
+use App\Actions\Orders\UpdateOrderStatus;
 use App\Actions\Treasury\RecordTreasuryMovement;
+use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\RefundMethod;
 use App\Enums\TreasuryAccount;
 use App\Enums\TreasuryDirection;
 use App\Models\Order;
 use App\Models\Refund;
+use App\Services\Admin\TreasuryQueryService;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -22,7 +25,11 @@ use Illuminate\Validation\ValidationException;
  */
 final class CreateRefund
 {
-    public function __construct(private readonly RecordTreasuryMovement $recordTreasuryMovement) {}
+    public function __construct(
+        private readonly RecordTreasuryMovement $recordTreasuryMovement,
+        private readonly TreasuryQueryService $treasury,
+        private readonly UpdateOrderStatus $updateOrderStatus,
+    ) {}
 
     public function handle(
         Order $order,
@@ -65,6 +72,21 @@ final class CreateRefund
                 ]);
             }
 
+            // Same rule as a manual withdrawal: money can't leave an account
+            // that doesn't hold it, or the treasury goes negative unnoticed.
+            // ponytail: unlocked read, two refunds racing for the last dinar can both pass; add an advisory lock if that ever matters.
+            $account = TreasuryAccount::fromRefundMethod($method);
+            $balance = $account !== null ? $this->treasury->balances()[$account->value] : null;
+
+            if ($balance !== null && $amountCents > $balance) {
+                throw ValidationException::withMessages([
+                    'amount' => __('The :account account only holds :balance, not enough for this refund.', [
+                        'account' => $account->label(),
+                        'balance' => Money::format($balance, $order->currency),
+                    ]),
+                ]);
+            }
+
             $refund = Refund::create([
                 'order_id' => $order->id,
                 'amount_cents' => $amountCents,
@@ -77,8 +99,6 @@ final class CreateRefund
 
             // Store credit stays inside the shop, so only real cash/bank
             // refunds move money out of the treasury.
-            $account = TreasuryAccount::fromRefundMethod($method);
-
             if ($account !== null) {
                 $this->recordTreasuryMovement->handle(
                     direction: TreasuryDirection::Out,
@@ -108,6 +128,12 @@ final class CreateRefund
                 ])
                 ->event('refund_created')
                 ->log("Refund issued for order {$order->number}");
+
+            // Money going back on a finished sale makes it a refunded order, whichever
+            // screen issued it — otherwise it reads "completed" and reports count it in full.
+            if ($order->status === OrderStatus::Completed) {
+                $this->updateOrderStatus->handle($order, OrderStatus::Refunded, $reason, $createdBy);
+            }
 
             return $refund;
         });
