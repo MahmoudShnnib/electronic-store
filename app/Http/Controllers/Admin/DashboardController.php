@@ -24,10 +24,13 @@ final class DashboardController extends Controller
 {
     public function __invoke(): Response
     {
-        // Same rule as ReportService: everything except cancelled is revenue, net of
-        // refunds — a partly refunded sale keeps what wasn't given back.
+        // Same rule as ReportService::NET_TOTAL: everything except cancelled is revenue;
+        // an open order counts at its total (a refund on it only returns a prepayment),
+        // a finished one at what the shop kept — payments minus refunds.
         $revenueStatuses = [OrderStatus::InProgress, OrderStatus::Completed, OrderStatus::Refunded];
-        $netTotal = "(total_cents - COALESCE((SELECT SUM(amount_cents) FROM refunds WHERE refunds.order_id = orders.id AND refunds.status = 'completed'), 0))";
+        $netTotal = "(CASE WHEN status = 'in_progress' THEN total_cents ELSE"
+            ." COALESCE((SELECT SUM(amount_cents) FROM payments WHERE payments.order_id = orders.id AND payments.status = 'confirmed'), 0)"
+            ." - COALESCE((SELECT SUM(amount_cents) FROM refunds WHERE refunds.order_id = orders.id AND refunds.status = 'completed'), 0) END)";
 
         $revenue = fn ($query) => (int) $query->whereIn('status', $revenueStatuses)->sum(DB::raw($netTotal));
 

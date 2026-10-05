@@ -224,10 +224,12 @@ function auditInvariants(): array
         if ($refunded < 0 || $refunded > $gross || $net < 0 || $net > (int) $o->total_cents) {
             $v['M1'][] = "$n: paid $gross, refunded $refunded, total {$o->total_cents}";
         }
+        // A deposit given back and then the full total collected is simply paid.
         $expected = match (true) {
-            $refunded > 0 => $refunded >= $gross ? 'refunded' : 'partially_refunded',
+            $refunded > 0 && $refunded >= $gross => 'refunded',
+            $net > 0 && $net >= (int) $o->total_cents => 'paid',
+            $refunded > 0 => 'partially_refunded',
             $net === 0 => (int) $o->total_cents === 0 && $o->status === 'completed' ? 'paid' : 'unpaid',
-            $net >= (int) $o->total_cents => 'paid',
             default => 'partially_paid',
         };
         if ($o->payment_status !== $expected) {

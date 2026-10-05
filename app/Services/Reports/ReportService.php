@@ -31,8 +31,18 @@ final class ReportService
      */
     private const REVENUE_STATUSES = ['in_progress', 'completed', 'refunded'];
 
-    /** An order's total minus what was refunded on it; needs revenueOrders()'s join. */
-    private const NET_TOTAL = '(orders.total_cents - COALESCE(rf.refunded_cents, 0))';
+    /**
+     * What an order is worth as revenue; needs the `rf` refunds join. An open order is
+     * booked at its total — a refund on it only gives back a prepayment, the sale is
+     * unchanged. A finished order is worth what the shop kept: payments minus refunds
+     * (completing always collects the full total, so this is the total less whatever
+     * went back afterwards). A cancelled order keeps the old figure (it is only shown
+     * in the by-status table).
+     */
+    private const NET_TOTAL = "(CASE orders.status WHEN 'in_progress' THEN orders.total_cents"
+        ." WHEN 'cancelled' THEN orders.total_cents - COALESCE(rf.refunded_cents, 0)"
+        ." ELSE COALESCE((SELECT SUM(p.amount_cents) FROM payments p WHERE p.order_id = orders.id AND p.status = 'confirmed'), 0)"
+        .' - COALESCE(rf.refunded_cents, 0) END)';
 
     /**
      * What is still owed on an order: exactly what completing it would collect
