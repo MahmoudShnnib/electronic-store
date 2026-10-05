@@ -19,3 +19,4 @@
 - iter 17: X1 valuation vs cost snapshot - FAIL - BUGS #6; fixed in 820115a
 - iter 18: X2 dashboard day vs report day - FAIL - BUGS #7; fixed in 5e16eea; suite 497 green; checker PASS
 - iter 19: final report written; AUDIT COMPLETE
+- post-audit: ran migration 2026_10_05_100000 on dev DB at user's request; checker ALL RULES PASS (S9 PASS)

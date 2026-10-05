@@ -14,4 +14,4 @@ Read `audit/MORNING_REVIEW.md` first: the final report is at the top.
 - Checker: `php audit/check_invariants.php` (dev DB) / `DB_DATABASE=electronic_store_test php audit/check_invariants.php`.
   Read-only via a READ ONLY transaction. Rules in audit/INVARIANTS.md, code in audit/invariants.php.
 - Scenario tests: tests/Feature/FinanceAudit/*, race tests: tests/Concurrency (needs pcntl/posix).
-- Pending for the user: run migration 2026_10_05_100000 on dev/prod; decide BD1–BD8.
+- Migration 2026_10_05_100000 run on dev DB (2026-10-05, user request); still needed on prod. Pending: decide BD1–BD8.

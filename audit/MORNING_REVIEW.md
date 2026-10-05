@@ -3,7 +3,7 @@
 Branch `audit/finance` (forked from `fix/db-consistency-qa` @ d46c4ee). 18 commits, nothing
 pushed or merged. Your uncommitted `CLAUDE.md` / `package-lock.json` changes are untouched.
 Full suite: **497 passed** (was 445). `php audit/check_invariants.php`: **ALL RULES PASS**
-on the local dev DB and the test DB (S9 shows SKIP on dev until you run the new migration).
+on the local dev DB and the test DB.
 19 iterations of 80 used.
 
 ## 1. Scenario results
@@ -86,7 +86,7 @@ No change was made to `app/Actions/Payments/`, `app/Actions/Checkout/`, `CreateR
 
 ## 6. Things you need to do
 
-- `php artisan migrate` on dev (and on deploy): `2026_10_05_100000_add_damaged_change_to_inventory_movements`.
+- ~~`php artisan migrate` on dev~~ — done 2026-10-05 at your request (S9 now PASS on dev). Still needed on deploy: `2026_10_05_100000_add_damaged_change_to_inventory_movements`.
 - CI: `phpunit.xml` now has a `Concurrency` suite; the runner needs the `pcntl` and `posix` PHP extensions.
 - Decide BD1–BD8 and the M3/M4 wording.
 
