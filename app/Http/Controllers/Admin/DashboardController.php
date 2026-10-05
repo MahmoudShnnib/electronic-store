@@ -59,9 +59,11 @@ final class DashboardController extends Controller
                 'orders' => (int) $row->orders_count,
             ]);
 
+        // Per-product lines can't be netted against an order-level refund, so refunded
+        // orders stay out — the same rule as the report's product breakdown.
         $bestSellers = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->whereIn('orders.status', array_map(fn ($s) => $s->value, $revenueStatuses))
+            ->whereIn('orders.status', [OrderStatus::InProgress->value, OrderStatus::Completed->value])
             ->whereNull('orders.deleted_at')
             ->groupBy('order_items.product_id', 'order_items.product_name')
             ->orderByDesc(DB::raw('SUM(order_items.quantity)'))
