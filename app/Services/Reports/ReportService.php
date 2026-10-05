@@ -250,7 +250,7 @@ final class ReportService
     /** Totals for the invoice report — computed without the row limit so the
      *  headline numbers stay correct even when the table is truncated. */
     /** The order's calendar day in the shop's timezone (timestamps are stored in UTC). */
-    private static function localDay(): string
+    public static function localDay(): string
     {
         $tz = preg_replace('/[^A-Za-z_\/+-]/', '', (string) config('store.timezone'));
 

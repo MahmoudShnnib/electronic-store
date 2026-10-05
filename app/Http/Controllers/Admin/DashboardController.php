@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\StockLevel;
 use App\Models\User;
+use App\Services\Reports\ReportService;
 use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +29,8 @@ final class DashboardController extends Controller
         // an open order counts at its total (a refund on it only returns a prepayment),
         // a finished one at what the shop kept — payments minus refunds.
         $revenueStatuses = [OrderStatus::InProgress, OrderStatus::Completed, OrderStatus::Refunded];
+        // Days are the shop's days, as on the reports (timestamps are stored in UTC).
+        $tz = (string) config('store.timezone');
         $netTotal = "(CASE WHEN status = 'in_progress' THEN total_cents ELSE"
             ." COALESCE((SELECT SUM(amount_cents) FROM payments WHERE payments.order_id = orders.id AND payments.status = 'confirmed'), 0)"
             ." - COALESCE((SELECT SUM(amount_cents) FROM refunds WHERE refunds.order_id = orders.id AND refunds.status = 'completed'), 0) END)";
@@ -51,10 +54,10 @@ final class DashboardController extends Controller
         // Last 30 days of revenue for the chart.
         $revenueSeries = Order::query()
             ->whereIn('status', $revenueStatuses)
-            ->where('created_at', '>=', now()->subDays(29)->startOfDay())
-            ->groupByRaw('DATE(created_at)')
-            ->orderByRaw('DATE(created_at)')
-            ->selectRaw("DATE(created_at) as day, SUM({$netTotal}) as revenue_cents, COUNT(*) as orders_count")
+            ->where('created_at', '>=', now($tz)->subDays(29)->startOfDay()->utc())
+            ->groupByRaw(ReportService::localDay())
+            ->orderByRaw(ReportService::localDay())
+            ->selectRaw(ReportService::localDay()." as day, SUM({$netTotal}) as revenue_cents, COUNT(*) as orders_count")
             ->get()
             ->map(fn ($row) => [
                 'day' => $row->day,
@@ -82,8 +85,8 @@ final class DashboardController extends Controller
 
         return Inertia::render('admin/Dashboard', [
             'kpis' => [
-                'revenue_today' => Money::format($revenue(Order::query()->whereDate('created_at', today()))),
-                'revenue_month' => Money::format($revenue(Order::query()->whereBetween('created_at', [now()->startOfMonth(), now()]))),
+                'revenue_today' => Money::format($revenue(Order::query()->whereBetween('created_at', [now($tz)->startOfDay()->utc(), now($tz)->endOfDay()->utc()]))),
+                'revenue_month' => Money::format($revenue(Order::query()->whereBetween('created_at', [now($tz)->startOfMonth()->utc(), now()]))),
                 'orders_total' => Order::query()->count(),
                 'orders_in_progress' => Order::query()->where('status', OrderStatus::InProgress)->count(),
                 'orders_completed' => Order::query()->where('status', OrderStatus::Completed)->count(),
