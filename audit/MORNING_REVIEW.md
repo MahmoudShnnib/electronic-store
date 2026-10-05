@@ -18,3 +18,17 @@
   (c) proportional split of the refund across lines. Needs your call — a refund amount isn't
   always tied to a returned item (e.g. 50 LYD goodwill for a scratch). Pinned by
   RefundTest "H5". The dashboard's best-sellers list now follows the same rule (BUG 1).
+
+- **BD2 — Inventory costing method.** Receiving a purchase order never updates the product's
+  cost price, so inventory valuation and profit use whatever cost was typed on the product
+  form, not what was actually paid (H8: PO at 650, valued at 700). Options: keep manual
+  standard cost / last purchase cost / weighted average. Not changed.
+- **BD3 — "Stolen / lost" stock.** There is no movement type for theft or loss; staff use
+  "manual decrease" with a free-text reason (H13). Works for the ledger, but theft can't be
+  reported separately from miscounts. Add a `lost` type? Not changed.
+
+## Things you need to do
+
+- Run `php artisan migrate` on the dev DB (and production when deploying): migration
+  `2026_10_05_100000_add_damaged_change_to_inventory_movements` (BUG 2). I did not migrate the
+  dev DB myself; `check_invariants` shows S9 as SKIP until you do.

@@ -1,15 +1,13 @@
 # STATE — overnight finance & inventory audit
 
-**Phase:** 3 (scenario loop) — **Iteration:** 6/80
-**Current scenario:** H7 Add stock (next)
-**Doing / next step:** write `tests/Feature/FinanceAudit/StockTest.php` (H7 add stock, H8 add stock
-with pending orders, H13 write-off incl. one in a cart, F7 write off more than exists) using
-finSetUp/finBuy/finSnapshot/finExpectChanges. Refund helpers finComplete/finReturn are in RefundTest.php
-(move to FinanceAuditSetup.php if another file needs them).
-Harness: tests/Qa/FinanceSnapshot.php (snapshot of every place + exact diff assert + checker),
-tests/Feature/FinanceAudit/FinanceAuditSetup.php (fixtures PHONE×10 100.00, CABLE×50 5.00, MUG×1 2.00).
+**Phase:** 3 (scenario loop) — **Iteration:** 8/80
+**Current scenario:** H9 Price change (next)
+**Doing / next step:** write `tests/Feature/FinanceAudit/OrderLifecycleTest.php`: H9 price change
+(use SaveProduct service; old orders + reports unchanged), H10 edit order (no feature → BLOCKED,
+document), H11 cancel unpaid, H12 cancel paid (must refund first), then failure scenarios F1–F6, F8, F9.
+Helpers in FinanceAuditSetup.php: finSetUp, finBuy, finNewOrderPlaces, finComplete, finReturn, finAdjust.
 
-## Scenarios (23): done 6 (H1-H6) / remaining 17 / blocked 0 — bugs: 1 fixed (BUGS.md)
+## Scenarios (23): done 10 (H1-H8, H13, F7) / remaining 13 / blocked 0 — bugs: 2 fixed (BUGS.md)
 Happy: H1 buy 1 · H2 buy several · H3 buy last unit · H4 full refund · H5 partial refund ·
 H6 refund then re-buy · H7 add stock · H8 add stock w/ pending orders · H9 price change ·
 H10 edit order · H11 cancel unpaid · H12 cancel paid · H13 write-off (incl. in a cart)
@@ -35,3 +33,4 @@ F7 write off > stock · F8 delete product w/ orders · F9 invalid inputs
 - Payment/refund/checkout code changes → list in MORNING_REVIEW "changes to review first".
 - Pest diff output is ANSI-coloured even with NO_COLOR: pipe through `sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g'`.
 - Restock/return changes report.valuation.* (units, cost, retail) — remember it in expectations.
+- New migration 2026_10_05_100000 (damaged_change) NOT run on dev DB on purpose — user to run it.
