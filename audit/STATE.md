@@ -1,13 +1,13 @@
 # STATE — overnight finance & inventory audit
 
-**Phase:** 3 (scenario loop) — **Iteration:** 14/80
-**Current scenario:** F8 delete product (next), then F9, then F4
-**Doing / next step:** F8 delete product with past orders (DELETE /admin/products/{id}; orders,
-reports, cancel/complete of an open order still work) and F9 invalid inputs (cart/manual order/POS
-qty -1, 0, 1.5, huge; adjust 1.5; price 0/huge; payment 0.001) in `ProductAndInputTest.php`; then F4
-concurrency (two buyers, last unit) in a separate non-RefreshDatabase test using pcntl_fork.
+**Phase:** 3 (scenario loop) — **Iteration:** 16/80
+**Current scenario:** all 23 listed scenarios done (22 ✅, H10 BLOCKED). Extra checks X1/X2 from FINANCE_MAP hypotheses.
+**Doing / next step:** extra checks from FINANCE_MAP hypotheses not yet covered by a scenario:
+X1 inventory valuation vs COGS for a variant with no own cost; X2 dashboard "today" (UTC) vs
+report day (Africa/Tripoli) for an order at 23:30 UTC. Then write the FINAL REPORT at the top of
+MORNING_REVIEW.md and set this file to "AUDIT COMPLETE".
 
-## Scenarios (23): done 19 (H1-H9, H11-H13, F1-F3, F5-F7) / remaining 3 (F4, F8, F9) / blocked 1 (H10) — bugs: 5 fixed
+## Scenarios (23): done 22 / remaining 0 / blocked 1 (H10) — bugs: 5 fixed
 Happy: H1 buy 1 · H2 buy several · H3 buy last unit · H4 full refund · H5 partial refund ·
 H6 refund then re-buy · H7 add stock · H8 add stock w/ pending orders · H9 price change ·
 H10 edit order · H11 cancel unpaid · H12 cancel paid · H13 write-off (incl. in a cart)
@@ -19,7 +19,7 @@ F7 write off > stock · F8 delete product w/ orders · F9 invalid inputs
 - Branch `audit/finance` (from fix/db-consistency-qa d46c4ee). Never push/merge. Don't commit
   `CLAUDE.md` / `package-lock.json` (user's uncommitted changes) — `git add` explicit paths only.
 - Rules: audit/PROMPT.md. Map: FINANCE_MAP.md. Rules: INVARIANTS.md.
-- Tests: `./vendor/bin/pest --parallel` (445 green at start, ~36 s). Scoped: `--filter`.
+- Tests: `./vendor/bin/pest --parallel` (445 green at start, 494 now). Race tests: `pest tests/Concurrency`. Scoped: `--filter`.
   Format: `./vendor/bin/pint --dirty`. Test DB `electronic_store_test` (pgsql 127.0.0.1:5432).
 - Checker: `php audit/check_invariants.php` (dev DB from .env) or
   `DB_DATABASE=electronic_store_test php audit/check_invariants.php`. READ ONLY txn.

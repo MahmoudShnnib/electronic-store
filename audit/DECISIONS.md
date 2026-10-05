@@ -13,3 +13,4 @@ One line each: what, and why.
 - D9 Fixed the checker's payment-status mapping (M2): net paid = total is "paid" even after a refunded deposit — matches the app (`ConfirmPayment`) and the rule's own wording ("what the money says"). The rule text itself was not changed.
 - D10 Rules M3 ("a completed order never carries refunds") and M4 ("every closed order was paid exactly its total") are wrong for a deposit refunded before completion. Per the hard rules I did NOT change them; DepositRefundTest asserts the checker reports exactly M3+M4 for that order, and MORNING_REVIEW proposes new wording.
 - D11 BUG 4 fix leaves the cancelled-order figure in "sales by status" as it was (total − refunds) to keep the change minimal.
+- D12 Added a `Concurrency` test suite (phpunit.xml + tests/Pest.php, DatabaseTruncation) for F4: real races need committed data, which RefreshDatabase's wrapping transaction hides. Needs the PHP `pcntl` and `posix` extensions (present locally; check CI).

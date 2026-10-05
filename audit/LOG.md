@@ -14,3 +14,5 @@
 - iter 12: H12 deposit then complete - FAIL - revenue booked 700 of 1000 - BUGS #4; fixed in df328b9 (NET_TOTAL by status); checker payment-status mapping corrected; suite 477 green; checker PASS
 - iter 13: F1, F2, F3, F5, F6 failure paths - PASS (no bugs)
 - iter 14: audit trail A2 - FAIL - manual treasury movement without a reason accepted - BUGS #5; fixed in 926983a; suite 487 green; checker PASS
+- iter 15: F8 delete product, F9 invalid inputs - PASS
+- iter 16: F4 race last unit + simultaneous double submits (forked processes, new Concurrency suite) - PASS 5/5; full suite 494 green (parallel + serial); checker PASS

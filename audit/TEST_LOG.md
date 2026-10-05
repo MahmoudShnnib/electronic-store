@@ -21,3 +21,7 @@
 | F3 | App/DB error in the middle of a purchase | ✅ | FailureTest "F3" ×2 | crash on 2nd order line / on treasury insert → nothing saved, cart kept |
 | F5 | Double-click "Pay" / retried request | ✅ | FailureTest "F5" ×2 | checkout, record payment, complete, return form: each takes effect once |
 | F6 | Refund > paid, twice, on a cancelled order | ✅ | FailureTest "F6" | also refund on unpaid order, negative/zero amounts, store credit |
+| F4 | Two customers buy the last unit at the same time | ✅ | tests/Concurrency/RaceTest.php "F4" | real forked processes; one order, the other gets a clean cart error; stable 5/5 runs |
+| F5 | (simultaneous half) same checkout / payment / return sent at the same instant | ✅ | RaceTest "F5" ×3 | one order, one payment + treasury line, one refund + restock |
+| F8 | Delete a product that has past orders | ✅ | ProductAndInputTest "F8" | only catalog counts move; open order still cancels (stock back), completed one still returns; pages render |
+| F9 | Invalid inputs: negative / zero / decimal / huge | ✅ | ProductAndInputTest "F9" ×2 | refused everywhere (cart, manual order, POS, stock dialog, payments); 0 price and 99,999,999 LYD price flow through exactly |
