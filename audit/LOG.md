@@ -16,3 +16,6 @@
 - iter 14: audit trail A2 - FAIL - manual treasury movement without a reason accepted - BUGS #5; fixed in 926983a; suite 487 green; checker PASS
 - iter 15: F8 delete product, F9 invalid inputs - PASS
 - iter 16: F4 race last unit + simultaneous double submits (forked processes, new Concurrency suite) - PASS 5/5; full suite 494 green (parallel + serial); checker PASS
+- iter 17: X1 valuation vs cost snapshot - FAIL - BUGS #6; fixed in 820115a
+- iter 18: X2 dashboard day vs report day - FAIL - BUGS #7; fixed in 5e16eea; suite 497 green; checker PASS
+- iter 19: final report written; AUDIT COMPLETE

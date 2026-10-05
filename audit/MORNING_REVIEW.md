@@ -1,6 +1,97 @@
-# Morning review
+# Morning review — overnight finance & inventory audit (2026-10-05)
 
-(Final report goes at the top when the audit completes.)
+Branch `audit/finance` (forked from `fix/db-consistency-qa` @ d46c4ee). 18 commits, nothing
+pushed or merged. Your uncommitted `CLAUDE.md` / `package-lock.json` changes are untouched.
+Full suite: **497 passed** (was 445). `php audit/check_invariants.php`: **ALL RULES PASS**
+on the local dev DB and the test DB (S9 shows SKIP on dev until you run the new migration).
+19 iterations of 80 used.
+
+## 1. Scenario results
+
+| id | Scenario | Result |
+|---|---|---|
+| H1 | Buy 1 item | ✅ |
+| H2 | Buy several items | ✅ |
+| H3 | Buy the last item in stock | ✅ |
+| H4 | Full refund | ✅ after BUG 1 |
+| H5 | Partial refund (one item of several) | ✅ after BUG 1 (🔴 BD1) |
+| H6 | Refund then re-buy | ✅ after BUG 1 |
+| H7 | Add stock | ✅ |
+| H8 | Add stock to a product with pending orders | ✅ (🔴 BD2) |
+| H9 | Change price; old orders and reports unchanged | ✅ |
+| H10 | Edit an order before shipping | **BLOCKED** — no order-editing feature exists |
+| H11 | Cancel an unpaid order | ✅ after BUG 3 |
+| H12 | Cancel a paid order (+ deposit refunded on an open order) | ✅ after BUGS 3, 4 |
+| H13 | Write off stolen/damaged, incl. one in a cart | ✅ after BUG 2 (🔴 BD3) |
+| F1 | Payment fails / times out after stock reserved | ✅ |
+| F2 | Refund fails at the payment step | ✅ |
+| F3 | App/DB error mid-purchase (and mid-payment) | ✅ |
+| F4 | Two customers buy the last unit at the same time | ✅ (real forked processes) |
+| F5 | Double-click Pay / retried request (sequential + simultaneous) | ✅ |
+| F6 | Refund > paid, twice, on cancelled / unpaid order | ✅ |
+| F7 | Write off more than exists | ✅ |
+| F8 | Delete a product that has past orders | ✅ |
+| F9 | Invalid inputs (negative, zero, decimal, huge) | ✅ |
+| X1 | Extra: inventory value vs sale cost for a variant with no own cost | ✅ after BUG 6 |
+| X2 | Extra: dashboard day vs report day around midnight | ✅ after BUG 7 |
+
+Each scenario test snapshots ~every money/stock place (stock levels, ledger, orders and
+lines, admin order page, payments, refunds, treasury, coupons, catalogue prices, storefront
+availability, sales/invoice/valuation reports, dashboard), runs the action through the real
+routes, asserts the **exact** set of places that changed, and then runs the invariant checker.
+Tests: `tests/Feature/FinanceAudit/*`, `tests/Concurrency/RaceTest.php`.
+
+## 2. Bugs found (all fixed — none blocked)
+
+| # | Bug | Commit |
+|---|---|---|
+| 1 | Dashboard best sellers counted refunded orders in full (a fully returned product still showed as a best seller with its revenue). Regression from 3dde664. | `cb287ee` |
+| 2 | Supplier returns "from damaged" left no ledger record of how many units left the damaged count. New column `inventory_movements.damaged_change` + migration + invariant S9. | `cf1059e` |
+| 3 | "Outstanding" on the order page and invoices report ignored cancellation and refunded deposits — showed a cancelled order as owing its total, and less owed than completion actually collects after a deposit refund. | `89dbbb5` |
+| 4 | Revenue (reports + dashboard) subtracted a refunded *deposit* from the sale: deposit 300 refunded, order then paid 1,000 → booked 700 while the treasury held 1,000. | `df328b9` |
+| 5 | Manual treasury deposits/withdrawals could be saved with no reason. Note is now required. | `926983a` |
+| 6 | Inventory valuation counted variants with no own cost at 0; sales/profit use the product cost. | `820115a` |
+| 7 | Dashboard "today"/"this month"/chart used UTC days; reports use Africa/Tripoli. | `5e16eea` |
+
+Details (expected / actual / place / root cause): `audit/BUGS.md`.
+
+## 3. 🔴 Business decisions required (nothing implemented)
+
+- **BD1** Product/category/brand reports drop an order entirely once any refund lands (a kept phone vanishes because one cable came back). Keep, net returned units, or split the refund? (details below)
+- **BD2** Costing: receiving a PO never updates product cost, so valuation/profit use the typed cost, not what was paid. Standard cost, last cost or weighted average?
+- **BD3** No "stolen/lost" movement type — theft is a `manual_decrease` with free text.
+- **BD4** A product can be priced 0 (form allows `min:0`); such orders complete as "paid" with no payment. Intended?
+- **BD5** Revenue is recognised when an order is *placed* (open, unpaid COD orders count). Or at payment/completion?
+- **BD6** A partial refund moves a completed order to `refunded`; after that no other item can go through the return form (only money-only refunds).
+- **BD7** Cancelling an order hard-deletes its coupon-redemption row (the order keeps discount + coupon code).
+- **BD8** A deleted (trashed) product's remaining stock still counts in inventory value. Units physically exist, so I left it.
+- **Rules M3/M4** — my own wording is wrong for "deposit refunded, then order completed"; proposed new wording below. Not changed, per your rule.
+
+## 4. Changes to payment, refund or pricing logic — review these first
+
+No change was made to `app/Actions/Payments/`, `app/Actions/Checkout/`, `CreateRefund` or
+`ResolveOrderIssue`, middleware, auth or roles. What *does* touch money:
+
+1. **`df328b9` revenue formula** (`ReportService::NET_TOTAL`, `DashboardController` `$netTotal`): open orders count at their total; completed/refunded at payments − refunds (= total − refunds for every ordinary sale). Changes reported revenue only where a refund happened on an open order.
+2. **`89dbbb5` outstanding** (`OrderQueryService::showProps`, `ReportService::invoices/invoiceSummary`): total − (payments − refunds) for open/completed orders, 0 for cancelled/refunded — the amount `settleOutstanding` collects. Display/report only; collection logic unchanged.
+3. **`926983a` treasury note required** (`StoreTreasuryTransactionRequest`). Four existing tests now send a note so they keep testing what they were written for.
+4. Reporting only: `cb287ee` (best sellers), `820115a` (valuation cost fallback), `5e16eea` (dashboard timezone).
+5. Inventory: `cf1059e` adds `damaged_change` to the ledger (`RecordMovement`, migration).
+
+## 5. Top 3 recommendations
+
+1. **One source of truth for derived money.** 4 of 7 bugs were the same number (revenue, outstanding, best sellers, cost) computed differently on different screens. Put "net paid", "owed", "revenue of an order" and "unit cost" in one place (a query scope / small service) that reports, dashboard, order page and invoices all call.
+2. **Make refunds say what they are for.** A refund row has no link to order lines and no "prepayment vs goods returned" flag, so reports must guess from order status (BD1, BUG 4, rules M3/M4). Add `refund_items` (or at least a `kind`) when you next touch refunds.
+3. **Run the checker continuously.** Schedule `php audit/check_invariants.php` (read-only) daily against production and alert on FAIL, and keep the `Concurrency` suite in CI (needs `pcntl`/`posix`). The existing row locks held under every race I threw at them; this keeps it that way.
+
+## 6. Things you need to do
+
+- `php artisan migrate` on dev (and on deploy): `2026_10_05_100000_add_damaged_change_to_inventory_movements`.
+- CI: `phpunit.xml` now has a `Concurrency` suite; the runner needs the `pcntl` and `posix` PHP extensions.
+- Decide BD1–BD8 and the M3/M4 wording.
+
+---
+
 
 ## Questions / notes for you
 

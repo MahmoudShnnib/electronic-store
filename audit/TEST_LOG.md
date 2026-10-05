@@ -25,3 +25,7 @@
 | F5 | (simultaneous half) same checkout / payment / return sent at the same instant | ✅ | RaceTest "F5" ×3 | one order, one payment + treasury line, one refund + restock |
 | F8 | Delete a product that has past orders | ✅ | ProductAndInputTest "F8" | only catalog counts move; open order still cancels (stock back), completed one still returns; pages render |
 | F9 | Invalid inputs: negative / zero / decimal / huge | ✅ | ProductAndInputTest "F9" ×2 | refused everywhere (cart, manual order, POS, stock dialog, payments); 0 price and 99,999,999 LYD price flow through exactly |
+| X1 | (extra) Inventory value vs cost of a sale, variant without own cost | ✅ (after BUG 6) | CrossScreenTest "X1" | |
+| X2 | (extra) Dashboard day vs report day around midnight | ✅ (after BUG 7) | DashboardDayTest ×2 | |
+| — | Audit trail: manual treasury movement must have a reason | ✅ (after BUG 5) | AuditTrailTest | |
+| — | Checker self-test (catches drift per rule) | ✅ | CheckerSelfTest ×10 | |

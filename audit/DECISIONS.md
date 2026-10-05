@@ -14,3 +14,5 @@ One line each: what, and why.
 - D10 Rules M3 ("a completed order never carries refunds") and M4 ("every closed order was paid exactly its total") are wrong for a deposit refunded before completion. Per the hard rules I did NOT change them; DepositRefundTest asserts the checker reports exactly M3+M4 for that order, and MORNING_REVIEW proposes new wording.
 - D11 BUG 4 fix leaves the cancelled-order figure in "sales by status" as it was (total − refunds) to keep the change minimal.
 - D12 Added a `Concurrency` test suite (phpunit.xml + tests/Pest.php, DatabaseTruncation) for F4: real races need committed data, which RefreshDatabase's wrapping transaction hides. Needs the PHP `pcntl` and `posix` extensions (present locally; check CI).
+- D13 After the 23 listed scenarios I used spare iterations on two FINANCE_MAP hypotheses (X1, X2) because they are exactly the "one place updates, another disagrees" class the audit targets. Both were real (BUGS 6, 7).
+- D14 Hypotheses 5 (partial refund blocks further returns) and 7 (no "stolen" type) are business rules, logged as BD items, not changed.
