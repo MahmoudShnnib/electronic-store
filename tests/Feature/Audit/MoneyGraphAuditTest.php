@@ -199,7 +199,7 @@ it('MON-8 (check): refunds cannot exceed what was paid and payments cannot excee
 
 it('MON-9: a manual treasury withdrawal cannot take the cash drawer below zero', function (): void {
     $this->actingAs(staff('super_admin'))
-        ->post(route('admin.treasury.store'), ['direction' => 'out', 'account' => 'cash', 'amount' => '500']);
+        ->post(route('admin.treasury.store'), ['direction' => 'out', 'account' => 'cash', 'amount' => '500', 'note' => 'MON-9']);
 
     expect(app(TreasuryQueryService::class)->balances()['cash'])->toBeGreaterThanOrEqual(0);
 });

@@ -310,14 +310,14 @@ it('keeps the till, treasury and refunds in step through a POS shift', function 
 
 it('refuses treasury withdrawals the account cannot cover, and refunds too', function (): void {
     $t = $this;
-    qaSend($t, $t->admin, 'deposit 50 cash', 'post', '/admin/treasury', ['direction' => 'in', 'account' => 'cash', 'amount' => 50]);
-    qaSend($t, $t->admin, 'withdraw 80 cash', 'post', '/admin/treasury', ['direction' => 'out', 'account' => 'cash', 'amount' => 80], 'reject');
+    qaSend($t, $t->admin, 'deposit 50 cash', 'post', '/admin/treasury', ['direction' => 'in', 'account' => 'cash', 'amount' => 50, 'note' => 'QA']);
+    qaSend($t, $t->admin, 'withdraw 80 cash', 'post', '/admin/treasury', ['direction' => 'out', 'account' => 'cash', 'amount' => 80, 'note' => 'QA'], 'reject');
 
     // A bank-transfer order paid in, then the bank is emptied by hand, then refunded.
     qaSend($t, $t->admin, 'manual bank order', 'post', '/admin/orders', [...qaCheckout(['payment_method' => 'bank_transfer']), 'items' => [['product_id' => $t->cable->id, 'quantity' => 1]]]);
     $order = Order::query()->latest('id')->firstOrFail();
     qaSend($t, $t->admin, 'confirm transfer 5', 'post', "/admin/orders/{$order->id}/payments", ['amount' => 5]);
-    qaSend($t, $t->admin, 'withdraw whole bank balance', 'post', '/admin/treasury', ['direction' => 'out', 'account' => 'bank', 'amount' => 5]);
+    qaSend($t, $t->admin, 'withdraw whole bank balance', 'post', '/admin/treasury', ['direction' => 'out', 'account' => 'bank', 'amount' => 5, 'note' => 'QA']);
     qaSend($t, $t->admin, 'refund from empty bank account', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 5, 'method' => 'bank_transfer'], 'reject');
 });
 
@@ -373,7 +373,7 @@ it('refuses LYD amounts it cannot store exactly, instead of rounding them', func
     $order = Order::query()->latest('id')->firstOrFail();
     foreach (['12.345', '0.005', '1.999'] as $typed) {
         qaSend($t, $t->admin, "payment amount '$typed'", 'post', "/admin/orders/{$order->id}/payments", ['amount' => $typed], 'reject');
-        qaSend($t, $t->admin, "treasury deposit '$typed'", 'post', '/admin/treasury', ['direction' => 'in', 'account' => 'cash', 'amount' => $typed], 'reject');
+        qaSend($t, $t->admin, "treasury deposit '$typed'", 'post', '/admin/treasury', ['direction' => 'in', 'account' => 'cash', 'amount' => $typed, 'note' => 'QA'], 'reject');
     }
     qaSend($t, $t->admin, "payment amount '12.34'", 'post', "/admin/orders/{$order->id}/payments", ['amount' => '12.34']);
 });
