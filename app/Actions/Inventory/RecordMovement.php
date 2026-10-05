@@ -69,6 +69,7 @@ final class RecordMovement
             );
         }
 
+        $damagedBefore = $stock->damaged;
         $stock->quantity = $after;
         // `reserved` is a counter, not sellable stock: clamp it like `damaged`
         // and `incoming` below. Throwing here meant that one drifted row made
@@ -98,6 +99,8 @@ final class RecordMovement
             'quantity_before' => $before,
             'quantity_change' => $quantityChange,
             'quantity_after' => $after,
+            // What actually moved in or out of the damaged count (after the clamp).
+            'damaged_change' => $stock->damaged - $damagedBefore,
             'reference_type' => $reference?->getMorphClass(),
             'reference_id' => $reference?->getKey(),
             'reason' => $reason,

@@ -98,3 +98,26 @@ function finNewOrderPlaces(Order $order, array $lines, string $status = 'in_prog
         "report.invoice.{$order->number}.outstanding" => finFmt($total - $paid),
     ];
 }
+
+function finComplete($test, Order $order): void
+{
+    $test->actingAs($test->admin)->post("/admin/orders/{$order->id}/status", ['status' => 'completed'])->assertSessionHasNoErrors();
+}
+
+/** The admin return form: refund an amount (LYD) and put the listed units back on the shelf. */
+function finReturn($test, Order $order, int $refundCents, array $unitsBySku): void
+{
+    $items = $order->items()->get()->mapWithKeys(fn ($i) => [$i->id => $unitsBySku[$i->sku] ?? 0])->all();
+    $test->actingAs($test->admin)->post("/admin/orders/{$order->id}/issue", [
+        'reason' => 'Customer returned goods', 'amount' => $refundCents / 100, 'method' => 'cash', 'restock' => true, 'items' => $items,
+    ])->assertSessionHasNoErrors();
+}
+
+/** The admin stock dialog. Returns the response so callers can assert errors. */
+function finAdjust($test, Product $product, int $qty, string $type, string $reason = 'Audit adjustment', array $extra = [])
+{
+    return $test->actingAs($test->admin)->post('/admin/inventory/adjust', [
+        'warehouse_id' => $test->main->id, 'product_id' => $product->id, 'quantity_change' => $qty,
+        'type' => $type, 'reason' => $reason, ...$extra,
+    ]);
+}

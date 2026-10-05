@@ -35,7 +35,8 @@ DB::rollBack();
 
 $failed = 0;
 foreach ($results as $rule => $violations) {
-    $status = $violations === [] ? 'PASS' : 'FAIL';
+    $skipped = count($violations) === 1 && str_starts_with($violations[0], 'SKIPPED');
+    $status = $violations === [] ? 'PASS' : ($skipped ? 'SKIP' : 'FAIL');
     echo sprintf("%s  %-3s %s\n", $status, $rule, AUDIT_RULES[$rule]);
     foreach (array_slice($violations, 0, 50) as $line) {
         echo "        - $line\n";
@@ -43,7 +44,7 @@ foreach ($results as $rule => $violations) {
     if (count($violations) > 50) {
         echo '        … and '.(count($violations) - 50)." more\n";
     }
-    $failed += $violations === [] ? 0 : 1;
+    $failed += $violations === [] || $skipped ? 0 : 1;
 }
 
 echo "\n".($failed === 0 ? 'ALL RULES PASS' : "$failed rule(s) FAIL")."\n";

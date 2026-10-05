@@ -18,6 +18,7 @@ use App\Models\PurchaseOrder;
 use App\Models\Refund;
 use App\Models\StockTransfer;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 const AUDIT_RULES = [
     'S1' => 'Ledger = shelf (stock_levels.quantity = Σ movements, chained)',
@@ -28,6 +29,7 @@ const AUDIT_RULES = [
     'S6' => 'Every ledger key has a stock row',
     'S7' => 'Order stock legs (sold / cancelled) match the order lines',
     'S8' => 'No unit returned twice; returns only on completed/refunded orders',
+    'S9' => 'damaged = Σ ledger damaged_change (every damaged unit in/out is recorded)',
     'O1' => 'Line arithmetic (unit × qty − discount = line total, sane values)',
     'O2' => 'Order arithmetic (subtotal, discount, total)',
     'O4' => 'Status history and timestamps match the status',
@@ -57,6 +59,11 @@ function auditInvariants(): array
     $byKey = $movements->groupBy($key);
     $levels = DB::table('stock_levels')->get();
     $levelKeys = [];
+    // Added by migration 2026_10_05_100000; a database that hasn't run it skips S9.
+    $hasDamagedChange = Schema::hasColumn('inventory_movements', 'damaged_change');
+    if (! $hasDamagedChange) {
+        $v['S9'][] = 'SKIPPED: inventory_movements.damaged_change missing — run php artisan migrate';
+    }
 
     $openUnits = DB::table('order_items')
         ->join('orders', 'orders.id', '=', 'order_items.order_id')
@@ -93,6 +100,9 @@ function auditInvariants(): array
             if ((int) $s->{$col} < 0) {
                 $v['S3'][] = "$k: $col is {$s->{$col}}";
             }
+        }
+        if ($hasDamagedChange && (int) $movs->sum('damaged_change') !== (int) $s->damaged) {
+            $v['S9'][] = "$k: damaged={$s->damaged}, ledger damaged_change sums to ".(int) $movs->sum('damaged_change');
         }
         $expR = (int) ($openUnits->get($k)->q ?? 0);
         if ((int) $s->reserved !== $expR) {

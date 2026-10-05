@@ -7,25 +7,9 @@ declare(strict_types=1);
  * staff (cash collected), then returned through the admin return form.
  */
 
-use App\Models\Order;
-
 require_once __DIR__.'/FinanceAuditSetup.php';
 
 beforeEach(fn () => finSetUp($this));
-
-function finComplete($test, Order $order): void
-{
-    $test->actingAs($test->admin)->post("/admin/orders/{$order->id}/status", ['status' => 'completed'])->assertSessionHasNoErrors();
-}
-
-/** The admin return form: refund an amount (LYD) and put the listed units back on the shelf. */
-function finReturn($test, Order $order, int $refundCents, array $unitsBySku): void
-{
-    $items = $order->items()->get()->mapWithKeys(fn ($i) => [$i->id => $unitsBySku[$i->sku] ?? 0])->all();
-    $test->actingAs($test->admin)->post("/admin/orders/{$order->id}/issue", [
-        'reason' => 'Customer returned goods', 'amount' => $refundCents / 100, 'method' => 'cash', 'restock' => true, 'items' => $items,
-    ])->assertSessionHasNoErrors();
-}
 
 it('H4: a full refund gives the money back, restocks, and nets the sale out everywhere', function (): void {
     $order = finBuy($this, $this->buyer, [[$this->phone, 1]]);

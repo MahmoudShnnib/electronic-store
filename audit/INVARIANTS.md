@@ -30,6 +30,11 @@ dashboard and sales report already use). Money is integer hundredths.
 - **S8 No double return.** Per order line, units returned (`customer_return` rows for the
   order) ≤ units sold. Returns only exist on completed/refunded orders.
 
+- **S9 Damaged is on the ledger.** For every key, `stock_levels.damaged` = Σ
+  `inventory_movements.damaged_change` (added during the audit, BUG 2). Rows written before
+  that migration only carry the delta for `damaged` write-offs; older supplier returns from
+  damaged can't be reconstructed.
+
 ## Orders & prices
 
 - **O1 Line arithmetic.** `line_total = unit_price × quantity − discount` on every line;
