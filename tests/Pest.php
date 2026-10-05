@@ -7,6 +7,7 @@ use App\Models\ProductVariant;
 use App\Models\User;
 use App\Models\Warehouse;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,6 +17,14 @@ pest()->extend(TestCase::class)
         $this->seed(RolesAndPermissionsSeeder::class);
     })
     ->in('Feature');
+
+// Race tests fork real processes, which only see committed rows: no wrapping transaction.
+pest()->extend(TestCase::class)
+    ->use(DatabaseTruncation::class)
+    ->beforeEach(function (): void {
+        $this->seed(RolesAndPermissionsSeeder::class);
+    })
+    ->in('Concurrency');
 
 /*
 |--------------------------------------------------------------------------
