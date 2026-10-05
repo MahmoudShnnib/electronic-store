@@ -1,11 +1,13 @@
 # STATE — overnight finance & inventory audit
 
-**Phase:** 3 (scenario loop) — **Iteration:** 3/80
-**Current scenario:** H1 Buy 1 item (not started)
-**Doing / next step:** write `tests/Qa/FinanceSnapshot.php` (snapshot + diff of every place in
-FINANCE_MAP) and `tests/Feature/FinanceAudit/HappyPathTest.php`, starting with H1.
+**Phase:** 3 (scenario loop) — **Iteration:** 4/80
+**Current scenario:** H4 Full refund (next)
+**Doing / next step:** write `tests/Feature/FinanceAudit/RefundTest.php` (H4 full refund, H5
+partial refund, H6 refund then re-buy) using finSetUp/finBuy/finSnapshot/finExpectChanges.
+Harness: tests/Qa/FinanceSnapshot.php (snapshot of every place + exact diff assert + checker),
+tests/Feature/FinanceAudit/FinanceAuditSetup.php (fixtures PHONE×10 100.00, CABLE×50 5.00, MUG×1 2.00).
 
-## Scenarios (23): done 0 / remaining 23 / blocked 0
+## Scenarios (23): done 3 (H1-H3) / remaining 20 / blocked 0
 Happy: H1 buy 1 · H2 buy several · H3 buy last unit · H4 full refund · H5 partial refund ·
 H6 refund then re-buy · H7 add stock · H8 add stock w/ pending orders · H9 price change ·
 H10 edit order · H11 cancel unpaid · H12 cancel paid · H13 write-off (incl. in a cart)

@@ -11,6 +11,7 @@ declare(strict_types=1);
  */
 
 use App\Models\CashierShift;
+use App\Models\InventoryMovement;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\PurchaseOrder;
@@ -189,7 +190,7 @@ function auditInvariants(): array
         if ((int) $items->sum('line_total_cents') !== (int) $o->total_cents
             || (int) $o->subtotal_cents - (int) $o->discount_cents + (int) $o->tax_cents !== (int) $o->total_cents
             || (int) $o->total_cents < 0) {
-            $v['O2'][] = "$n: total {$o->total_cents} != Σ line totals ".$items->sum('line_total_cents')." / subtotal − discount + tax";
+            $v['O2'][] = "$n: total {$o->total_cents} != Σ line totals ".$items->sum('line_total_cents').' / subtotal − discount + tax';
         }
 
         $hist = DB::table('order_status_histories')->where('order_id', $o->id)->orderBy('id')->get();
@@ -343,7 +344,7 @@ function auditInvariants(): array
             $v['W1'][] = "write-off movement #{$m->id} references order #{$m->reference_id}";
         }
     }
-    $writeOffMorph = (new App\Models\InventoryMovement)->getMorphClass();
+    $writeOffMorph = (new InventoryMovement)->getMorphClass();
     foreach ($treasury->where('source_type', $writeOffMorph) as $t) {
         $v['W1'][] = "treasury #{$t->id} sourced from a stock movement";
     }
