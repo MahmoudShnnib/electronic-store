@@ -1,13 +1,15 @@
 # STATE — overnight finance & inventory audit
 
-**Phase:** 3 (scenario loop) — **Iteration:** 4/80
-**Current scenario:** H4 Full refund (next)
-**Doing / next step:** write `tests/Feature/FinanceAudit/RefundTest.php` (H4 full refund, H5
-partial refund, H6 refund then re-buy) using finSetUp/finBuy/finSnapshot/finExpectChanges.
+**Phase:** 3 (scenario loop) — **Iteration:** 6/80
+**Current scenario:** H7 Add stock (next)
+**Doing / next step:** write `tests/Feature/FinanceAudit/StockTest.php` (H7 add stock, H8 add stock
+with pending orders, H13 write-off incl. one in a cart, F7 write off more than exists) using
+finSetUp/finBuy/finSnapshot/finExpectChanges. Refund helpers finComplete/finReturn are in RefundTest.php
+(move to FinanceAuditSetup.php if another file needs them).
 Harness: tests/Qa/FinanceSnapshot.php (snapshot of every place + exact diff assert + checker),
 tests/Feature/FinanceAudit/FinanceAuditSetup.php (fixtures PHONE×10 100.00, CABLE×50 5.00, MUG×1 2.00).
 
-## Scenarios (23): done 3 (H1-H3) / remaining 20 / blocked 0
+## Scenarios (23): done 6 (H1-H6) / remaining 17 / blocked 0 — bugs: 1 fixed (BUGS.md)
 Happy: H1 buy 1 · H2 buy several · H3 buy last unit · H4 full refund · H5 partial refund ·
 H6 refund then re-buy · H7 add stock · H8 add stock w/ pending orders · H9 price change ·
 H10 edit order · H11 cancel unpaid · H12 cancel paid · H13 write-off (incl. in a cart)
@@ -31,3 +33,5 @@ F7 write off > stock · F8 delete product w/ orders · F9 invalid inputs
 - Helpers in tests/Pest.php: `customer()`, `staff('super_admin')`, `defaultWarehouse()`, `giveStock()`.
 - Existing harness to copy patterns from: tests/Feature/Qa/DbHarmonyTest.php (`qaCheckout()` payload).
 - Payment/refund/checkout code changes → list in MORNING_REVIEW "changes to review first".
+- Pest diff output is ANSI-coloured even with NO_COLOR: pipe through `sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g'`.
+- Restock/return changes report.valuation.* (units, cost, retail) — remember it in expectations.
