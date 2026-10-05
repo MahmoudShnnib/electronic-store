@@ -12,3 +12,5 @@
 - iter 10: H11/H12 cancel - FAIL - order page outstanding on cancelled order; deposit refund ignored in outstanding - BUGS #3
 - iter 11: BUGS #3 fixed in 89dbbb5 (outstanding = total - net paid for open/completed, 0 otherwise; order page + invoices report)
 - iter 12: H12 deposit then complete - FAIL - revenue booked 700 of 1000 - BUGS #4; fixed in df328b9 (NET_TOTAL by status); checker payment-status mapping corrected; suite 477 green; checker PASS
+- iter 13: F1, F2, F3, F5, F6 failure paths - PASS (no bugs)
+- iter 14: audit trail A2 - FAIL - manual treasury movement without a reason accepted - BUGS #5; fixed in 926983a; suite 487 green; checker PASS

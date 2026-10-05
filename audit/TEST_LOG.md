@@ -16,3 +16,8 @@
 | H10 | Edit an order (change qty, remove item) before shipping | BLOCKED | — | No order-editing feature exists (no route/action). Building one is a feature, not a fix → MORNING_REVIEW |
 | H11 | Cancel an unpaid order | ✅ (after BUG 3) | OrderLifecycleTest "H11" | |
 | H12 | Cancel a paid order | ✅ (after BUGS 3, 4) | OrderLifecycleTest "H12", DepositRefundTest | cancel refused while money held; refund then cancel is clean. ⚠ rules M3/M4 wording conflicts with deposit-refund flow (MORNING_REVIEW) |
+| F1 | Payment fails / times out after stock reserved | ✅ | FailureTest "F1" | no gateway: refused amounts change nothing; stale COD flagged after 3 days; cancel releases stock, no revenue |
+| F2 | Refund fails at the payment step | ✅ | FailureTest "F2" | treasury can't cover it → no refund, no restock, status stays completed, no half-logged history |
+| F3 | App/DB error in the middle of a purchase | ✅ | FailureTest "F3" ×2 | crash on 2nd order line / on treasury insert → nothing saved, cart kept |
+| F5 | Double-click "Pay" / retried request | ✅ | FailureTest "F5" ×2 | checkout, record payment, complete, return form: each takes effect once |
+| F6 | Refund > paid, twice, on a cancelled order | ✅ | FailureTest "F6" | also refund on unpaid order, negative/zero amounts, store credit |
