@@ -1,13 +1,15 @@
 # STATE — overnight finance & inventory audit
 
-**Phase:** 3 (scenario loop) — **Iteration:** 8/80
-**Current scenario:** H9 Price change (next)
-**Doing / next step:** write `tests/Feature/FinanceAudit/OrderLifecycleTest.php`: H9 price change
-(use SaveProduct service; old orders + reports unchanged), H10 edit order (no feature → BLOCKED,
-document), H11 cancel unpaid, H12 cancel paid (must refund first), then failure scenarios F1–F6, F8, F9.
-Helpers in FinanceAuditSetup.php: finSetUp, finBuy, finNewOrderPlaces, finComplete, finReturn, finAdjust.
+**Phase:** 3 (scenario loop) — **Iteration:** 12/80
+**Current scenario:** F1 Payment fails / times out (next) — all happy paths done
+**Doing / next step:** write `tests/Feature/FinanceAudit/FailureTest.php`: F1 (no gateway: unpaid COD
+order sits reserved → cancel releases stock, no revenue), F2 refund fails at payment step (treasury
+too low → nothing changes, incl. restock), F3 DB error mid-purchase (throw inside PlaceOrder → nothing
+saved), F5 double submit checkout / double payment, F6 refund > paid / twice / cancelled order,
+F8 delete product with orders, F9 invalid inputs. Then F4 concurrency (needs committed data + pcntl_fork,
+non-RefreshDatabase test; parallel test DBs are per-worker).
 
-## Scenarios (23): done 10 (H1-H8, H13, F7) / remaining 13 / blocked 0 — bugs: 2 fixed (BUGS.md)
+## Scenarios (23): done 14 (H1-H9, H11-H13, F7) / remaining 8 (F1-F6, F8, F9) / blocked 1 (H10) — bugs: 4 fixed
 Happy: H1 buy 1 · H2 buy several · H3 buy last unit · H4 full refund · H5 partial refund ·
 H6 refund then re-buy · H7 add stock · H8 add stock w/ pending orders · H9 price change ·
 H10 edit order · H11 cancel unpaid · H12 cancel paid · H13 write-off (incl. in a cart)

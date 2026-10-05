@@ -32,3 +32,19 @@
 - Run `php artisan migrate` on the dev DB (and production when deploying): migration
   `2026_10_05_100000_add_damaged_change_to_inventory_movements` (BUG 2). I did not migrate the
   dev DB myself; `check_invariants` shows S9 as SKIP until you do.
+
+## Rules that look wrong (not changed — your call)
+
+- **M3** says "a completed order never carries refunds (it must have moved to refunded)" and
+  **M4** says "every closed order was paid exactly its total". Both break for a legitimate
+  flow: take a 300 deposit, refund it while the order is open, complete the order (1,000
+  collected). Money is right (paid 1,300, refunded 300, kept 1,000) but the wording fails.
+  Proposed wording: M3 — "a refund made *after* completion moves the order to refunded";
+  M4 — "for closed orders, payments − refunds = revenue the reports record". Until you
+  decide, `check_invariants` will FAIL M3/M4 on any such order.
+
+## Missing feature
+
+- **H10 — editing an order** (change a quantity, remove a line before shipping) does not
+  exist. Today staff must cancel and re-enter the order. If you want it, it needs rules for
+  re-pricing (old price or current?), coupons, partial stock release and paid deposits.
