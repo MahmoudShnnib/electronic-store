@@ -323,11 +323,13 @@ final class ReportService
 
     public function inventoryValuation(): array
     {
+        // A variant saved without its own cost stores 0 and falls back to the product's
+        // cost — the same rule the sale-time cost snapshot and the profit report use.
         $rows = DB::table('stock_levels')
             ->leftJoin('product_variants', 'product_variants.id', '=', 'stock_levels.product_variant_id')
             ->join('products', 'products.id', '=', 'stock_levels.product_id')
             ->selectRaw('
-                SUM((stock_levels.quantity + stock_levels.reserved) * COALESCE(product_variants.cost_price_cents, products.cost_price_cents, 0)) as cost_value,
+                SUM((stock_levels.quantity + stock_levels.reserved) * COALESCE(NULLIF(product_variants.cost_price_cents, 0), products.cost_price_cents, 0)) as cost_value,
                 SUM((stock_levels.quantity + stock_levels.reserved) * COALESCE(product_variants.price_cents, products.price_cents, 0)) as retail_value,
                 SUM(stock_levels.quantity + stock_levels.reserved) as units
             ')
