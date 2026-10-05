@@ -34,6 +34,15 @@ final class ReportService
     /** An order's total minus what was refunded on it; needs revenueOrders()'s join. */
     private const NET_TOTAL = '(orders.total_cents - COALESCE(rf.refunded_cents, 0))';
 
+    /**
+     * What is still owed on an order: exactly what completing it would collect
+     * (UpdateOrderStatus::settleOutstanding — total minus payments net of refunds).
+     * A cancelled or refunded order owes nothing.
+     */
+    private const OWED = "CASE WHEN orders.status IN ('in_progress', 'completed') THEN GREATEST(orders.total_cents"
+        ." - COALESCE((SELECT SUM(p.amount_cents) FROM payments p WHERE p.order_id = orders.id AND p.status = 'confirmed'), 0)"
+        ." + COALESCE((SELECT SUM(r.amount_cents) FROM refunds r WHERE r.order_id = orders.id AND r.status = 'completed'), 0), 0) ELSE 0 END";
+
     private function revenueOrders(CarbonImmutable $from, CarbonImmutable $to): Builder
     {
         $refunds = DB::table('refunds')
@@ -245,7 +254,7 @@ final class ReportService
             ->whereNull('deleted_at')
             ->where('status', '!=', OrderStatus::Cancelled->value)
             ->whereBetween('created_at', [$from, $to])
-            ->selectRaw('COUNT(*) as invoices, COALESCE(SUM(total_cents),0) as invoiced')
+            ->selectRaw('COUNT(*) as invoices, COALESCE(SUM(total_cents),0) as invoiced, COALESCE(SUM('.self::OWED.'),0) as owed')
             ->first();
 
         $paid = (int) DB::table('payments')
@@ -260,7 +269,7 @@ final class ReportService
             'invoices' => (int) $orders->invoices,
             'invoiced_formatted' => Money::format((int) $orders->invoiced),
             'paid_formatted' => Money::format($paid),
-            'outstanding_formatted' => Money::format(max(0, (int) $orders->invoiced - $paid)),
+            'outstanding_formatted' => Money::format((int) $orders->owed),
         ];
     }
 
@@ -277,12 +286,12 @@ final class ReportService
             ->groupBy('orders.id')
             ->orderByDesc('orders.created_at')
             ->limit($limit)
-            ->selectRaw('orders.id, orders.number, orders.customer, orders.status, orders.payment_status, orders.total_cents, orders.created_at, COALESCE(SUM(payments.amount_cents),0) as paid_cents')
+            ->selectRaw('orders.id, orders.number, orders.customer, orders.status, orders.payment_status, orders.total_cents, orders.created_at, COALESCE(SUM(payments.amount_cents),0) as paid_cents, '.self::OWED.' as owed_cents')
             ->get()
             ->map(function ($r): array {
                 $customer = json_decode((string) $r->customer, true) ?: [];
                 $paid = (int) $r->paid_cents;
-                $outstanding = $r->status === OrderStatus::Cancelled->value ? 0 : max(0, (int) $r->total_cents - $paid);
+                $outstanding = (int) $r->owed_cents;
 
                 return [
                     'order_id' => (int) $r->id,
