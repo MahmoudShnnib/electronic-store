@@ -68,7 +68,7 @@ const itemColumns: TableColumnType<PoItem>[] = [
         title: t('admin.common.outstanding'),
         customHeaderCell: () => ({ class: 'text-end' }),
         customCell: (record: PoItem) => ({
-            class: record.outstanding > 0 ? 'text-end font-semibold text-amber-600' : 'text-end text-emerald-600',
+            class: record.outstanding > 0 ? 'text-end font-semibold is-warning' : 'text-end is-money',
         }),
     },
     { key: 'unit_cost_formatted', dataIndex: 'unit_cost_formatted', title: t('admin.common.unit_cost'), ...endCell },
