@@ -130,11 +130,9 @@ function toggleActive(): void {
                 >
                     <template #bodyCell="{ column, record }">
                         <template v-if="column.key === 'number'">
-                            <Link
-                                :href="route('admin.orders.show', record.id)"
-                                class="font-medium text-blue-600 hover:underline dark:text-blue-400"
-                                >{{ record.number }}</Link
-                            >
+                            <Link :href="route('admin.orders.show', record.id)" class="admin-link font-medium hover:underline">{{
+                                record.number
+                            }}</Link>
                         </template>
                         <template v-else-if="column.key === 'total_formatted'">
                             <span class="font-medium">{{ record.total_formatted }}</span>
