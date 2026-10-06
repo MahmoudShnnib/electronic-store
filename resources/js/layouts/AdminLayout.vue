@@ -110,7 +110,7 @@ watchEffect(() => dayjs.locale(locale.value === 'ar' ? 'ar' : 'en-gb'));
                     <Link v-if="canUsePos" :href="route('admin.pos.register')">
                         <Button type="primary" class="admin-pos-btn" :aria-label="t('admin.nav.pos')">
                             <template #icon><ScanLine class="h-[18px] w-[18px]" /></template>
-                            <span class="hidden sm:inline">{{ t('admin.nav.pos') }}</span>
+                            <span class="!hidden sm:!inline">{{ t('admin.nav.pos') }}</span>
                         </Button>
                     </Link>
 
@@ -132,7 +132,7 @@ watchEffect(() => dayjs.locale(locale.value === 'ar' ? 'ar' : 'en-gb'));
                         @click="switchLocale(otherLocale)"
                     >
                         <template #icon><Languages class="h-[18px] w-[18px]" /></template>
-                        <span class="hidden sm:inline">{{ otherLocaleLabel }}</span>
+                        <span class="!hidden sm:!inline">{{ otherLocaleLabel }}</span>
                     </Button>
 
                     <Tooltip :title="t('admin.nav.toggle_dark')">
@@ -149,7 +149,7 @@ watchEffect(() => dayjs.locale(locale.value === 'ar' ? 'ar' : 'en-gb'));
                             <Avatar :size="30" class="admin-avatar uppercase">
                                 {{ user?.name?.charAt(0) ?? '?' }}
                             </Avatar>
-                            <span class="hidden max-w-32 truncate sm:block">{{ user?.name }}</span>
+                            <span class="!hidden max-w-32 truncate sm:!block">{{ user?.name }}</span>
                         </Button>
                         <template #overlay>
                             <Menu>
