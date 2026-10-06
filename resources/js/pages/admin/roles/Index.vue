@@ -104,7 +104,7 @@ function destroy(): void {
         <Card v-for="role in roles" :key="role.id" size="small">
             <template #title>
                 <Space>
-                    <ShieldCheck class="h-4 w-4 text-blue-500" />
+                    <ShieldCheck class="h-4 w-4 text-ad-accent" />
                     <span class="capitalize">{{ role.name.replaceAll('_', ' ') }}</span>
                 </Space>
             </template>
@@ -144,7 +144,7 @@ function destroy(): void {
                 <!-- One CheckboxGroup wraps every group, so the submitted array stays
                      `form.permissions` exactly as before while the visual grouping holds. -->
                 <CheckboxGroup v-model:value="form.permissions" class="grid max-h-96 gap-4 overflow-y-auto sm:grid-cols-2">
-                    <div v-for="(list, group) in groupedPermissions" :key="group" class="rounded-md border border-gray-100 p-3 dark:border-gray-800">
+                    <div v-for="(list, group) in groupedPermissions" :key="group" class="rounded-md border border-ad-line p-3">
                         <Typography.Text type="secondary" class="mb-2 block text-xs font-semibold uppercase tracking-wide">{{
                             group
                         }}</Typography.Text>
