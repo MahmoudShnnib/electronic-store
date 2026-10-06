@@ -38,7 +38,7 @@ function submit(): void {
     <div class="flex h-full items-center justify-center overflow-y-auto p-4">
         <Card class="w-full max-w-lg">
             <div class="mb-6 text-center">
-                <WarehouseIcon class="mx-auto mb-3 size-8 text-blue-600" />
+                <WarehouseIcon class="mx-auto mb-3 size-8 text-ad-accent" />
                 <Title :level="4" class="!mb-1">{{ t('admin.pos.open_shift') }}</Title>
                 <Text type="secondary" class="!text-sm">{{ t('admin.pos.open_shift_hint') }}</Text>
             </div>
