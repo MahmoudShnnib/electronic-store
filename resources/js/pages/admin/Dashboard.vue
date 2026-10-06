@@ -155,146 +155,140 @@ const recentOrderColumns: TableColumnType[] = [
         </template>
     </Alert>
 
-    <!-- Headline numbers -->
-    <div class="flex flex-wrap gap-4">
-        <div class="flex-[1_1_220px]">
+    <div class="admin-dash">
+        <!-- Headline numbers -->
+        <div class="admin-dash-kpis">
             <StatCard :label="t('admin.dashboard.revenue_today')" :value="kpis.revenue_today" tone="success" :icon="Banknote" />
-        </div>
-        <div class="flex-[1_1_220px]">
             <StatCard :label="t('admin.dashboard.revenue_this_month')" :value="kpis.revenue_month" tone="success" :icon="CalendarDays" />
-        </div>
-        <div class="flex-[1_1_220px]">
             <StatCard :label="t('admin.dashboard.total_orders')" :value="kpis.orders_total" :icon="ShoppingCart" />
-        </div>
-        <div class="flex-[1_1_220px]">
             <StatCard
                 :label="t('admin.common.products')"
                 :value="kpis.products_total"
-                :hint="t('admin.dashboard.active_count', { count: kpis.products_active })"
+                :suffix="t('admin.dashboard.active_count', { count: kpis.products_active })"
                 :icon="Package"
             />
         </div>
-    </div>
 
-    <!-- Grouped small counts -->
-    <div class="flex flex-wrap gap-4">
-        <section class="admin-stat-group flex-[2_1_456px]">
-            <h2>{{ t('admin.dashboard.orders_by_status') }}</h2>
-            <dl class="admin-stat-cells">
-                <div class="admin-stat-cell">
-                    <dt>{{ t('admin.dashboard.status_in_progress') }}</dt>
-                    <dd :class="kpis.orders_in_progress > 0 ? 'is-warning' : 'is-zero'">{{ kpis.orders_in_progress }}</dd>
-                </div>
-                <div class="admin-stat-cell">
-                    <dt>{{ t('admin.dashboard.status_completed') }}</dt>
-                    <dd :class="{ 'is-zero': kpis.orders_completed === 0 }">{{ kpis.orders_completed }}</dd>
-                </div>
-                <div class="admin-stat-cell">
-                    <dt>{{ t('admin.dashboard.status_cancelled') }}</dt>
-                    <dd :class="{ 'is-zero': kpis.orders_cancelled === 0 }">{{ kpis.orders_cancelled }}</dd>
-                </div>
-                <div class="admin-stat-cell">
-                    <dt>{{ t('admin.dashboard.status_refunded') }}</dt>
-                    <dd :class="{ 'is-zero': kpis.orders_refunded === 0 }">{{ kpis.orders_refunded }}</dd>
-                </div>
-            </dl>
-        </section>
-        <section class="admin-stat-group flex-[1_1_220px]">
-            <h2>{{ t('admin.nav.inventory') }}</h2>
-            <dl class="admin-stat-cells">
-                <div class="admin-stat-cell">
-                    <dt>{{ t('admin.dashboard.low_stock') }}</dt>
-                    <dd :class="kpis.low_stock > 0 ? 'is-warning' : 'is-zero'">{{ kpis.low_stock }}</dd>
-                </div>
-                <div class="admin-stat-cell">
-                    <dt>{{ t('admin.dashboard.out_of_stock') }}</dt>
-                    <dd :class="kpis.out_of_stock > 0 ? 'is-danger' : 'is-zero'">{{ kpis.out_of_stock }}</dd>
-                </div>
-            </dl>
-        </section>
-        <section class="admin-stat-group flex-[1_1_220px]">
-            <h2>{{ t('admin.dashboard.customers') }}</h2>
-            <dl class="admin-stat-cells">
-                <div class="admin-stat-cell">
-                    <dt>{{ t('admin.dashboard.registered') }}</dt>
-                    <dd :class="{ 'is-zero': kpis.customers_total === 0 }">{{ kpis.customers_total }}</dd>
-                </div>
-            </dl>
-        </section>
-    </div>
+        <!-- Grouped small counts -->
+        <div class="admin-dash-groups">
+            <section class="admin-stat-group">
+                <h2>{{ t('admin.dashboard.orders_by_status') }}</h2>
+                <dl class="admin-stat-cells">
+                    <div class="admin-stat-cell">
+                        <dt>{{ t('admin.dashboard.status_in_progress') }}</dt>
+                        <dd :class="kpis.orders_in_progress > 0 ? 'is-warning' : 'is-zero'">{{ kpis.orders_in_progress }}</dd>
+                    </div>
+                    <div class="admin-stat-cell">
+                        <dt>{{ t('admin.dashboard.status_completed') }}</dt>
+                        <dd :class="{ 'is-zero': kpis.orders_completed === 0 }">{{ kpis.orders_completed }}</dd>
+                    </div>
+                    <div class="admin-stat-cell">
+                        <dt>{{ t('admin.dashboard.status_cancelled') }}</dt>
+                        <dd :class="{ 'is-zero': kpis.orders_cancelled === 0 }">{{ kpis.orders_cancelled }}</dd>
+                    </div>
+                    <div class="admin-stat-cell">
+                        <dt>{{ t('admin.dashboard.status_refunded') }}</dt>
+                        <dd :class="{ 'is-zero': kpis.orders_refunded === 0 }">{{ kpis.orders_refunded }}</dd>
+                    </div>
+                </dl>
+            </section>
+            <section class="admin-stat-group">
+                <h2>{{ t('admin.nav.inventory') }}</h2>
+                <dl class="admin-stat-cells">
+                    <div class="admin-stat-cell">
+                        <dt>{{ t('admin.dashboard.low_stock') }}</dt>
+                        <dd :class="kpis.low_stock > 0 ? 'is-warning' : 'is-zero'">{{ kpis.low_stock }}</dd>
+                    </div>
+                    <div class="admin-stat-cell">
+                        <dt>{{ t('admin.dashboard.out_of_stock') }}</dt>
+                        <dd :class="kpis.out_of_stock > 0 ? 'is-danger' : 'is-zero'">{{ kpis.out_of_stock }}</dd>
+                    </div>
+                </dl>
+            </section>
+            <section class="admin-stat-group">
+                <h2>{{ t('admin.dashboard.customers') }}</h2>
+                <dl class="admin-stat-cells">
+                    <div class="admin-stat-cell">
+                        <dt>{{ t('admin.dashboard.registered') }}</dt>
+                        <dd :class="{ 'is-zero': kpis.customers_total === 0 }">{{ kpis.customers_total }}</dd>
+                    </div>
+                </dl>
+            </section>
+        </div>
 
-    <!-- Charts. Plots stay left-to-right in both languages: time runs that way. -->
-    <div class="flex flex-wrap gap-4">
-        <Card :title="t('admin.dashboard.revenue_chart')" class="min-w-0 flex-[1_1_420px]">
-            <div class="h-56" dir="ltr">
-                <Line :data="revenueChart" :options="chartOptions" />
-            </div>
-        </Card>
-        <Card :title="t('admin.dashboard.orders_chart')" class="min-w-0 flex-[1_1_420px]">
-            <div class="h-56" dir="ltr">
-                <Bar :data="ordersChart" :options="chartOptions" />
-            </div>
-        </Card>
-    </div>
+        <!-- Charts. Plots stay left-to-right in both languages: time runs that way. -->
+        <div class="admin-dash-charts">
+            <Card :title="t('admin.dashboard.revenue_chart')">
+                <div class="h-56" dir="ltr">
+                    <Line :data="revenueChart" :options="chartOptions" />
+                </div>
+            </Card>
+            <Card :title="t('admin.dashboard.orders_chart')">
+                <div class="h-56" dir="ltr">
+                    <Bar :data="ordersChart" :options="chartOptions" />
+                </div>
+            </Card>
+        </div>
 
-    <!-- Recent orders + side column -->
-    <div class="flex flex-wrap items-start gap-4">
-        <Card :title="t('admin.dashboard.recent_orders')" :body-style="{ padding: 0 }" class="min-w-0 flex-[2_1_520px] overflow-hidden">
-            <template #extra>
-                <Link :href="route('admin.orders.index')" class="admin-link">{{ t('admin.dashboard.view_all') }}</Link>
-            </template>
-            <Table
-                :columns="recentOrderColumns"
-                :data-source="recentOrders"
-                row-key="id"
-                :pagination="false"
-                size="middle"
-                :scroll="{ x: 'max-content' }"
-            >
-                <template #bodyCell="{ column, record }">
-                    <template v-if="column.key === 'number'">
-                        <Link :href="route('admin.orders.show', record.id)" class="admin-link font-medium">{{ record.number }}</Link>
-                    </template>
-                    <template v-else-if="column.key === 'status'">
-                        <StatusBadge :status="record.status" :label="record.status_label" />
-                    </template>
-                    <template v-else-if="column.key === 'total_formatted'">
-                        <span class="font-medium">{{ record.total_formatted }}</span>
-                    </template>
-                    <template v-else-if="column.key === 'created_at'">
-                        <Text type="secondary">{{ record.created_at }}</Text>
-                    </template>
+        <!-- Recent orders + side column -->
+        <div class="admin-dash-bottom">
+            <Card :title="t('admin.dashboard.recent_orders')" :body-style="{ padding: 0 }" class="overflow-hidden">
+                <template #extra>
+                    <Link :href="route('admin.orders.index')" class="admin-link">{{ t('admin.dashboard.view_all') }}</Link>
                 </template>
-                <template #emptyText>{{ t('admin.dashboard.no_orders') }}</template>
-            </Table>
-        </Card>
-
-        <div class="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
-            <Card :title="t('admin.dashboard.best_sellers')" :body-style="{ padding: 0 }">
-                <List :data-source="bestSellers" :locale="{ emptyText: t('admin.dashboard.no_sales') }" :split="true">
-                    <template #renderItem="{ item }">
-                        <ListItem class="gap-3">
-                            <span class="truncate" dir="auto">{{ item.name }}</span>
-                            <Text type="secondary" class="shrink-0 !text-xs">
-                                {{ t('admin.dashboard.sold_revenue', { sold: item.sold, revenue: item.revenue_formatted }) }}
-                            </Text>
-                        </ListItem>
+                <Table
+                    :columns="recentOrderColumns"
+                    :data-source="recentOrders"
+                    row-key="id"
+                    :pagination="false"
+                    size="middle"
+                    :scroll="{ x: 'max-content' }"
+                >
+                    <template #bodyCell="{ column, record }">
+                        <template v-if="column.key === 'number'">
+                            <Link :href="route('admin.orders.show', record.id)" class="admin-link font-medium">{{ record.number }}</Link>
+                        </template>
+                        <template v-else-if="column.key === 'status'">
+                            <StatusBadge :status="record.status" :label="record.status_label" />
+                        </template>
+                        <template v-else-if="column.key === 'total_formatted'">
+                            <span class="font-medium">{{ record.total_formatted }}</span>
+                        </template>
+                        <template v-else-if="column.key === 'created_at'">
+                            <Text type="secondary">{{ record.created_at }}</Text>
+                        </template>
                     </template>
-                </List>
+                    <template #emptyText>{{ t('admin.dashboard.no_orders') }}</template>
+                </Table>
             </Card>
 
-            <Card :title="t('admin.dashboard.recent_activity')" :body-style="{ padding: 0 }">
-                <List :data-source="recentActivity" row-key="id" :locale="{ emptyText: t('admin.dashboard.no_activity') }" :split="true">
-                    <template #renderItem="{ item }">
-                        <ListItem>
-                            <div class="min-w-0">
-                                <p class="mb-0">{{ item.description }}</p>
-                                <Text type="secondary" class="!text-xs">{{ item.causer }} · {{ item.created_at }}</Text>
-                            </div>
-                        </ListItem>
-                    </template>
-                </List>
-            </Card>
+            <div class="admin-dash-side">
+                <Card :title="t('admin.dashboard.best_sellers')" :body-style="{ padding: 0 }">
+                    <List :data-source="bestSellers" :locale="{ emptyText: t('admin.dashboard.no_sales') }" :split="true">
+                        <template #renderItem="{ item }">
+                            <ListItem class="gap-3">
+                                <span class="truncate" dir="auto">{{ item.name }}</span>
+                                <Text type="secondary" class="shrink-0 !text-xs">
+                                    {{ t('admin.dashboard.sold_revenue', { sold: item.sold, revenue: item.revenue_formatted }) }}
+                                </Text>
+                            </ListItem>
+                        </template>
+                    </List>
+                </Card>
+
+                <Card :title="t('admin.dashboard.recent_activity')" :body-style="{ padding: 0 }">
+                    <List :data-source="recentActivity" row-key="id" :locale="{ emptyText: t('admin.dashboard.no_activity') }" :split="true">
+                        <template #renderItem="{ item }">
+                            <ListItem>
+                                <div class="min-w-0">
+                                    <p class="mb-0">{{ item.description }}</p>
+                                    <Text type="secondary" class="!text-xs">{{ item.causer }} · {{ item.created_at }}</Text>
+                                </div>
+                            </ListItem>
+                        </template>
+                    </List>
+                </Card>
+            </div>
         </div>
     </div>
 </template>

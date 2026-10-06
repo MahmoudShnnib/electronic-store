@@ -1210,28 +1210,49 @@ html:has(.admin-shell) .ant-card.ant-card-small > .ant-card-body {
     padding: 16px 20px;
 }
 
-/* KPI box (StatCard). */
+/* KPI box (StatCard). Each box is its own size container, so the figure scales
+   with the box rather than the viewport and a narrow box (four across a
+   700px content column) switches to a compact arrangement instead of leaving
+   the reference's roomy layout half empty or clipped. */
 .admin-kpi {
     display: flex;
     height: 100%;
     align-items: center;
-    gap: 14px;
-    padding: 16px 18px;
     border: 1px solid var(--ad-line);
     border-radius: var(--ad-radius-lg);
     background: var(--ad-card);
+    container-type: inline-size;
+}
+
+.admin-kpi-body {
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: center;
+    column-gap: 14px;
+    /* Padding lives here, not on the container, so the compact variant can
+       tighten it from inside its own container query. */
+    padding: 16px 18px;
+}
+
+.admin-kpi-body.has-icon {
+    grid-template-areas:
+        'icon label'
+        'icon value'
+        'icon hint';
+    grid-template-columns: 44px minmax(0, 1fr);
 }
 
 .admin-kpi-icon {
     display: flex;
     width: 44px;
     height: 44px;
-    flex: none;
     align-items: center;
     justify-content: center;
     border-radius: var(--ad-radius-lg);
     background: var(--ad-icon-bg);
     color: var(--ad-icon);
+    grid-area: icon;
 }
 
 .admin-kpi-icon svg {
@@ -1246,6 +1267,7 @@ html:has(.admin-shell) .ant-card.ant-card-small > .ant-card-body {
 
 .admin-kpi-label {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: 4px;
     margin: 0 0 2px;
@@ -1256,24 +1278,159 @@ html:has(.admin-shell) .ant-card.ant-card-small > .ant-card-body {
 
 .admin-kpi-value {
     color: var(--ad-text);
-    font-size: 26px;
+    font-size: clamp(18px, 12.5cqi, 26px);
     font-variant-numeric: tabular-nums;
     font-weight: 700;
     line-height: 1.2;
+}
+
+/* The amount never breaks; a long one pushes the currency onto the next line
+   instead of running out of the card. Flex, because the template leaves no
+   whitespace between the pieces for an ordinary line break to use. */
+.admin-kpi-value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 6px;
+}
+
+.admin-kpi-value > * {
     white-space: nowrap;
 }
 
-@media (max-width: 640px) {
-    .admin-kpi-value {
-        font-size: 22px;
-        white-space: normal;
-    }
+/* Currency and inline suffixes: small and muted after the figure (reference
+   `.val .cur`), whatever tone the figure itself carries. */
+.admin-kpi-cur {
+    color: var(--ad-muted);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.has-icon > .admin-kpi-label {
+    grid-area: label;
+}
+
+.has-icon > .admin-kpi-value {
+    grid-area: value;
+}
+
+.has-icon > .admin-kpi-hint {
+    grid-area: hint;
 }
 
 .admin-kpi-hint {
     margin: 2px 0 0;
     color: var(--ad-muted);
     font-size: 12px;
+}
+
+/* Compact: a small icon beside the label, the figure on its own full-width row. */
+@container (max-width: 210px) {
+    .admin-kpi-body.has-icon {
+        grid-template-areas:
+            'icon label'
+            'value value'
+            'hint hint';
+        grid-template-columns: 28px minmax(0, 1fr);
+        column-gap: 8px;
+        row-gap: 8px;
+        padding: 14px 12px;
+    }
+
+    .admin-kpi-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: var(--ad-radius);
+    }
+
+    .admin-kpi-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .admin-kpi-label {
+        margin: 0;
+        font-size: 13px;
+    }
+}
+
+/* Dashboard grid. Columns follow the width the content column actually has
+   (the sidebar takes 256px of it), so a row never ends with an orphaned card
+   stretched across the page. */
+.admin-dash {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ad-gap);
+    container-type: inline-size;
+}
+
+.admin-dash-kpis,
+.admin-dash-groups,
+.admin-dash-charts,
+.admin-dash-bottom,
+.admin-dash-side {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ad-gap);
+}
+
+.admin-dash-bottom,
+.admin-dash-side {
+    align-items: start;
+}
+
+@container (min-width: 400px) {
+    .admin-dash-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@container (min-width: 560px) {
+    /* Inventory has two figures and Customers one, so they split 2:1. */
+    .admin-dash-groups {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    }
+
+    .admin-dash-side {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-dash-groups > :first-child {
+        grid-column: 1 / -1;
+    }
+}
+
+@container (min-width: 640px) {
+    .admin-dash-kpis {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@container (min-width: 640px) {
+    .admin-dash-charts {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@container (min-width: 1000px) {
+    .admin-dash-groups {
+        grid-template-columns: 2fr 1fr 1fr;
+    }
+
+    .admin-dash-groups > :first-child {
+        grid-column: auto;
+    }
+}
+
+@container (min-width: 1100px) {
+    .admin-dash-bottom {
+        grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    }
+
+    .admin-dash-side {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .is-money {
