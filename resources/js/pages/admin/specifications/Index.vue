@@ -193,7 +193,11 @@ function destroyAttribute(): void {
                 </Space>
             </template>
             <ul class="divide-y divide-ad-line">
-                <li v-for="attribute in group.attributes" :key="attribute.id" class="flex items-center justify-between px-4 py-2.5 text-sm">
+                <li
+                    v-for="attribute in group.attributes"
+                    :key="attribute.id"
+                    class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm"
+                >
                     <div>
                         <span>{{ attribute.name }}</span>
                         <Typography.Text v-if="attribute.unit" type="secondary" class="ms-1 text-xs">({{ attribute.unit }})</Typography.Text>
