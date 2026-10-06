@@ -139,7 +139,7 @@ function destroy(): void {
 
     <DataTable :columns="columns" :rows="suppliers.data">
         <template #cell-company_name="{ row }">
-            <span class="font-medium text-gray-900 dark:text-gray-100">{{ row.company_name }}</span>
+            <span class="font-medium text-ad-text">{{ row.company_name }}</span>
         </template>
         <template #cell-status="{ row }">
             <StatusBadge :status="row.status" />
