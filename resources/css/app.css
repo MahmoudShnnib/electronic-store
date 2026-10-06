@@ -448,52 +448,53 @@ html {
  * doubled where they have to outrank AntD's runtime CSS-in-JS (see the note
  * above).
  *
- * Rules that describe *content* — table interiors, card edges, overlay
- * scrollbars, bidi isolation — are scoped to `:has(.admin-shell, .store-shell)`
- * and shared with the storefront, because a table cell full of digits reads
- * the same wrong way in Arabic on either side of the product. Rules that
- * describe the dashboard's own chrome stay on `.admin-*` class hooks.
+ * Bidi isolation is scoped to `:has(.admin-shell, .store-shell)` and shared
+ * with the storefront, because a table cell full of digits reads the same
+ * wrong way in Arabic on either side of the product. The *look* of tables,
+ * cards, pills and scrollbars below is storefront-only (`:has(.store-shell)`);
+ * the dashboard's own look is the "Admin theme" block further down, driven by
+ * the --ad-* tokens.
  * ---------------------------------------------------------------------------
  */
 
 /* Thin, themed scrollbars. The native 15px bar rendered as a bright grey strip
    down the sidebar's inner edge and stole 15px of the 256px it was given. */
 .overlay-scroll,
-html:has(.admin-shell, .store-shell) .ant-drawer-body,
-html:has(.admin-shell, .store-shell) .ant-modal-body {
+html:has(.store-shell) .ant-drawer-body,
+html:has(.store-shell) .ant-modal-body {
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
     scrollbar-gutter: stable;
 }
 
 .overlay-scroll:hover,
-html:has(.admin-shell, .store-shell) .ant-drawer-body:hover,
-html:has(.admin-shell, .store-shell) .ant-modal-body:hover {
+html:has(.store-shell) .ant-drawer-body:hover,
+html:has(.store-shell) .ant-modal-body:hover {
     scrollbar-color: rgb(0 0 0 / 0.25) transparent;
 }
 
 .dark .overlay-scroll:hover,
-html.dark:has(.admin-shell, .store-shell) .ant-drawer-body:hover,
-html.dark:has(.admin-shell, .store-shell) .ant-modal-body:hover {
+html.dark:has(.store-shell) .ant-drawer-body:hover,
+html.dark:has(.store-shell) .ant-modal-body:hover {
     scrollbar-color: rgb(255 255 255 / 0.22) transparent;
 }
 
 .overlay-scroll::-webkit-scrollbar,
-html:has(.admin-shell, .store-shell) .ant-drawer-body::-webkit-scrollbar,
-html:has(.admin-shell, .store-shell) .ant-modal-body::-webkit-scrollbar {
+html:has(.store-shell) .ant-drawer-body::-webkit-scrollbar,
+html:has(.store-shell) .ant-modal-body::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
 .overlay-scroll::-webkit-scrollbar-track,
-html:has(.admin-shell, .store-shell) .ant-drawer-body::-webkit-scrollbar-track,
-html:has(.admin-shell, .store-shell) .ant-modal-body::-webkit-scrollbar-track {
+html:has(.store-shell) .ant-drawer-body::-webkit-scrollbar-track,
+html:has(.store-shell) .ant-modal-body::-webkit-scrollbar-track {
     background: transparent;
 }
 
 .overlay-scroll::-webkit-scrollbar-thumb,
-html:has(.admin-shell, .store-shell) .ant-drawer-body::-webkit-scrollbar-thumb,
-html:has(.admin-shell, .store-shell) .ant-modal-body::-webkit-scrollbar-thumb {
+html:has(.store-shell) .ant-drawer-body::-webkit-scrollbar-thumb,
+html:has(.store-shell) .ant-modal-body::-webkit-scrollbar-thumb {
     border: 2px solid transparent;
     border-radius: 9999px;
     background-clip: content-box;
@@ -502,14 +503,14 @@ html:has(.admin-shell, .store-shell) .ant-modal-body::-webkit-scrollbar-thumb {
 }
 
 .overlay-scroll:hover::-webkit-scrollbar-thumb,
-html:has(.admin-shell, .store-shell) .ant-drawer-body:hover::-webkit-scrollbar-thumb,
-html:has(.admin-shell, .store-shell) .ant-modal-body:hover::-webkit-scrollbar-thumb {
+html:has(.store-shell) .ant-drawer-body:hover::-webkit-scrollbar-thumb,
+html:has(.store-shell) .ant-modal-body:hover::-webkit-scrollbar-thumb {
     background-color: rgb(0 0 0 / 0.25);
 }
 
 .dark .overlay-scroll:hover::-webkit-scrollbar-thumb,
-html.dark:has(.admin-shell, .store-shell) .ant-drawer-body:hover::-webkit-scrollbar-thumb,
-html.dark:has(.admin-shell, .store-shell) .ant-modal-body:hover::-webkit-scrollbar-thumb {
+html.dark:has(.store-shell) .ant-drawer-body:hover::-webkit-scrollbar-thumb,
+html.dark:has(.store-shell) .ant-modal-body:hover::-webkit-scrollbar-thumb {
     background-color: rgb(255 255 255 / 0.22);
 }
 
@@ -522,28 +523,6 @@ html.dark:has(.admin-shell, .store-shell) .ant-modal-body:hover::-webkit-scrollb
     flex-direction: column;
 }
 
-/* The header is the only chrome that content scrolls beneath, so it is the only
-   surface that gets the translucent treatment. Opaque fallback first. */
-.admin-header.admin-header {
-    background-color: rgb(255 255 255 / 0.92);
-}
-
-.dark .admin-header.admin-header {
-    background-color: rgb(20 20 20 / 0.92);
-}
-
-@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-    .admin-header.admin-header {
-        background-color: rgb(255 255 255 / 0.8);
-        -webkit-backdrop-filter: saturate(180%) blur(16px);
-        backdrop-filter: saturate(180%) blur(16px);
-    }
-
-    .dark .admin-header.admin-header {
-        background-color: rgb(20 20 20 / 0.8);
-    }
-}
-
 /*
  * Standalone tables read as one raised card: a single outer border with real
  * corners. Only tables that sit directly on the page opt in via `.admin-table`
@@ -552,45 +531,36 @@ html.dark:has(.admin-shell, .store-shell) .ant-modal-body:hover::-webkit-scrollb
  * and applies to every table in the dashboard: horizontal rules only, no
  * spreadsheet grid. AntD's `bordered` prop is deliberately unused.
  */
-.admin-table .ant-table {
-    border: 1px solid rgb(0 0 0 / 0.1);
-    border-radius: 10px;
-}
-
-.dark .admin-table .ant-table {
-    border-color: rgb(255 255 255 / 0.08);
-}
-
 .admin-table .ant-table-container,
 .admin-table .ant-table-content {
     border-radius: inherit;
 }
 
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-thead > tr > th {
+html:has(.store-shell) .ant-table-wrapper .ant-table-thead > tr > th {
     border-bottom-color: rgb(0 0 0 / 0.12);
     font-weight: 600;
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-thead > tr > th {
+html.dark:has(.store-shell) .ant-table-wrapper .ant-table-thead > tr > th {
     border-bottom-color: rgb(255 255 255 / 0.08);
 }
 
 /* AntD draws a divider between header cells; without the full grid it reads as
    a stray tick mark hanging off the header. */
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-thead > tr > th::before {
+html:has(.store-shell) .ant-table-wrapper .ant-table-thead > tr > th::before {
     display: none;
 }
 
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-tbody > tr > td {
+html:has(.store-shell) .ant-table-wrapper .ant-table-tbody > tr > td {
     border-bottom-color: rgb(0 0 0 / 0.06);
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-tbody > tr > td {
+html.dark:has(.store-shell) .ant-table-wrapper .ant-table-tbody > tr > td {
     border-bottom-color: rgb(255 255 255 / 0.06);
 }
 
 /* The card's own border already closes the table off. */
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-tbody > tr:last-child > td {
+html:has(.store-shell) .ant-table-wrapper .ant-table-tbody > tr:last-child > td {
     border-bottom: 0;
 }
 
@@ -600,30 +570,19 @@ html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-tbody > tr:la
 
 /* Breathing room where the grid meets the card edge — AntD's 8px side padding
    was measured for a table that had a full border on every cell. */
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-thead > tr > th:first-child,
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-tbody > tr > td:first-child {
+html:has(.store-shell) .ant-table-wrapper .ant-table-thead > tr > th:first-child,
+html:has(.store-shell) .ant-table-wrapper .ant-table-tbody > tr > td:first-child {
     padding-inline-start: 16px;
 }
 
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-thead > tr > th:last-child,
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-tbody > tr > td:last-child {
+html:has(.store-shell) .ant-table-wrapper .ant-table-thead > tr > th:last-child,
+html:has(.store-shell) .ant-table-wrapper .ant-table-tbody > tr > td:last-child {
     padding-inline-end: 16px;
-}
-
-/* Light mode had white cards on a white page, so nothing read as a surface.
-   The content field steps back; sidebar, header and cards stay white on top of
-   it. Dark mode already had this separation (#0a0a0a page, #141414 chrome). */
-.admin-shell.admin-shell {
-    background-color: #f5f6f8;
-}
-
-.dark .admin-shell.admin-shell {
-    background-color: #0a0a0a;
 }
 
 /* Cards match the table's card treatment so every surface in the dashboard has
    the same edge. AntD's default #f0f0f0 border disappeared against the field. */
-html:has(.admin-shell, .store-shell) .ant-card {
+html:has(.store-shell) .ant-card {
     border-color: rgb(0 0 0 / 0.1);
     border-radius: 10px;
 }
@@ -636,21 +595,21 @@ html:has(.store-shell) .ant-card {
     border-radius: 14px;
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-card {
+html.dark:has(.store-shell) .ant-card {
     border-color: rgb(255 255 255 / 0.08);
 }
 
-html:has(.admin-shell, .store-shell) .ant-card-head {
+html:has(.store-shell) .ant-card-head {
     border-bottom-color: rgb(0 0 0 / 0.1);
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-card-head {
+html.dark:has(.store-shell) .ant-card-head {
     border-bottom-color: rgb(255 255 255 / 0.08);
 }
 
 /* AntD puts a 2px gap in front of the descriptions colon, which reads as
    "Name : value". Close it up. */
-html:has(.admin-shell, .store-shell) .ant-descriptions-item-label::after {
+html:has(.store-shell) .ant-descriptions-item-label::after {
     margin-inline-start: 0;
 }
 
@@ -671,39 +630,39 @@ html:has(.admin-shell, .store-shell) .ant-descriptions-item-label::after {
 
 /* A wide table scrolls inside its own card; give that scrollbar the same
    overlay treatment as the sidebar instead of the raw OS one. */
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-content {
+html:has(.store-shell) .ant-table-wrapper .ant-table-content {
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
 }
 
-html:has(.admin-shell, .store-shell) .ant-table-wrapper:hover .ant-table-content {
+html:has(.store-shell) .ant-table-wrapper:hover .ant-table-content {
     scrollbar-color: rgb(0 0 0 / 0.25) transparent;
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-table-wrapper:hover .ant-table-content {
+html.dark:has(.store-shell) .ant-table-wrapper:hover .ant-table-content {
     scrollbar-color: rgb(255 255 255 / 0.22) transparent;
 }
 
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-content::-webkit-scrollbar {
+html:has(.store-shell) .ant-table-wrapper .ant-table-content::-webkit-scrollbar {
     height: 8px;
 }
 
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-content::-webkit-scrollbar-track {
+html:has(.store-shell) .ant-table-wrapper .ant-table-content::-webkit-scrollbar-track {
     background: transparent;
 }
 
-html:has(.admin-shell, .store-shell) .ant-table-wrapper .ant-table-content::-webkit-scrollbar-thumb {
+html:has(.store-shell) .ant-table-wrapper .ant-table-content::-webkit-scrollbar-thumb {
     border: 2px solid transparent;
     border-radius: 9999px;
     background-clip: content-box;
     background-color: transparent;
 }
 
-html:has(.admin-shell, .store-shell) .ant-table-wrapper:hover .ant-table-content::-webkit-scrollbar-thumb {
+html:has(.store-shell) .ant-table-wrapper:hover .ant-table-content::-webkit-scrollbar-thumb {
     background-color: rgb(0 0 0 / 0.25);
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-table-wrapper:hover .ant-table-content::-webkit-scrollbar-thumb {
+html.dark:has(.store-shell) .ant-table-wrapper:hover .ant-table-content::-webkit-scrollbar-thumb {
     background-color: rgb(255 255 255 / 0.22);
 }
 
@@ -815,51 +774,51 @@ html:has(.admin-shell, .store-shell) .ant-table-placeholder > td {
 /* Shared with the storefront: `:has()` takes a selector list, so one palette
    covers both shells at the same specificity a single one had. AntD's presets
    are as unreadable on a product page as they were on a dashboard. */
-html:has(.admin-shell, .store-shell) .ant-tag {
+html:has(.store-shell) .ant-tag {
     border-radius: 6px;
     font-weight: 500;
 }
 
-html:has(.admin-shell, .store-shell) .ant-tag-success,
-html:has(.admin-shell, .store-shell) .ant-tag-green {
+html:has(.store-shell) .ant-tag-success,
+html:has(.store-shell) .ant-tag-green {
     border-color: #b4e0c4;
     background: #e6f6ec;
     color: #0f7a3d;
 }
 
-html:has(.admin-shell, .store-shell) .ant-tag-processing,
-html:has(.admin-shell, .store-shell) .ant-tag-blue {
+html:has(.store-shell) .ant-tag-processing,
+html:has(.store-shell) .ant-tag-blue {
     border-color: #bcd4fb;
     background: #e7f0fe;
     color: #1653b8;
 }
 
-html:has(.admin-shell, .store-shell) .ant-tag-geekblue {
+html:has(.store-shell) .ant-tag-geekblue {
     border-color: #c8c5fa;
     background: #ecebfd;
     color: #3b32b5;
 }
 
-html:has(.admin-shell, .store-shell) .ant-tag-warning {
+html:has(.store-shell) .ant-tag-warning {
     border-color: #f0d3a0;
     background: #fdf2de;
     color: #8a5300;
 }
 
-html:has(.admin-shell, .store-shell) .ant-tag-error {
+html:has(.store-shell) .ant-tag-error {
     border-color: #f6c4c4;
     background: #fdeaea;
     color: #b02121;
 }
 
-html:has(.admin-shell, .store-shell) .ant-tag-purple {
+html:has(.store-shell) .ant-tag-purple {
     border-color: #e2c3f2;
     background: #f6ebfb;
     color: #7b2fa8;
 }
 
-html:has(.admin-shell, .store-shell) .ant-tag-default,
-html:has(.admin-shell, .store-shell) .ant-tag:not([class*='ant-tag-']) {
+html:has(.store-shell) .ant-tag-default,
+html:has(.store-shell) .ant-tag:not([class*='ant-tag-']) {
     border-color: #d9dbe0;
     background: #f0f1f3;
     color: #4a5058;
@@ -867,64 +826,716 @@ html:has(.admin-shell, .store-shell) .ant-tag:not([class*='ant-tag-']) {
 
 /* Dark: a translucent tint over the card so the chip keeps its hue whatever it
    sits on, with the label bright enough to carry at 12px. */
-html.dark:has(.admin-shell, .store-shell) .ant-tag-success,
-html.dark:has(.admin-shell, .store-shell) .ant-tag-green {
+html.dark:has(.store-shell) .ant-tag-success,
+html.dark:has(.store-shell) .ant-tag-green {
     border-color: rgb(45 190 110 / 0.34);
     background: rgb(45 190 110 / 0.16);
     color: #4ade80;
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-tag-processing,
-html.dark:has(.admin-shell, .store-shell) .ant-tag-blue {
+html.dark:has(.store-shell) .ant-tag-processing,
+html.dark:has(.store-shell) .ant-tag-blue {
     border-color: rgb(59 130 246 / 0.36);
     background: rgb(59 130 246 / 0.18);
     color: #7cb0ff;
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-tag-geekblue {
+html.dark:has(.store-shell) .ant-tag-geekblue {
     border-color: rgb(129 120 255 / 0.36);
     background: rgb(129 120 255 / 0.18);
     color: #aaa3ff;
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-tag-warning {
+html.dark:has(.store-shell) .ant-tag-warning {
     border-color: rgb(245 169 60 / 0.36);
     background: rgb(245 169 60 / 0.18);
     color: #f7c264;
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-tag-error {
+html.dark:has(.store-shell) .ant-tag-error {
     border-color: rgb(248 90 90 / 0.36);
     background: rgb(248 90 90 / 0.18);
     color: #ff9494;
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-tag-purple {
+html.dark:has(.store-shell) .ant-tag-purple {
     border-color: rgb(180 110 240 / 0.36);
     background: rgb(180 110 240 / 0.18);
     color: #cfa4f7;
 }
 
-html.dark:has(.admin-shell, .store-shell) .ant-tag-default,
-html.dark:has(.admin-shell, .store-shell) .ant-tag:not([class*='ant-tag-']) {
+html.dark:has(.store-shell) .ant-tag-default,
+html.dark:has(.store-shell) .ant-tag:not([class*='ant-tag-']) {
     border-color: rgb(255 255 255 / 0.18);
     background: rgb(255 255 255 / 0.09);
     color: rgb(255 255 255 / 0.75);
 }
 
 /*
- * Inline help affordance (`HelpHint`).
+ * ---------------------------------------------------------------------------
+ * Admin theme.
  *
- * Sits next to a label, a column heading or a figure whose meaning is not
- * obvious from its name. Muted until you go looking for it, so a screen full of
- * them never competes with the data.
+ * The dashboard's whole look, from the reference design (design/ADMIN_STYLE.md).
+ * Every colour and size is a --ad-* variable written onto <html> by
+ * `useAdminTheme` from resources/js/theme/adminTokens.ts while an admin layout
+ * is mounted — nothing here hardcodes a value or a light/dark variant, the
+ * variables already switch with the theme.
+ *
+ * Scoped through `html:has(.admin-shell)` so it follows AntD's portalled
+ * modals, drawers and dropdowns (see docs/agents/admin-ui.md, "Scoping"); the
+ * specificity (0-2-1 and up) also outranks AntD's runtime `:where()` rules.
+ * ---------------------------------------------------------------------------
  */
+
+html:has(.admin-shell) body {
+    background: var(--ad-bg);
+    color: var(--ad-text);
+    font-family: var(--ad-font);
+}
+
+.admin-shell.admin-shell {
+    background: var(--ad-bg);
+    color: var(--ad-text);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+html:has(.admin-shell) .tabular-nums,
+html:has(.admin-shell) .ant-statistic-content,
+html:has(.admin-shell) .ant-table td.text-end,
+html:has(.admin-shell) .ant-descriptions-item-content {
+    font-variant-numeric: tabular-nums;
+}
+
+/* --- Sidebar ------------------------------------------------------------ */
+
+.admin-sider.admin-sider {
+    background: var(--ad-side);
+    border-inline-end: 1px solid var(--ad-line-soft);
+}
+
+.admin-brand {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    height: var(--ad-topbar-height);
+    padding: 0 22px;
+    border-bottom: 1px solid var(--ad-line-soft);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ad-text);
+}
+
+.admin-brand svg {
+    color: var(--ad-accent);
+}
+
+.admin-nav {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    padding: 10px 10px 14px;
+}
+
+.admin-nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.admin-nav-sep {
+    flex: none;
+    height: 1px;
+    margin: 10px 6px;
+    background: var(--ad-line-soft);
+}
+
+.admin-nav-link,
+.admin-nav-group {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-height: 40px;
+    align-items: center;
+    gap: 12px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--ad-radius);
+    background: transparent;
+    color: var(--ad-text-2);
+    font: inherit;
+    font-size: 14px;
+    text-align: start;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.admin-nav-link svg,
+.admin-nav-group svg {
+    width: 18px;
+    height: 18px;
+    flex: none;
+}
+
+.admin-nav-link:hover,
+.admin-nav-group:hover {
+    background: var(--ad-hover);
+    color: var(--ad-text);
+}
+
+.admin-nav-link[aria-current='page'] {
+    background: var(--ad-active-bg);
+    color: var(--ad-accent);
+    font-weight: 500;
+}
+
+.admin-nav-link[aria-current='page']::before {
+    position: absolute;
+    top: 9px;
+    bottom: 9px;
+    inset-inline-start: 0;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--ad-accent);
+    content: '';
+}
+
+.admin-nav-group[aria-expanded='true'] {
+    color: var(--ad-text);
+}
+
+.admin-nav-chev.admin-nav-chev {
+    width: 16px;
+    height: 16px;
+    margin-inline-start: auto;
+    color: var(--ad-label);
+    transition: transform 0.15s ease;
+}
+
+.admin-nav-group[aria-expanded='true'] .admin-nav-chev {
+    transform: rotate(180deg);
+}
+
+.admin-nav-sub {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin: 2px 0 6px;
+    margin-inline-start: 21px;
+    padding-inline-start: 10px;
+    border-inline-start: 1px solid var(--ad-rail);
+}
+
+.admin-nav-sub .admin-nav-link {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 13.5px;
+}
+
+.admin-nav-sub .admin-nav-link:not([aria-current='page']) {
+    color: var(--ad-text-3);
+}
+
+.admin-nav-bottom {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--ad-line-soft);
+}
+
+.admin-nav-link:focus-visible,
+.admin-nav-group:focus-visible,
+.admin-brand:focus-visible {
+    outline: 2px solid var(--ad-accent);
+    outline-offset: -2px;
+}
+
+/* Count badge, from the reference. Defined for nav items; nothing feeds it a
+   number yet (see ADMIN_STYLE.md §7). */
+.admin-badge {
+    display: inline-flex;
+    min-width: 20px;
+    height: 20px;
+    align-items: center;
+    justify-content: center;
+    margin-inline-start: auto;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--ad-badge-bg);
+    color: var(--ad-badge);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+/* The mobile drawer carries the same nav; its own chrome takes the sidebar
+   surface so it reads as the same panel. */
+html:has(.admin-shell) .admin-drawer .ant-drawer-content,
+html:has(.admin-shell) .admin-drawer .ant-drawer-header {
+    background: var(--ad-side);
+    border-color: var(--ad-line-soft);
+}
+
+/* --- Top bar ------------------------------------------------------------ */
+
+.admin-header.admin-header {
+    min-height: var(--ad-topbar-height);
+    height: auto;
+    padding: 12px var(--ad-page-padding);
+    border-bottom: 1px solid var(--ad-line-soft);
+    background: var(--ad-bg);
+    line-height: normal;
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .admin-header.admin-header {
+        background: var(--ad-overlay);
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+    }
+}
+
+.admin-top-link.admin-top-link {
+    height: 40px;
+    padding: 0 6px;
+    color: var(--ad-text-2);
+    font-size: 14px;
+}
+
+.admin-top-link.admin-top-link:hover {
+    background: transparent;
+    color: var(--ad-text);
+}
+
+.admin-pos-btn.admin-pos-btn {
+    height: 40px;
+    padding: 0 16px;
+    border-radius: var(--ad-radius);
+    font-weight: 600;
+}
+
+.admin-avatar.admin-avatar {
+    background: var(--ad-primary);
+    color: #fff;
+    font-size: 13px;
+}
+
+/* --- Content ------------------------------------------------------------ */
+
+.admin-content.admin-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ad-gap);
+    padding: var(--ad-page-padding);
+}
+
+@media (max-width: 640px) {
+    .admin-header.admin-header {
+        padding: 10px var(--ad-page-padding-mobile);
+    }
+
+    .admin-content.admin-content {
+        padding: var(--ad-page-padding-mobile);
+    }
+}
+
+/* Pages were written with their own `mb-*` / `mt-*` spacing between blocks;
+   the content column's gap now owns that rhythm. */
+.admin-content > * {
+    margin-block: 0;
+}
+
+.admin-page-head h1 {
+    margin: 0;
+    color: var(--ad-text);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.admin-page-head p {
+    margin: 4px 0 0;
+    color: var(--ad-muted);
+    font-size: 13.5px;
+}
+
+/* --- Cards ------------------------------------------------------------- */
+
+html:has(.admin-shell) .ant-card {
+    border: 1px solid var(--ad-line);
+    border-radius: var(--ad-radius-lg);
+    background: var(--ad-card);
+    box-shadow: none;
+}
+
+html:has(.admin-shell) .ant-card .ant-card-head {
+    min-height: 0;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--ad-line);
+    color: var(--ad-text);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+html:has(.admin-shell) .ant-card .ant-card-head-title,
+html:has(.admin-shell) .ant-card .ant-card-extra {
+    padding: 0;
+}
+
+html:has(.admin-shell) .ant-card .ant-card-extra {
+    font-size: 13px;
+}
+
+html:has(.admin-shell) .ant-card .ant-card-body {
+    padding: 20px;
+}
+
+html:has(.admin-shell) .ant-card.ant-card-small > .ant-card-body {
+    padding: 16px 20px;
+}
+
+/* KPI box (StatCard). */
+.admin-kpi {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 1px solid var(--ad-line);
+    border-radius: var(--ad-radius-lg);
+    background: var(--ad-card);
+}
+
+.admin-kpi-icon {
+    display: flex;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--ad-radius-lg);
+    background: var(--ad-icon-bg);
+    color: var(--ad-icon);
+}
+
+.admin-kpi-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.admin-kpi-icon.is-money {
+    background: var(--ad-icon-money-bg);
+    color: var(--ad-icon-money);
+}
+
+.admin-kpi-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 0 2px;
+    color: var(--ad-text-3);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.admin-kpi-value {
+    color: var(--ad-text);
+    font-size: 26px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.admin-kpi-hint {
+    margin: 2px 0 0;
+    color: var(--ad-muted);
+    font-size: 12px;
+}
+
+.is-money {
+    color: var(--ad-money);
+}
+
+.is-warning {
+    color: var(--ad-warning);
+}
+
+.is-danger {
+    color: var(--ad-danger);
+}
+
+.is-zero {
+    color: var(--ad-faint);
+}
+
+/* Stat group: one card, several small counts side by side (reference). */
+.admin-stat-group {
+    padding: 14px 0 8px;
+    border: 1px solid var(--ad-line);
+    border-radius: var(--ad-radius-lg);
+    background: var(--ad-card);
+}
+
+.admin-stat-group > h2 {
+    margin: 0 18px 4px;
+    color: var(--ad-text-3);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.admin-stat-cells {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.admin-stat-cell {
+    flex: 1 1 90px;
+    padding: 6px 18px;
+}
+
+.admin-stat-cell + .admin-stat-cell {
+    border-inline-start: 1px solid var(--ad-line);
+}
+
+.admin-stat-cell dt {
+    color: var(--ad-muted);
+    font-size: 13.5px;
+}
+
+.admin-stat-cell dd {
+    margin: 0;
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+/* List rows inside cards (best sellers, activity, timelines). */
+html:has(.admin-shell) .ant-card .ant-list-item {
+    padding: 12px 20px;
+    border-block-end-color: var(--ad-line-soft);
+}
+
+html:has(.admin-shell) .ant-list .ant-list-item-meta-description {
+    color: var(--ad-muted);
+    font-size: 12px;
+}
+
+/* --- Tables -------------------------------------------------------------- */
+
+html:has(.admin-shell) .ant-table-wrapper .ant-table {
+    background: var(--ad-card);
+    font-size: 13.5px;
+}
+
+/* A table on its own (DataTable) is a card; one inside a Card already has one. */
+.admin-table .ant-table {
+    border: 1px solid var(--ad-line);
+    border-radius: var(--ad-radius-lg);
+}
+
+.admin-table .ant-table-container {
+    overflow: hidden;
+}
+
+html:has(.admin-shell) .ant-table-wrapper .ant-table-thead > tr > th {
+    padding: 12px;
+    border-bottom: 1px solid var(--ad-line);
+    background: var(--ad-head);
+    color: var(--ad-text);
+    font-weight: 600;
+}
+
+html:has(.admin-shell) .ant-table-wrapper .ant-table-thead > tr > th::before {
+    display: none;
+}
+
+html:has(.admin-shell) .ant-table-wrapper .ant-table-tbody > tr > td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--ad-line);
+}
+
+html:has(.admin-shell) .ant-table-wrapper .ant-table-tbody > tr:last-child > td {
+    border-bottom: 0;
+}
+
+html:has(.admin-shell) .ant-table-wrapper .ant-table-thead > tr > th:first-child,
+html:has(.admin-shell) .ant-table-wrapper .ant-table-tbody > tr > td:first-child {
+    padding-inline-start: 20px;
+}
+
+html:has(.admin-shell) .ant-table-wrapper .ant-table-thead > tr > th:last-child,
+html:has(.admin-shell) .ant-table-wrapper .ant-table-tbody > tr > td:last-child {
+    padding-inline-end: 20px;
+}
+
+/* Sorting is server-driven and already shown in the header; the shaded sorted
+   column AntD adds read as a highlighted row band. */
+html:has(.admin-shell) .ant-table-wrapper .ant-table-tbody > tr > td.ant-table-column-sort {
+    background: transparent;
+}
+
+html:has(.admin-shell) .ant-table-wrapper .ant-table-thead > tr > th.ant-table-column-sort {
+    background: var(--ad-head);
+}
+
+html:has(.admin-shell) .ant-table-wrapper .ant-table-tbody > tr.ant-table-row:hover > td {
+    background: var(--ad-row-hover);
+}
+
+/* Money and quantities: one column edge, digits in step. */
+html:has(.admin-shell) .ant-table-wrapper td.text-end {
+    white-space: nowrap;
+}
+
+html:has(.admin-shell) .ant-table-placeholder > td {
+    color: var(--ad-muted);
+}
+
+html:has(.admin-shell) .ant-table-wrapper .ant-table-placeholder:hover > td {
+    background: var(--ad-card);
+}
+
+html:has(.admin-shell) .ant-table-wrapper .ant-table-content {
+    scrollbar-color: transparent transparent;
+    scrollbar-width: thin;
+}
+
+html:has(.admin-shell) .ant-table-wrapper:hover .ant-table-content {
+    scrollbar-color: var(--ad-line-strong) transparent;
+}
+
+/* --- Pills, tags --------------------------------------------------------- */
+
+html:has(.admin-shell) .ant-tag {
+    padding-inline: 9px;
+    border: 1px solid var(--ad-tag-gray-line);
+    border-radius: var(--ad-radius-sm);
+    background: var(--ad-tag-gray-bg);
+    color: var(--ad-tag-gray);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+html:has(.admin-shell) .ant-tag-success,
+html:has(.admin-shell) .ant-tag-green {
+    border-color: var(--ad-tag-green-line);
+    background: var(--ad-tag-green-bg);
+    color: var(--ad-tag-green);
+}
+
+html:has(.admin-shell) .ant-tag-processing,
+html:has(.admin-shell) .ant-tag-blue {
+    border-color: var(--ad-tag-blue-line);
+    background: var(--ad-tag-blue-bg);
+    color: var(--ad-tag-blue);
+}
+
+html:has(.admin-shell) .ant-tag-geekblue {
+    border-color: var(--ad-tag-indigo-line);
+    background: var(--ad-tag-indigo-bg);
+    color: var(--ad-tag-indigo);
+}
+
+html:has(.admin-shell) .ant-tag-warning,
+html:has(.admin-shell) .ant-tag-orange,
+html:has(.admin-shell) .ant-tag-gold {
+    border-color: var(--ad-tag-amber-line);
+    background: var(--ad-tag-amber-bg);
+    color: var(--ad-tag-amber);
+}
+
+html:has(.admin-shell) .ant-tag-error,
+html:has(.admin-shell) .ant-tag-red {
+    border-color: var(--ad-tag-red-line);
+    background: var(--ad-tag-red-bg);
+    color: var(--ad-tag-red);
+}
+
+html:has(.admin-shell) .ant-tag-purple {
+    border-color: var(--ad-tag-purple-line);
+    background: var(--ad-tag-purple-bg);
+    color: var(--ad-tag-purple);
+}
+
+/* --- Overlays ------------------------------------------------------------ */
+
+html:has(.admin-shell) .ant-modal .ant-modal-content,
+html:has(.admin-shell) .ant-modal .ant-modal-header {
+    background: var(--ad-elevated);
+}
+
+html:has(.admin-shell) .ant-modal .ant-modal-content {
+    border: 1px solid var(--ad-line);
+    border-radius: var(--ad-radius-lg);
+}
+
+html:has(.admin-shell) .ant-modal .ant-modal-title {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+html:has(.admin-shell) .ant-dropdown .ant-dropdown-menu,
+html:has(.admin-shell) .ant-select-dropdown,
+html:has(.admin-shell) .ant-picker-dropdown .ant-picker-panel-container,
+html:has(.admin-shell) .ant-popover .ant-popover-inner {
+    border: 1px solid var(--ad-line);
+}
+
+html:has(.admin-shell) .ant-drawer-body,
+html:has(.admin-shell) .ant-modal-body {
+    scrollbar-color: transparent transparent;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+}
+
+html:has(.admin-shell) .ant-drawer-body:hover,
+html:has(.admin-shell) .ant-modal-body:hover {
+    scrollbar-color: var(--ad-line-strong) transparent;
+}
+
+/* --- Forms and misc ------------------------------------------------------ */
+
+html:has(.admin-shell) .ant-btn {
+    font-weight: 500;
+}
+
+html:has(.admin-shell) .ant-form-item .ant-form-item-label > label {
+    color: var(--ad-text-2);
+    font-weight: 500;
+}
+
+html:has(.admin-shell) .ant-descriptions-item-label::after {
+    margin-inline-start: 0;
+}
+
+html:has(.admin-shell) .ant-descriptions .ant-descriptions-item-label {
+    color: var(--ad-muted);
+}
+
+html:has(.admin-shell) .ant-alert {
+    border-radius: var(--ad-radius-lg);
+}
+
+html:has(.admin-shell) .ant-empty-description {
+    color: var(--ad-muted);
+}
+
+html:has(.admin-shell) .ant-pagination .ant-pagination-total-text {
+    color: var(--ad-muted);
+    font-size: 13px;
+}
+
+/* Inline help affordance (`HelpHint`): muted until you go looking for it, so a
+   screen full of them never competes with the data. */
 .admin-hint {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 9999px;
-    color: rgb(0 0 0 / 0.35);
+    color: var(--ad-label);
     cursor: help;
     transition:
         color 0.15s ease,
@@ -932,25 +1543,28 @@ html.dark:has(.admin-shell, .store-shell) .ant-tag:not([class*='ant-tag-']) {
     vertical-align: middle;
 }
 
-html.dark .admin-hint {
-    color: rgb(255 255 255 / 0.4);
-}
-
 .admin-hint:hover,
 .admin-hint:focus-visible {
-    background-color: rgb(0 0 0 / 0.06);
-    color: rgb(0 0 0 / 0.75);
-}
-
-html.dark .admin-hint:hover,
-html.dark .admin-hint:focus-visible {
-    background-color: rgb(255 255 255 / 0.1);
-    color: rgb(255 255 255 / 0.85);
+    background-color: var(--ad-hover);
+    color: var(--ad-text);
 }
 
 .admin-hint:focus-visible {
-    outline: 2px solid #2563eb;
+    outline: 2px solid var(--ad-accent);
     outline-offset: 1px;
+}
+
+/* Links inside admin content (order numbers, "view all"). */
+.admin-link {
+    color: var(--ad-accent);
+}
+
+.admin-link:hover {
+    color: var(--ad-accent-hover);
+}
+
+.admin-muted {
+    color: var(--ad-muted);
 }
 
 /*
