@@ -98,13 +98,11 @@ function exportUrl(report: string): string {
             >
                 <template #bodyCell="{ column, record }">
                     <template v-if="column.key === 'name'">
-                        {{ record.name }}<span v-if="record.variant_name" class="text-gray-400"> — {{ record.variant_name }}</span>
-                        <span class="ms-1 text-xs text-gray-400">{{ record.sku }}</span>
+                        {{ record.name }}<span v-if="record.variant_name" class="text-ad-label"> — {{ record.variant_name }}</span>
+                        <span class="ms-1 text-xs text-ad-label">{{ record.sku }}</span>
                     </template>
-                    <span v-else-if="column.key === 'warehouse'" class="text-gray-500">{{ record.warehouse }}</span>
-                    <span v-else-if="column.key === 'quantity'" class="font-semibold text-amber-600"
-                        >{{ record.quantity }} / {{ record.threshold }}</span
-                    >
+                    <span v-else-if="column.key === 'warehouse'" class="text-ad-muted">{{ record.warehouse }}</span>
+                    <span v-else-if="column.key === 'quantity'" class="is-warning font-semibold">{{ record.quantity }} / {{ record.threshold }}</span>
                 </template>
                 <template #emptyText>{{ t('admin.reports.nothing_low') }}</template>
             </Table>
@@ -121,11 +119,11 @@ function exportUrl(report: string): string {
             >
                 <template #bodyCell="{ column, record }">
                     <template v-if="column.key === 'name'">
-                        {{ record.name }}<span v-if="record.variant_name" class="text-gray-400"> — {{ record.variant_name }}</span>
-                        <span class="ms-1 text-xs text-gray-400">{{ record.sku }}</span>
+                        {{ record.name }}<span v-if="record.variant_name" class="text-ad-label"> — {{ record.variant_name }}</span>
+                        <span class="ms-1 text-xs text-ad-label">{{ record.sku }}</span>
                     </template>
-                    <span v-else-if="column.key === 'warehouse'" class="text-gray-500">{{ record.warehouse }}</span>
-                    <span v-else-if="column.key === 'quantity'" class="font-semibold text-red-600">{{ record.quantity }}</span>
+                    <span v-else-if="column.key === 'warehouse'" class="text-ad-muted">{{ record.warehouse }}</span>
+                    <span v-else-if="column.key === 'quantity'" class="is-danger font-semibold">{{ record.quantity }}</span>
                 </template>
                 <template #emptyText>{{ t('admin.reports.nothing_out') }}</template>
             </Table>
