@@ -190,7 +190,7 @@ function submit(): void {
                         </div>
                     </div>
 
-                    <p class="mt-4 border-t border-gray-100 pt-3 text-sm font-semibold text-gray-900 dark:border-gray-800 dark:text-gray-100">
+                    <p class="mt-4 border-t border-ad-line pt-3 text-sm font-semibold text-ad-text">
                         {{ t('admin.common.total') }}: {{ money(total) }}
                     </p>
                     <Text type="secondary" class="mt-1 block !text-xs">{{ t('admin.orders.pricing_hint') }}</Text>
