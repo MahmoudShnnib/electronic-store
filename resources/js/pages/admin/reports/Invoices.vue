@@ -108,29 +108,29 @@ function exportUrl(): string {
                 <Link
                     v-if="column.key === 'number'"
                     :href="route('admin.orders.show', record.order_id)"
-                    class="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                    class="admin-link font-medium hover:underline"
                 >
                     {{ record.number }}
                 </Link>
-                <span v-else-if="column.key === 'date'" class="text-gray-500">{{ record.date }}</span>
+                <span v-else-if="column.key === 'date'" class="text-ad-muted">{{ record.date }}</span>
                 <template v-else-if="column.key === 'customer'">
-                    <p class="text-gray-900 dark:text-gray-100">{{ record.customer }}</p>
-                    <p v-if="record.phone" class="text-xs text-gray-500" dir="ltr">{{ record.phone }}</p>
+                    <p class="text-ad-text">{{ record.customer }}</p>
+                    <p v-if="record.phone" class="text-xs text-ad-muted" dir="ltr">{{ record.phone }}</p>
                 </template>
                 <StatusBadge v-else-if="column.key === 'status'" :status="record.status" :label="record.status_label" />
                 <StatusBadge v-else-if="column.key === 'payment_status'" :status="record.payment_status" :label="record.payment_status_label" />
                 <span v-else-if="column.key === 'total_formatted'" class="font-medium">{{ record.total_formatted }}</span>
-                <span v-else-if="column.key === 'paid_formatted'" class="text-emerald-600 dark:text-emerald-400">{{ record.paid_formatted }}</span>
+                <span v-else-if="column.key === 'paid_formatted'" class="is-money">{{ record.paid_formatted }}</span>
                 <span
                     v-else-if="column.key === 'outstanding_formatted'"
-                    :class="record.outstanding_cents > 0 ? 'font-semibold text-amber-600 dark:text-amber-400' : 'text-gray-400'"
+                    :class="record.outstanding_cents > 0 ? 'is-warning font-semibold' : 'text-ad-label'"
                 >
                     {{ record.outstanding_formatted }}
                 </span>
                 <Link
                     v-else-if="column.key === 'actions'"
                     :href="route('admin.orders.invoice', record.order_id)"
-                    class="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline dark:text-blue-400"
+                    class="admin-link inline-flex items-center gap-1 text-sm hover:underline"
                 >
                     <Printer class="h-4 w-4" />
                     {{ t('admin.orders.invoice') }}
