@@ -150,3 +150,6 @@ export const adminScale = {
 
 /** Bunny Fonts — the project's existing font CDN — loaded only by admin layouts. */
 export const adminFontHref = 'https://fonts.bunny.net/css?family=ibm-plex-sans-arabic:400,500,600,700&display=swap';
+
+/** Categorical series for charts that colour by category (doughnuts). Readable on both themes. */
+export const adminChartSeries = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#64748b'];

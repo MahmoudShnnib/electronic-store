@@ -3,7 +3,9 @@ import AdminDateInput from '@/components/admin/AdminDateInput.vue';
 import Field from '@/components/admin/Field.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import StatCard from '@/components/admin/StatCard.vue';
+import { useAdminColors } from '@/composables/useAdminTheme';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import { adminChartSeries } from '@/theme/adminTokens';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { Button, Card, Table } from 'ant-design-vue';
 import { ArcElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Tooltip } from 'chart.js';
@@ -82,14 +84,17 @@ const statusColumns = [
     { key: 'revenue_formatted', dataIndex: 'revenue_formatted', title: t('admin.common.revenue'), ...endCell },
 ];
 
+const colors = useAdminColors();
+
 const revenueChart = computed(() => ({
     labels: props.daily.map((d) => d.day.slice(5)),
     datasets: [
         {
             label: t('admin.common.revenue'),
             data: props.daily.map((d) => d.revenue),
-            borderColor: '#2563eb',
-            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            borderColor: colors.value.accent,
+            backgroundColor: colors.value.chartFill,
+            borderWidth: 2,
             fill: true,
             tension: 0.3,
             pointRadius: 2,
@@ -102,7 +107,7 @@ const categoryChart = computed(() => ({
     datasets: [
         {
             data: props.byCategory.map((c) => c.revenue),
-            backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#64748b'],
+            backgroundColor: adminChartSeries,
             // Chart.js separates arcs with a white border, which reads as a stray
             // white slash across the ring on the dark theme.
             borderWidth: 0,
@@ -110,17 +115,25 @@ const categoryChart = computed(() => ({
     ],
 }));
 
-const lineOptions = {
+const lineOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
-    scales: { y: { beginAtZero: true } },
+    scales: {
+        y: {
+            beginAtZero: true,
+            grid: { color: colors.value.lineSoft },
+            border: { display: false },
+            ticks: { color: colors.value.muted, font: { size: 11 } },
+        },
+        x: { grid: { display: false }, border: { color: colors.value.lineStrong }, ticks: { color: colors.value.muted, font: { size: 11 } } },
+    },
     // A range with one day in it draws no line segment, so the point itself has
     // to be visible or the chart looks empty.
-    elements: { point: { radius: 3, hoverRadius: 5 } },
-};
+    elements: { point: { radius: 3, hoverRadius: 5, backgroundColor: colors.value.accent } },
+}));
 
-const doughnutOptions = {
+const doughnutOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     // A ring rather than a pie, with dot legend keys — the default filled
@@ -129,10 +142,10 @@ const doughnutOptions = {
     plugins: {
         legend: {
             position: 'right' as const,
-            labels: { usePointStyle: true, pointStyle: 'circle' as const, boxWidth: 8, boxHeight: 8, padding: 12 },
+            labels: { usePointStyle: true, pointStyle: 'circle' as const, boxWidth: 8, boxHeight: 8, padding: 12, color: colors.value.text2 },
         },
     },
-};
+}));
 
 function exportUrl(report: string): string {
     return route('admin.reports.export', { report }) + `?from=${from.value}&to=${to.value}`;
@@ -217,7 +230,7 @@ function exportUrl(report: string): string {
             >
                 <template #bodyCell="{ column, record }">
                     <template v-if="column.key === 'name'">
-                        {{ record.name }} <span class="text-xs text-gray-400">{{ record.sku }}</span>
+                        {{ record.name }} <span class="text-xs text-ad-label">{{ record.sku }}</span>
                     </template>
                     <template v-else-if="column.key === 'units'">{{ t('admin.reports.units_n', { count: record.units }) }}</template>
                     <span v-else-if="column.key === 'revenue_formatted'" class="font-medium">{{ record.revenue_formatted }}</span>
@@ -268,7 +281,7 @@ function exportUrl(report: string): string {
             >
                 <template #bodyCell="{ column, record }">
                     <template v-if="column.key === 'name'">
-                        {{ record.name }} <span class="text-xs text-gray-400">{{ record.email }}</span>
+                        {{ record.name }} <span class="text-xs text-ad-label">{{ record.email }}</span>
                     </template>
                     <template v-else-if="column.key === 'orders'">{{ t('admin.reports.orders_n', { count: record.orders }) }}</template>
                     <span v-else-if="column.key === 'revenue_formatted'" class="font-medium">{{ record.revenue_formatted }}</span>
