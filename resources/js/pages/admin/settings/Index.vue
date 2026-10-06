@@ -118,12 +118,7 @@ function submit(): void {
                     <div class="flex items-center gap-3">
                         <!-- Shown on the same white the paper is, because that is
                              exactly what will be printed — no colour, no greys. -->
-                        <img
-                            v-if="receiptLogo"
-                            :src="receiptLogo"
-                            alt=""
-                            class="h-16 w-auto rounded border border-gray-200 bg-white p-1 dark:border-neutral-700"
-                        />
+                        <img v-if="receiptLogo" :src="receiptLogo" alt="" class="h-16 w-auto rounded border border-ad-line bg-white p-1" />
                         <Upload :show-upload-list="false" accept="image/*" :before-upload="uploadLogo">
                             <Button :loading="uploadingLogo">{{ t('admin.settings.receipt_logo_upload') }}</Button>
                         </Upload>
