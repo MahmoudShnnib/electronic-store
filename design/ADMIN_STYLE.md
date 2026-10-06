@@ -10,9 +10,10 @@ only file that holds raw colour/size values. From there:
 - `AdminLayout.vue` / `PosLayout.vue` call `useAdminTheme()`, which
   1. feeds the AntD `ConfigProvider` its token map (so every AntD control picks up
      the palette, radius and font), and
-  2. writes every token onto `<html>` as a CSS custom property (`--ad-*`) while an
-     admin layout is mounted, and removes them on unmount — the storefront never
-     sees them.
+  2. writes every token onto `<html>` as a CSS custom property (`--ad-*`). They stay
+     there after leaving the admin; only admin CSS reads `--ad-*`, so the storefront
+     is unaffected (and nothing has to count mounts across the dashboard ⇄ register
+     layout swap).
 - `resources/css/app.css` ("Admin theme" block) and Tailwind (`ad-*` colours in
   `tailwind.config.js`, all `var(--ad-*)`) only ever reference the variables.
 
@@ -173,6 +174,14 @@ Figures use `font-variant-numeric: tabular-nums` wherever they line up in column
 | **Help hint** | Circled `?`, `label` colour, hover `hover` bg + `text`. Unchanged behaviour. |
 | **Charts** (Chart.js) | Line: `accent` stroke 2px, `chart-fill` area, no points except hover. Bars: `success`, radius 4 on top. Grid `line-soft`, axis text 11px `muted`. Colours read from the tokens at render time. |
 
+### Layout rules added during the restyle
+
+- The content column is a flex column with a 16px gap; page-level `mt-*`/`mb-*`
+  on its direct children are neutralised so the gap owns the rhythm.
+- Grids that only declare breakpoint templates (`grid xl:grid-cols-3`) get a
+  `minmax(0, 1fr)` base column, so a wide table cannot push a phone screen sideways.
+- Card heads wrap (title above actions) on narrow screens.
+
 ## 6. Light / dark
 
 The reference is dark-only with a toggle; both modes ship. `useAppearance` remains
@@ -191,6 +200,12 @@ swaps both the AntD algorithm/tokens and the `--ad-*` variables in the same tick
 - **Profile / password pages** linked from the avatar menu are shared with
   customers (`layouts/settings`), so they are out of scope.
 - Sidebar is 256px (reference 250px) so the existing `lg:ms-64` content offset holds.
+- **KPI currency suffix**: the reference prints the amount large and "LYD" small. Our
+  figures arrive pre-formatted by `App\Support\Money` (with bidi isolates), so they
+  render as one string at 26px rather than being split client-side.
+- **Stat-group cells are not links** (the reference's are). Linking them would add
+  navigation that does not exist today; left as plain figures.
+- Long money figures stay on one line on desktop and wrap (at 22px) on phones.
 
 ---
 

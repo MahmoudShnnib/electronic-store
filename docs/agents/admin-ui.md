@@ -14,17 +14,33 @@ of the two conflicts documented there, not a per-page mistake.
 
 | What you want to change | File |
 | --- | --- |
-| Brand colour, corner radius, dark/light algorithm | `resources/js/composables/useAntdTheme.ts` + the `useAntdTheme({...})` call in `AdminLayout.vue` |
-| Sidebar, nav sections, top bar, page chrome | `resources/js/layouts/AdminLayout.vue` |
+| **Any colour, radius, font or spacing value** | `resources/js/theme/adminTokens.ts` — the only place raw values live (see `design/ADMIN_STYLE.md`) |
+| How tokens reach AntD and CSS | `resources/js/composables/useAdminTheme.ts` (used by `AdminLayout.vue` and `PosLayout.vue`) |
+| Sidebar links, grouping, permissions | `resources/js/components/admin/AdminNav.vue` |
+| Top bar, sider/drawer shell | `resources/js/layouts/AdminLayout.vue` |
 | Anything shared across pages (tables, filters, modals, form fields) | `resources/js/components/admin/*` |
-| Global CSS that AntD and Tailwind fight over | the AntD interop block at the bottom of `resources/css/app.css` |
-| Dashboard chrome (surfaces, scrollbars, table edges, bidi) | the "Admin dashboard chrome" block below it, same file |
+| Global CSS that AntD and Tailwind fight over | the AntD interop block in `resources/css/app.css` |
+| The dashboard's whole look (sidebar, top bar, cards, KPI boxes, tables, pills, modals) | the "Admin theme" block in `app.css` — every value is a `var(--ad-*)` |
+| Bidi rules shared with the shop | the "Admin dashboard chrome" block, same file |
 | One page only | that page's `.vue` file |
 
 Prefer the shared components over per-page markup. Most pages are already a thin composition of
 `PageHeader` + `FilterBar` + `DataTable` + `Pagination`.
 
 ## Theme
+
+**2026-10-06 restyle.** The admin no longer calls `useAntdTheme`. `useAdminTheme()`
+builds the AntD theme from `theme/adminTokens.ts` (palette per mode, radius, font
+size) and writes the same tokens onto `<html>` as `--ad-*` custom properties, which
+the "Admin theme" CSS block and the Tailwind `ad-*` colours (`bg-ad-card`,
+`text-ad-muted`, `border-ad-line`…) read. Chart.js code gets raw colours from
+`useAdminColors()`. The admin font is IBM Plex Sans Arabic (Bunny Fonts, injected by
+`useAdminTheme`); the Tajawal metric overrides below now only matter to the shop.
+The table/card/pill look rules that used to be shared with the storefront were
+re-scoped to `:has(.store-shell)` (same rendering there) so the admin could change
+alone. `useAntdTheme` itself is unchanged — the storefront still uses it.
+
+The rest of this section describes the mechanism both composables share.
 
 `useAntdTheme(token)` returns a reactive AntD theme config and is passed to the `ConfigProvider`
 that wraps the whole admin layout. It:
