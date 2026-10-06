@@ -245,9 +245,9 @@ function destroy(): void {
                         alt=""
                         width="64"
                         height="64"
-                        class="h-16 w-16 rounded-lg object-cover ring-1 ring-black/10 dark:ring-white/10"
+                        class="h-16 w-16 rounded-lg object-cover ring-1 ring-ad-line"
                     />
-                    <div v-else class="flex h-16 w-16 items-center justify-center rounded-lg bg-gray-100 text-gray-400 dark:bg-neutral-800">
+                    <div v-else class="flex h-16 w-16 items-center justify-center rounded-lg bg-ad-icon-bg text-ad-faint">
                         <ImageIcon class="h-6 w-6" />
                     </div>
                     <div class="flex-1 space-y-2">
