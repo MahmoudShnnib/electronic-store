@@ -5,8 +5,7 @@ Spec: `design/ADMIN_STYLE.md`. If interrupted, continue from "Next step".
 
 ## Next step
 
-Verification pass: phone/tablet widths, English/LTR, light mode spot checks,
-POS shift screens, storefront unchanged, Pest suite. Then final docs.
+Nothing — restyle complete. Open items for the user are under "Issues found".
 
 ## Done
 
@@ -66,10 +65,14 @@ POS shift screens, storefront unchanged, Pest suite. Then final docs.
 
 ## Verification
 
-- [ ] `npm run lint`, `npm run build`
-- [ ] `./vendor/bin/pest`
-- [ ] Browser walk-through of every page: dark/light × LTR/RTL, desktop + phone width
-- [ ] Storefront spot-check (unchanged)
+- [x] `npm run lint`, `npm run build`, `pint --dirty` — clean. `prettier --check resources/`
+      flags only `components/pos/ReceiptPaper.vue`, which this branch never touched.
+- [x] `./vendor/bin/pest` — 497 passed (2342 assertions)
+- [x] Automated crawl of 30 routes: no horizontal overflow at 375px, 768px and 1440px;
+      no stray light surfaces in dark mode
+- [x] Screenshots: dashboard (dark/light, RTL/LTR, phone + drawer), orders, order detail,
+      products, product form, sales report, audit logs, roles, coupons modal, POS register
+- [x] Storefront spot-check: Tajawal font, 14px cards, pills and layout unchanged
 
 ## Issues found
 
@@ -77,5 +80,8 @@ POS shift screens, storefront unchanged, Pest suite. Then final docs.
   layout (client i18n/`<html dir>` keep the login page's locale until a full reload).
   Not a styling issue; left alone.
 - Pre-existing: the product form title "New product" is not translated.
+- Not screenshot-reviewed one by one (crawl-checked only): brands, categories,
+  warehouses, suppliers, PO pages, stock/movements, refunds, treasury, customers,
+  reviews, users, settings, inventory/invoices reports, POS shift screens.
 - Browser automation: clicks in the emulated 1440px viewport mis-map; interactions
   were checked through DOM events instead.
