@@ -65,11 +65,7 @@ function moderate(review: ReviewRow, status: 'approved' | 'rejected'): void {
                     <p v-if="review.body" class="mb-0 mt-1 text-sm">{{ review.body }}</p>
                     <Text type="secondary" class="mt-2 block !text-xs">
                         {{ t('admin.reviews.reviewed_on', { name: review.customer?.name ?? t('admin.reviews.unknown') }) }}
-                        <Link
-                            v-if="review.product"
-                            :href="route('products.show', review.product.slug)"
-                            class="text-blue-600 hover:underline dark:text-blue-400"
-                        >
+                        <Link v-if="review.product" :href="route('products.show', review.product.slug)" class="admin-link hover:underline">
                             {{ review.product.name }}
                         </Link>
                         · {{ review.created_at }}
