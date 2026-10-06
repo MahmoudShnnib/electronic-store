@@ -396,6 +396,14 @@ html {
         font-size: 16px;
     }
 
+    /* A grid with only breakpoint templates (`grid xl:grid-cols-3`) gets an
+       implicit `auto` column below the breakpoint, which grows to the widest
+       table inside it and pushes the page sideways on phones. Zero-specificity
+       so every grid-cols utility still wins. */
+    :where(html:has(.admin-shell) .grid) {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
     body {
         @apply bg-background text-foreground;
     }
@@ -1183,6 +1191,13 @@ html:has(.admin-shell) .ant-card .ant-card-extra {
     padding: 0;
 }
 
+/* Title and actions share one row while they fit, and stack on a phone instead
+   of pushing the card past the screen edge. */
+html:has(.admin-shell) .ant-card .ant-card-head-wrapper {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
 html:has(.admin-shell) .ant-card .ant-card-extra {
     font-size: 13px;
 }
@@ -1248,6 +1263,13 @@ html:has(.admin-shell) .ant-card.ant-card-small > .ant-card-body {
     white-space: nowrap;
 }
 
+@media (max-width: 640px) {
+    .admin-kpi-value {
+        font-size: 22px;
+        white-space: normal;
+    }
+}
+
 .admin-kpi-hint {
     margin: 2px 0 0;
     color: var(--ad-muted);
@@ -1285,17 +1307,19 @@ html:has(.admin-shell) .ant-card.ant-card-small > .ant-card-body {
     font-weight: 500;
 }
 
+/* Every cell carries its divider and sits 1px over the previous edge; the
+   container clips the first one in each row, so a wrapped row on a narrow
+   screen does not start with a stray rule. */
 .admin-stat-cells {
     display: flex;
     flex-wrap: wrap;
+    overflow: hidden;
 }
 
 .admin-stat-cell {
     flex: 1 1 90px;
+    margin-inline-start: -1px;
     padding: 6px 18px;
-}
-
-.admin-stat-cell + .admin-stat-cell {
     border-inline-start: 1px solid var(--ad-line);
 }
 
@@ -1409,7 +1433,11 @@ html:has(.admin-shell) .ant-table-wrapper:hover .ant-table-content {
 
 /* --- Pills, tags --------------------------------------------------------- */
 
+/* Long tag text (a list of category names) wraps inside the tag instead of
+   running off a phone screen. */
 html:has(.admin-shell) .ant-tag {
+    max-width: 100%;
+    white-space: normal;
     padding-inline: 9px;
     border: 1px solid var(--ad-tag-gray-line);
     border-radius: var(--ad-radius-sm);
