@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { Card, Statistic } from 'ant-design-vue';
-import { computed } from 'vue';
+import { computed, type Component } from 'vue';
 import HelpHint from './HelpHint.vue';
 
 const props = defineProps<{
@@ -10,31 +9,38 @@ const props = defineProps<{
     /** How the figure is derived, for the ones that are not self-explanatory. */
     help?: string;
     tone?: 'default' | 'success' | 'warning' | 'danger';
+    /** Optional lucide icon shown in the box at the start (reference KPI style). */
+    icon?: Component;
 }>();
 
-/** AntD's Statistic takes a colour rather than a class, so map the tone to one. */
-const toneColors: Record<string, string | undefined> = {
-    default: undefined,
-    success: '#059669',
-    warning: '#d97706',
-    danger: '#dc2626',
-};
+/** Zero reads as "nothing here" in the reference, so it steps back to the faint tone. */
+const isZero = computed(() => {
+    const digits = String(props.value).replace(/[^\d.-]/g, '');
 
-const valueStyle = computed(() => ({
-    fontSize: '1.5rem',
-    fontWeight: '600',
-    color: toneColors[props.tone ?? 'default'],
-}));
+    return digits !== '' && Number(digits) === 0;
+});
+
+const toneClass = computed(() => {
+    if (isZero.value) {
+        return 'is-zero';
+    }
+
+    return { success: 'is-money', warning: 'is-warning', danger: 'is-danger' }[props.tone ?? 'default'] ?? '';
+});
 </script>
 
 <template>
-    <Card size="small" class="h-full" :body-style="{ padding: '16px' }">
-        <Statistic :value="value" :value-style="valueStyle">
-            <template #title>
+    <section class="admin-kpi">
+        <span v-if="icon" class="admin-kpi-icon" :class="{ 'is-money': tone === 'success' }" aria-hidden="true">
+            <component :is="icon" />
+        </span>
+        <div>
+            <h2 class="admin-kpi-label">
                 {{ label }}
-                <HelpHint v-if="help" :text="help" class="ms-1" />
-            </template>
-        </Statistic>
-        <p v-if="hint" class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ hint }}</p>
-    </Card>
+                <HelpHint v-if="help" :text="help" />
+            </h2>
+            <div class="admin-kpi-value" :class="toneClass">{{ value }}</div>
+            <p v-if="hint" class="admin-kpi-hint">{{ hint }}</p>
+        </div>
+    </section>
 </template>
