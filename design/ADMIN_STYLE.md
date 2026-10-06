@@ -200,12 +200,20 @@ swaps both the AntD algorithm/tokens and the `--ad-*` variables in the same tick
 - **Profile / password pages** linked from the avatar menu are shared with
   customers (`layouts/settings`), so they are out of scope.
 - Sidebar is 256px (reference 250px) so the existing `lg:ms-64` content offset holds.
-- **KPI currency suffix**: the reference prints the amount large and "LYD" small. Our
-  figures arrive pre-formatted by `App\Support\Money` (with bidi isolates), so they
-  render as one string at 26px rather than being split client-side.
+- **Currency placement** (matched, 2026-10-06 follow-up): KPI figures show the amount
+  large and the currency small and muted after it (`StatCard` splits the
+  `App\Support\Money` string for display; the value is never re-formatted). Across
+  the whole admin, `useAdminMoneyBidi` closes Money's LTR isolate after the amount, so
+  in Arabic "د.ل" sits on the left of the figure as in the reference; English is
+  unchanged. `Money` itself, the storefront and the printed receipt are untouched.
 - **Stat-group cells are not links** (the reference's are). Linking them would add
   navigation that does not exist today; left as plain figures.
-- Long money figures stay on one line on desktop and wrap (at 22px) on phones.
+- The amount never breaks; a long one pushes its currency to the next line.
+- **Dashboard grid** follows the content column's own width (container queries), so at
+  ~700px (1024px window minus the sidebar) the KPI row stays four across in a compact
+  card form (small icon beside the label, figure on its own row) instead of 2×2 boxes
+  that were half empty; status counts take a full row with inventory/customers split
+  2:1 under it; charts sit side by side from 640px.
 
 ---
 
