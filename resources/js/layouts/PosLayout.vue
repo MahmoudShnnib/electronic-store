@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import FlashMessages from '@/components/FlashMessages.vue';
+import { useAdminMoneyBidi } from '@/composables/useAdminMoneyBidi';
 import { useAdminTheme } from '@/composables/useAdminTheme';
 import { isDark, useAppearance } from '@/composables/useAppearance';
 import { Link, usePage } from '@inertiajs/vue3';
@@ -26,6 +27,7 @@ const page = usePage();
 const { appearance, updateAppearance } = useAppearance();
 
 const themeConfig = useAdminTheme();
+useAdminMoneyBidi();
 
 const locale = computed(() => (page.props.locale as string) ?? 'en');
 const direction = computed<'rtl' | 'ltr'>(() => (locale.value === 'ar' ? 'rtl' : 'ltr'));

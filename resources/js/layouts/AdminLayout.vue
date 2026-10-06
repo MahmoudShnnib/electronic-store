@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AdminNav from '@/components/admin/AdminNav.vue';
 import FlashMessages from '@/components/FlashMessages.vue';
+import { useAdminMoneyBidi } from '@/composables/useAdminMoneyBidi';
 import { useAdminTheme } from '@/composables/useAdminTheme';
 import { useAppearance } from '@/composables/useAppearance';
 import { switchLocale, type AppLocale } from '@/i18n';
@@ -57,6 +58,7 @@ function logout(): void {
 }
 
 const antTheme = useAdminTheme();
+useAdminMoneyBidi();
 
 /** AntD's own strings (calendar, table, pagination) plus the dayjs calendar itself. */
 const antLocale = computed(() => (locale.value === 'ar' ? arEG : enGB));
