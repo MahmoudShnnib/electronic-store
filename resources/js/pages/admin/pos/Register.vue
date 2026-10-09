@@ -240,9 +240,7 @@ const stockByKey = computed(() => new Map(catalogue.value.map((tile) => [tile.ke
  * never do is offer something the warehouse cannot hand over.
  */
 const tiles = computed<Tile[]>(() =>
-    catalogue.value
-        .map((tile) => ({ ...tile, available: tile.stock - (reserved.value.get(tile.key) ?? 0) }))
-        .filter((tile) => tile.available > 0),
+    catalogue.value.map((tile) => ({ ...tile, available: tile.stock - (reserved.value.get(tile.key) ?? 0) })).filter((tile) => tile.available > 0),
 );
 
 /**
@@ -259,7 +257,9 @@ const shelves = computed(() => {
         counts.set(tile.product.category_id, (counts.get(tile.product.category_id) ?? 0) + 1);
     }
 
-    return props.categories.filter((category) => counts.has(category.id)).map((category) => ({ ...category, products_count: counts.get(category.id) ?? 0 }));
+    return props.categories
+        .filter((category) => counts.has(category.id))
+        .map((category) => ({ ...category, products_count: counts.get(category.id) ?? 0 }));
 });
 
 // A chip that empties out takes its filter with it, rather than leaving the
@@ -574,32 +574,30 @@ watch(
 <template>
     <Head :title="t('admin.pos.title')" />
 
-    <div class="flex h-full flex-col bg-gray-50 dark:bg-neutral-950">
+    <div class="flex h-full flex-col bg-ad-bg">
         <!-- The shift strip lives in the page, not the layout: an Inertia page
              renders into the layout's default slot, so a named slot here would
              never reach it. -->
-        <div
-            class="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1 border-b border-gray-200 bg-white px-4 py-2 dark:border-neutral-800 dark:bg-neutral-900"
-        >
+        <div class="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-1 border-b border-ad-line bg-ad-card px-4 py-2">
             <span class="flex items-center gap-1.5 text-sm font-semibold">
-                <span class="size-1.5 rounded-full bg-green-500"></span>
+                <span class="size-1.5 rounded-full bg-ad-success"></span>
                 {{ shift.warehouse.name }}
             </span>
 
             <!-- Each figure carries its own label: the run-on of dot-separated
                  values it replaced was unreadable at a glance, which is the only
                  way a cashier ever reads this strip. -->
-            <span class="text-xs text-gray-500">
+            <span class="text-xs text-ad-muted">
                 {{ t('admin.pos.cashier') }}
-                <span class="font-medium text-gray-900 dark:text-gray-100">{{ shift.cashier }}</span>
+                <span class="font-medium text-ad-text">{{ shift.cashier }}</span>
             </span>
-            <span class="text-xs text-gray-500">
+            <span class="text-xs text-ad-muted">
                 {{ t('admin.pos.sales_count') }}
-                <span class="font-medium tabular-nums text-gray-900 dark:text-gray-100">{{ shift.orders_count }}</span>
+                <span class="font-medium tabular-nums text-ad-text">{{ shift.orders_count }}</span>
             </span>
-            <span class="text-xs text-gray-500">
+            <span class="text-xs text-ad-muted">
                 {{ t('admin.pos.expected_in_drawer') }}
-                <span class="font-medium tabular-nums text-gray-900 dark:text-gray-100">{{ shift.expected_cash_formatted }}</span>
+                <span class="font-medium tabular-nums text-ad-text">{{ shift.expected_cash_formatted }}</span>
             </span>
 
             <Link :href="route('admin.pos.shifts.close')" class="ms-auto">
@@ -609,20 +607,17 @@ watch(
 
         <div class="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_25rem]">
             <!-- Catalogue -->
-            <section class="flex min-h-0 flex-col border-e border-gray-200 dark:border-neutral-800">
+            <section class="flex min-h-0 flex-col border-e border-ad-line">
                 <!-- One scrolling row, not a wrapping block: the shelf must never
                      push the search box and the grid down the screen. -->
-                <div
-                    v-if="shelves.length > 0"
-                    class="flex shrink-0 gap-1.5 overflow-x-auto border-b border-gray-200 px-3 py-2 dark:border-neutral-800"
-                >
+                <div v-if="shelves.length > 0" class="flex shrink-0 gap-1.5 overflow-x-auto border-b border-ad-line px-3 py-2">
                     <button
                         type="button"
                         class="shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition"
                         :class="
                             activeCategory === null
-                                ? 'border-blue-600 bg-blue-600 text-white'
-                                : 'border-gray-200 text-gray-600 hover:border-blue-500 dark:border-neutral-700 dark:text-gray-300'
+                                ? 'border-ad-primary bg-ad-primary text-white'
+                                : 'border-ad-line text-ad-text-3 hover:border-ad-accent'
                         "
                         @click="activeCategory = null"
                     >
@@ -636,8 +631,8 @@ watch(
                         class="shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition"
                         :class="
                             activeCategory === category.id
-                                ? 'border-blue-600 bg-blue-600 text-white'
-                                : 'border-gray-200 text-gray-600 hover:border-blue-500 dark:border-neutral-700 dark:text-gray-300'
+                                ? 'border-ad-primary bg-ad-primary text-white'
+                                : 'border-ad-line text-ad-text-3 hover:border-ad-accent'
                         "
                         @click="activeCategory = activeCategory === category.id ? null : category.id"
                     >
@@ -655,7 +650,7 @@ watch(
                         :placeholder="t('admin.pos.scan_placeholder')"
                         @press-enter="onSearchEnter"
                     >
-                        <template #prefix><Search class="size-4 text-gray-400" /></template>
+                        <template #prefix><Search class="size-4 text-ad-label" /></template>
                     </Input>
                 </div>
 
@@ -667,16 +662,14 @@ watch(
                             v-for="tile in results"
                             :key="tile.key"
                             type="button"
-                            class="group flex h-full flex-col rounded-lg border border-gray-200 bg-white p-2.5 text-start transition hover:border-blue-500 hover:shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+                            class="group flex h-full flex-col rounded-lg border border-ad-line bg-ad-card p-2.5 text-start transition hover:border-ad-accent"
                             @click="addTile(tile)"
                         >
                             <!-- Square, so every tile in a row is the same height
                                  whatever aspect ratio was uploaded. object-contain
                                  rather than cover: a cropped product is harder to
                                  recognise than one with air around it. -->
-                            <span
-                                class="mb-2 flex aspect-square w-full items-center justify-center overflow-hidden rounded bg-gray-50 dark:bg-neutral-800"
-                            >
+                            <span class="mb-2 flex aspect-square w-full items-center justify-center overflow-hidden rounded bg-ad-icon-bg">
                                 <img
                                     v-if="tile.image"
                                     :src="tile.image"
@@ -684,7 +677,7 @@ watch(
                                     loading="lazy"
                                     class="size-full object-contain transition-transform duration-200 group-hover:scale-105"
                                 />
-                                <ImageOff v-else class="size-6 text-gray-300 dark:text-neutral-600" />
+                                <ImageOff v-else class="size-6 text-ad-faint" />
                             </span>
 
                             <!-- dir="auto" so a Latin product name truncates at its
@@ -694,20 +687,17 @@ watch(
                                 {{ tile.title }}
                             </span>
 
-                            <span
-                                dir="auto"
-                                class="mt-1 line-clamp-1 self-start rounded bg-gray-100 px-1.5 py-0.5 text-[0.6875rem] text-gray-600 dark:bg-neutral-800 dark:text-gray-400"
-                            >
+                            <span dir="auto" class="mt-1 line-clamp-1 self-start rounded bg-ad-icon-bg px-1.5 py-0.5 text-[0.6875rem] text-ad-muted">
                                 {{ tile.subtitle }}
                             </span>
 
                             <!-- Pinned to the bottom so every tile in a row lines its
                                  price up, whatever the title wrapped to. -->
                             <span class="mt-auto flex items-baseline justify-between gap-1 pt-2">
-                                <span class="text-sm font-semibold text-blue-600 dark:text-blue-400">{{ tile.priceFormatted }}</span>
+                                <span class="text-sm font-semibold text-ad-accent">{{ tile.priceFormatted }}</span>
                                 <span
                                     class="shrink-0 text-[0.6875rem] font-medium tabular-nums"
-                                    :class="tile.available > 3 ? 'text-gray-400' : 'text-amber-600 dark:text-amber-500'"
+                                    :class="tile.available > 3 ? 'text-ad-label' : 'is-warning'"
                                 >
                                     {{ t('admin.pos.in_stock_n', { count: tile.available }) }}
                                 </span>
@@ -718,8 +708,8 @@ watch(
             </section>
 
             <!-- Basket -->
-            <aside class="flex min-h-0 flex-col bg-white dark:bg-neutral-900">
-                <div class="flex shrink-0 items-center justify-between border-b border-gray-200 px-3 py-2 dark:border-neutral-800">
+            <aside class="flex min-h-0 flex-col bg-ad-card">
+                <div class="flex shrink-0 items-center justify-between border-b border-ad-line px-3 py-2">
                     <span class="text-sm font-semibold">{{ t('admin.pos.basket_n', { count: itemCount }) }}</span>
                     <Tooltip :title="t('admin.pos.clear_basket')">
                         <Button type="text" size="small" :disabled="basket.length === 0" @click="clearBasket">
@@ -731,17 +721,17 @@ watch(
                 <div class="min-h-0 flex-1 overflow-y-auto">
                     <Empty v-if="basket.length === 0" :description="t('admin.pos.basket_empty')" class="!mt-16" />
 
-                    <ul v-else class="divide-y divide-gray-100 dark:divide-neutral-800">
+                    <ul v-else class="divide-y divide-ad-line">
                         <li v-for="line in basket" :key="line.key" class="px-3 py-2.5">
                             <div class="flex items-start gap-2">
-                                <span class="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded bg-gray-50 dark:bg-neutral-800">
+                                <span class="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded bg-ad-icon-bg">
                                     <img v-if="line.image" :src="line.image" :alt="line.name" loading="lazy" class="size-full object-contain" />
-                                    <ImageOff v-else class="size-3.5 text-gray-300 dark:text-neutral-600" />
+                                    <ImageOff v-else class="size-3.5 text-ad-faint" />
                                 </span>
 
                                 <div class="min-w-0 flex-1">
                                     <p dir="auto" class="line-clamp-2 text-[0.8125rem] font-medium leading-tight">{{ line.name }}</p>
-                                    <p class="mt-0.5 text-[0.6875rem] text-gray-500">{{ line.quantity }} × {{ money(line.unitPrice) }}</p>
+                                    <p class="mt-0.5 text-[0.6875rem] text-ad-muted">{{ line.quantity }} × {{ money(line.unitPrice) }}</p>
                                 </div>
 
                                 <span class="shrink-0 text-sm font-semibold tabular-nums">
@@ -750,7 +740,7 @@ watch(
 
                                 <button
                                     type="button"
-                                    class="-me-1 shrink-0 rounded p-1 text-gray-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
+                                    class="-me-1 shrink-0 rounded p-1 text-ad-label transition hover:bg-ad-hover hover:text-ad-danger"
                                     :aria-label="t('admin.common.delete')"
                                     @click="removeLine(line)"
                                 >
@@ -763,7 +753,7 @@ watch(
                             <div class="mt-2 flex items-center gap-1">
                                 <button
                                     type="button"
-                                    class="flex size-8 items-center justify-center rounded border border-gray-200 transition hover:border-blue-500 dark:border-neutral-700"
+                                    class="flex size-8 items-center justify-center rounded border border-ad-line transition hover:border-ad-accent"
                                     :aria-label="t('admin.pos.decrease')"
                                     @click="step(line, -1)"
                                 >
@@ -772,7 +762,7 @@ watch(
                                 <span class="w-9 text-center text-sm font-medium tabular-nums">{{ line.quantity }}</span>
                                 <button
                                     type="button"
-                                    class="flex size-8 items-center justify-center rounded border border-gray-200 transition hover:border-blue-500 disabled:opacity-30 disabled:hover:border-gray-200 dark:border-neutral-700"
+                                    class="flex size-8 items-center justify-center rounded border border-ad-line transition hover:border-ad-accent disabled:opacity-30 disabled:hover:border-ad-line"
                                     :disabled="line.quantity >= stockOf(line)"
                                     :aria-label="t('admin.pos.increase')"
                                     @click="step(line, 1)"
@@ -787,11 +777,11 @@ watch(
                     </ul>
                 </div>
 
-                <div class="shrink-0 border-t border-gray-200 dark:border-neutral-800">
+                <div class="shrink-0 border-t border-ad-line">
                     <!-- Optional fields, folded: most counter sales need none of them. -->
                     <button
                         type="button"
-                        class="flex w-full items-center justify-between px-3 py-2 text-xs text-gray-500 transition hover:text-gray-900 dark:hover:text-gray-200"
+                        class="flex w-full items-center justify-between px-3 py-2 text-xs text-ad-muted transition hover:text-ad-text"
                         @click="showDetails = !showDetails"
                     >
                         {{ t('admin.pos.more_details') }}
@@ -808,7 +798,7 @@ watch(
 
                     <div class="space-y-2 px-3 pb-3">
                         <div v-if="canDiscount" class="flex items-center gap-2">
-                            <span class="w-16 shrink-0 text-xs text-gray-500">{{ t('admin.pos.discount') }}</span>
+                            <span class="w-16 shrink-0 text-xs text-ad-muted">{{ t('admin.pos.discount') }}</span>
                             <InputNumber v-model:value="discount" :min="0" :max="subtotal" size="small" class="!flex-1" />
                         </div>
 
@@ -820,12 +810,12 @@ watch(
 
                         <!-- A summary, not a bare total: a customer querying the
                              price needs to see what was taken off. -->
-                        <dl class="space-y-1 border-t border-gray-100 pt-2 text-xs dark:border-neutral-800">
-                            <div class="flex justify-between text-gray-500">
+                        <dl class="space-y-1 border-t border-ad-line pt-2 text-xs">
+                            <div class="flex justify-between text-ad-muted">
                                 <dt>{{ t('admin.pos.subtotal') }}</dt>
                                 <dd class="tabular-nums">{{ money(subtotal) }}</dd>
                             </div>
-                            <div v-if="discount > 0" class="flex justify-between text-amber-600 dark:text-amber-500">
+                            <div v-if="discount > 0" class="is-warning flex justify-between">
                                 <dt>{{ t('admin.pos.discount') }}</dt>
                                 <dd class="tabular-nums">−{{ money(discount) }}</dd>
                             </div>
@@ -844,7 +834,7 @@ watch(
                                 v-for="sale in recentSales"
                                 :key="sale.id"
                                 :href="route('admin.pos.receipt', sale.id)"
-                                class="rounded border border-gray-200 px-1.5 py-0.5 text-[0.6875rem] text-gray-500 transition hover:border-blue-500 hover:text-blue-600 dark:border-neutral-700"
+                                class="rounded border border-ad-line px-1.5 py-0.5 text-[0.6875rem] text-ad-muted transition hover:border-ad-accent hover:text-ad-accent"
                             >
                                 {{ sale.number.slice(-6) }}
                             </Link>
@@ -858,13 +848,7 @@ watch(
     <!-- Asked before anything is committed. The confirm button is focused on
          open and Enter is bound in `onKeydown`, so the whole sale is keyboard
          work: F2, scan, Enter, Enter — no reaching for the mouse. -->
-    <Modal
-        :open="confirming"
-        :title="t('admin.pos.confirm_sale')"
-        centered
-        width="360px"
-        @cancel="confirming = false"
-    >
+    <Modal :open="confirming" :title="t('admin.pos.confirm_sale')" centered width="360px" @cancel="confirming = false">
         <template #footer>
             <div class="flex justify-end gap-2">
                 <Button @click="confirming = false">{{ t('admin.common.cancel') }}</Button>
@@ -876,23 +860,23 @@ watch(
 
         <div class="space-y-2 py-2">
             <div class="flex items-baseline justify-between gap-2">
-                <span class="text-sm text-gray-500 dark:text-neutral-400">{{ t('admin.pos.total') }}</span>
-                <span class="text-3xl font-bold text-gray-900 dark:text-neutral-100">{{ money(total) }}</span>
+                <span class="text-sm text-ad-muted">{{ t('admin.pos.total') }}</span>
+                <span class="text-3xl font-bold text-ad-text">{{ money(total) }}</span>
             </div>
             <div class="flex justify-between gap-2 text-sm">
-                <span class="text-gray-500 dark:text-neutral-400">{{ t('admin.pos.payment') }}</span>
+                <span class="text-ad-muted">{{ t('admin.pos.payment') }}</span>
                 <span dir="auto">{{ paymentLabel }}</span>
             </div>
             <div class="flex justify-between gap-2 text-sm">
-                <span class="text-gray-500 dark:text-neutral-400">{{ t('admin.pos.items_count') }}</span>
+                <span class="text-ad-muted">{{ t('admin.pos.items_count') }}</span>
                 <span>{{ basketCount }}</span>
             </div>
             <div v-if="canDiscount && (discount ?? 0) > 0" class="flex justify-between gap-2 text-sm">
-                <span class="text-gray-500 dark:text-neutral-400">{{ t('admin.pos.discount') }}</span>
+                <span class="text-ad-muted">{{ t('admin.pos.discount') }}</span>
                 <span>-{{ money(discount ?? 0) }}</span>
             </div>
             <div v-if="customerName" class="flex justify-between gap-2 text-sm">
-                <span class="text-gray-500 dark:text-neutral-400">{{ t('admin.pos.customer') }}</span>
+                <span class="text-ad-muted">{{ t('admin.pos.customer') }}</span>
                 <span dir="auto">{{ customerName }}</span>
             </div>
         </div>
@@ -902,7 +886,7 @@ watch(
          The paper is parked off-screen rather than hidden: html2canvas measures
          real layout, and `display:none` has none to measure. -->
     <template v-if="sold">
-        <div class="receipt-offscreen pointer-events-none fixed top-0 -left-[10000px]" aria-hidden="true">
+        <div class="receipt-offscreen pointer-events-none fixed -left-[10000px] top-0" aria-hidden="true">
             <ReceiptPaper ref="paper" :order="sold.order" :store="sold.store" />
         </div>
 
@@ -913,11 +897,11 @@ watch(
                 </template>
                 <template #subTitle>
                     <div class="space-y-1 text-center">
-                        <p class="text-2xl font-bold text-gray-900 dark:text-neutral-100">{{ sold.order.total_formatted }}</p>
+                        <p class="text-2xl font-bold text-ad-text">{{ sold.order.total_formatted }}</p>
                         <p class="text-xs">{{ sold.order.number }}</p>
                         <p v-if="sending" class="text-xs">{{ t('admin.pos.printing') }}</p>
-                        <p v-else-if="printed" class="text-xs text-green-600">{{ t('admin.pos.printed') }}</p>
-                        <p v-else-if="printed === false" class="text-xs text-amber-600">{{ t('admin.pos.print_failed_short') }}</p>
+                        <p v-else-if="printed" class="is-money text-xs">{{ t('admin.pos.printed') }}</p>
+                        <p v-else-if="printed === false" class="is-warning text-xs">{{ t('admin.pos.print_failed_short') }}</p>
                     </div>
                 </template>
 

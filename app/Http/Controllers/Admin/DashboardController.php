@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\StockLevel;
 use App\Models\User;
+use App\Services\Reports\ReportService;
 use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -24,10 +25,15 @@ final class DashboardController extends Controller
 {
     public function __invoke(): Response
     {
-        // Same rule as ReportService: everything except cancelled is revenue, net of
-        // refunds — a partly refunded sale keeps what wasn't given back.
+        // Same rule as ReportService::NET_TOTAL: everything except cancelled is revenue;
+        // an open order counts at its total (a refund on it only returns a prepayment),
+        // a finished one at what the shop kept — payments minus refunds.
         $revenueStatuses = [OrderStatus::InProgress, OrderStatus::Completed, OrderStatus::Refunded];
-        $netTotal = "(total_cents - COALESCE((SELECT SUM(amount_cents) FROM refunds WHERE refunds.order_id = orders.id AND refunds.status = 'completed'), 0))";
+        // Days are the shop's days, as on the reports (timestamps are stored in UTC).
+        $tz = (string) config('store.timezone');
+        $netTotal = "(CASE WHEN status = 'in_progress' THEN total_cents ELSE"
+            ." COALESCE((SELECT SUM(amount_cents) FROM payments WHERE payments.order_id = orders.id AND payments.status = 'confirmed'), 0)"
+            ." - COALESCE((SELECT SUM(amount_cents) FROM refunds WHERE refunds.order_id = orders.id AND refunds.status = 'completed'), 0) END)";
 
         $revenue = fn ($query) => (int) $query->whereIn('status', $revenueStatuses)->sum(DB::raw($netTotal));
 
@@ -48,10 +54,10 @@ final class DashboardController extends Controller
         // Last 30 days of revenue for the chart.
         $revenueSeries = Order::query()
             ->whereIn('status', $revenueStatuses)
-            ->where('created_at', '>=', now()->subDays(29)->startOfDay())
-            ->groupByRaw('DATE(created_at)')
-            ->orderByRaw('DATE(created_at)')
-            ->selectRaw("DATE(created_at) as day, SUM({$netTotal}) as revenue_cents, COUNT(*) as orders_count")
+            ->where('created_at', '>=', now($tz)->subDays(29)->startOfDay()->utc())
+            ->groupByRaw(ReportService::localDay())
+            ->orderByRaw(ReportService::localDay())
+            ->selectRaw(ReportService::localDay()." as day, SUM({$netTotal}) as revenue_cents, COUNT(*) as orders_count")
             ->get()
             ->map(fn ($row) => [
                 'day' => $row->day,
@@ -59,9 +65,11 @@ final class DashboardController extends Controller
                 'orders' => (int) $row->orders_count,
             ]);
 
+        // Per-product lines can't be netted against an order-level refund, so refunded
+        // orders stay out — the same rule as the report's product breakdown.
         $bestSellers = DB::table('order_items')
             ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->whereIn('orders.status', array_map(fn ($s) => $s->value, $revenueStatuses))
+            ->whereIn('orders.status', [OrderStatus::InProgress->value, OrderStatus::Completed->value])
             ->whereNull('orders.deleted_at')
             ->groupBy('order_items.product_id', 'order_items.product_name')
             ->orderByDesc(DB::raw('SUM(order_items.quantity)'))
@@ -77,8 +85,8 @@ final class DashboardController extends Controller
 
         return Inertia::render('admin/Dashboard', [
             'kpis' => [
-                'revenue_today' => Money::format($revenue(Order::query()->whereDate('created_at', today()))),
-                'revenue_month' => Money::format($revenue(Order::query()->whereBetween('created_at', [now()->startOfMonth(), now()]))),
+                'revenue_today' => Money::format($revenue(Order::query()->whereBetween('created_at', [now($tz)->startOfDay()->utc(), now($tz)->endOfDay()->utc()]))),
+                'revenue_month' => Money::format($revenue(Order::query()->whereBetween('created_at', [now($tz)->startOfMonth()->utc(), now()]))),
                 'orders_total' => Order::query()->count(),
                 'orders_in_progress' => Order::query()->where('status', OrderStatus::InProgress)->count(),
                 'orders_completed' => Order::query()->where('status', OrderStatus::Completed)->count(),

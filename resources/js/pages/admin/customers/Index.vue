@@ -68,7 +68,7 @@ const columns: Column[] = [
     <DataTable :columns="columns" :rows="customers.data">
         <template #cell-name="{ row }">
             <div>
-                <Link :href="route('admin.customers.show', row.id)" class="font-medium text-blue-600 hover:underline dark:text-blue-400">
+                <Link :href="route('admin.customers.show', row.id)" class="admin-link font-medium hover:underline">
                     {{ row.name }}
                 </Link>
                 <Text type="secondary" class="block !text-xs">

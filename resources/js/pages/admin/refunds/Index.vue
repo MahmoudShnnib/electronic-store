@@ -49,7 +49,7 @@ const columns: Column[] = [
 
     <DataTable :columns="columns" :rows="refunds.data">
         <template #cell-order_number="{ row }">
-            <Link :href="route('admin.orders.show', row.order_id)" class="font-medium text-blue-600 hover:underline dark:text-blue-400">
+            <Link :href="route('admin.orders.show', row.order_id)" class="admin-link font-medium hover:underline">
                 {{ row.order_number }}
             </Link>
         </template>

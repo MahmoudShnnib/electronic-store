@@ -275,7 +275,10 @@
             "change_password": "Change password",
             "treasury": "Treasury",
             "pos": "Point of sale",
-            "pos_shifts": "Cashier shifts"
+            "pos_shifts": "Cashier shifts",
+            "sales_cash": "Sales & cash",
+            "catalog_setup": "Catalog setup",
+            "marketing": "Marketing"
         },
         "common": {
             "id": "ID",
@@ -459,7 +462,13 @@
             "recent_activity": "Recent activity",
             "no_activity": "No activity yet.",
             "sold_revenue": "{sold} sold · {revenue}",
-            "in_progress_orders": "Orders in progress"
+            "in_progress_orders": "Orders in progress",
+            "orders_by_status": "Orders by status",
+            "status_in_progress": "In progress",
+            "status_completed": "Completed",
+            "status_cancelled": "Cancelled",
+            "status_refunded": "Refunded",
+            "registered": "Registered"
         },
         "audit": {
             "title": "Audit logs",

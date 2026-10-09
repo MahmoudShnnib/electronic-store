@@ -90,7 +90,7 @@ const previewFields = computed<{ label: string; value: string | number | null; c
         { label: t('admin.products.regular_price'), value: row.price_formatted },
         { label: t('admin.products.sale_price'), value: row.sale_price_formatted },
         { label: t('admin.products.cost_price'), value: row.cost_price_formatted },
-        { label: t('admin.nav.stock'), value: row.stock, class: row.low_stock ? 'font-semibold text-amber-600' : '' },
+        { label: t('admin.nav.stock'), value: row.stock, class: row.low_stock ? 'font-semibold is-warning' : '' },
         { label: t('admin.common.low_stock_threshold'), value: row.low_stock_threshold },
         { label: t('admin.products.variants'), value: row.variants_count },
         { label: t('admin.common.created'), value: row.created_at },
@@ -203,14 +203,14 @@ function restore(product: ProductRow): void {
             <div class="flex items-center gap-3">
                 <Avatar :src="row.image ?? undefined" :alt="row.name" shape="square" :size="36">—</Avatar>
                 <div>
-                    <span class="font-medium text-gray-900 dark:text-gray-100">{{ row.name }}</span>
-                    <p v-if="row.is_featured" class="text-xs text-amber-600">{{ t('admin.products.featured') }}</p>
+                    <span class="font-medium text-ad-text">{{ row.name }}</span>
+                    <p v-if="row.is_featured" class="is-warning text-xs">{{ t('admin.products.featured') }}</p>
                 </div>
             </div>
         </template>
 
         <template #cell-stock="{ row }">
-            <span :class="row.low_stock ? 'font-semibold text-amber-600' : ''">{{ row.stock }}</span>
+            <span :class="row.low_stock ? 'is-warning font-semibold' : ''">{{ row.stock }}</span>
         </template>
 
         <template #cell-status="{ row }">
@@ -261,28 +261,28 @@ function restore(product: ProductRow): void {
                     v-if="previewing.image"
                     :src="previewing.image"
                     :alt="previewing.name"
-                    class="h-20 w-20 shrink-0 rounded-lg border border-gray-200 object-cover dark:border-gray-700"
+                    class="h-20 w-20 shrink-0 rounded-lg border border-ad-line object-cover"
                 />
                 <div class="min-w-0">
-                    <p class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ previewing.name }}</p>
-                    <p v-if="previewing.name_ar" class="text-sm text-gray-500 dark:text-gray-400" dir="rtl">{{ previewing.name_ar }}</p>
+                    <p class="text-base font-semibold text-ad-text">{{ previewing.name }}</p>
+                    <p v-if="previewing.name_ar" class="text-sm text-ad-muted" dir="rtl">{{ previewing.name_ar }}</p>
                     <div class="mt-2 flex flex-wrap items-center gap-2">
                         <StatusBadge :status="previewing.status" :label="previewing.status_label" />
-                        <span v-if="previewing.is_featured" class="text-xs text-amber-600">{{ t('admin.products.featured') }}</span>
+                        <span v-if="previewing.is_featured" class="is-warning text-xs">{{ t('admin.products.featured') }}</span>
                     </div>
                 </div>
             </div>
 
             <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
                 <div v-for="field in previewFields" :key="field.label">
-                    <dt class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ field.label }}</dt>
-                    <dd class="mt-0.5 text-gray-800 dark:text-gray-200" :class="field.class">{{ field.value ?? '—' }}</dd>
+                    <dt class="text-xs uppercase tracking-wide text-ad-muted">{{ field.label }}</dt>
+                    <dd class="mt-0.5 text-ad-text-2" :class="field.class">{{ field.value ?? '—' }}</dd>
                 </div>
             </dl>
 
             <div>
-                <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('admin.common.description') }}</p>
-                <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                <p class="text-xs uppercase tracking-wide text-ad-muted">{{ t('admin.common.description') }}</p>
+                <p class="mt-1 text-sm text-ad-text-2">
                     {{ previewing.short_description || t('admin.products.no_description') }}
                 </p>
             </div>
@@ -293,11 +293,11 @@ function restore(product: ProductRow): void {
                     :key="url"
                     :src="url"
                     :alt="previewing.name"
-                    class="h-14 w-14 rounded-md border border-gray-200 object-cover dark:border-gray-700"
+                    class="h-14 w-14 rounded-md border border-ad-line object-cover"
                 />
             </div>
 
-            <div class="flex justify-end gap-2 border-t border-gray-200 pt-4 dark:border-gray-800">
+            <div class="flex justify-end gap-2 border-t border-ad-line pt-4">
                 <Button @click="previewing = null">{{ t('admin.common.close') }}</Button>
                 <Link v-if="can.update && !previewing.deleted_at" :href="route('admin.products.edit', previewing.id)">
                     <Button type="primary">

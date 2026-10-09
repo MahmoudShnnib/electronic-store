@@ -1,46 +1,18 @@
 <script setup lang="ts">
+import AdminNav from '@/components/admin/AdminNav.vue';
 import FlashMessages from '@/components/FlashMessages.vue';
-import { useAntdTheme } from '@/composables/useAntdTheme';
+import { useAdminMoneyBidi } from '@/composables/useAdminMoneyBidi';
+import { useAdminTheme } from '@/composables/useAdminTheme';
 import { useAppearance } from '@/composables/useAppearance';
 import { switchLocale, type AppLocale } from '@/i18n';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Avatar, Button, ConfigProvider, Drawer, Dropdown, Layout, Menu, MenuItem, MenuItemGroup, Tooltip, Typography } from 'ant-design-vue';
+import { Avatar, Button, ConfigProvider, Drawer, Dropdown, Layout, Menu, MenuItem, Tooltip, Typography } from 'ant-design-vue';
 import arEG from 'ant-design-vue/es/locale/ar_EG';
 import enGB from 'ant-design-vue/es/locale/en_GB';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ar';
 import 'dayjs/locale/en-gb';
-import {
-    ArchiveRestore,
-    BarChart3,
-    Boxes,
-    ClipboardList,
-    Cpu,
-    CreditCard,
-    FileClock,
-    Home,
-    KeyRound,
-    Languages,
-    LayoutDashboard,
-    LogOut,
-    Menu as MenuIcon,
-    Moon,
-    Package,
-    Percent,
-    ScanLine,
-    Settings,
-    ShieldCheck,
-    ShoppingCart,
-    Star,
-    Store,
-    Sun,
-    Tag,
-    Truck,
-    UserCog,
-    Users,
-    Wallet,
-    Warehouse,
-} from 'lucide-vue-next';
+import { Home, KeyRound, Languages, LogOut, Menu as MenuIcon, Moon, ScanLine, Store, Sun, UserCog } from 'lucide-vue-next';
 import { computed, ref, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -64,125 +36,8 @@ const user = computed(() => (page.props.auth as { user: AuthUser | null }).user)
 /** Shared from HandleInertiaRequests, so the sidebar follows the configured store name. */
 const appName = computed(() => (page.props.name as string) ?? 'Electronic Store');
 
-const isSuperAdmin = computed(() => user.value?.roles.includes('super_admin') ?? false);
-
-function can(permission: string | null): boolean {
-    if (permission === null || isSuperAdmin.value) {
-        return true;
-    }
-
-    return user.value?.permissions.includes(permission) ?? false;
-}
-
-interface NavLink {
-    label: string;
-    href: string;
-    icon: unknown;
-    permission: string | null;
-}
-
-interface NavSection {
-    label: string | null;
-    links: NavLink[];
-}
-
-const currentUrl = computed(() => page.url);
-
-function pathOf(href: string): string {
-    return href.replace(/^https?:\/\/[^/]+/, '');
-}
-
-function isActive(href: string): boolean {
-    const path = pathOf(href);
-
-    if (path === '/admin') {
-        return currentUrl.value === '/admin';
-    }
-
-    return currentUrl.value.startsWith(path);
-}
-
-const sections = computed<NavSection[]>(() =>
-    [
-        {
-            label: null,
-            links: [{ label: t('admin.nav.dashboard'), href: route('admin.dashboard'), icon: LayoutDashboard, permission: null }],
-        },
-        {
-            label: t('admin.nav.catalog'),
-            links: [
-                { label: t('admin.nav.products'), href: route('admin.products.index'), icon: Package, permission: 'products.view' },
-                { label: t('admin.nav.categories'), href: route('admin.categories.index'), icon: Boxes, permission: 'categories.manage' },
-                { label: t('admin.nav.brands'), href: route('admin.brands.index'), icon: Tag, permission: 'brands.manage' },
-                { label: t('admin.nav.specifications'), href: route('admin.specifications.index'), icon: Cpu, permission: 'specifications.manage' },
-            ],
-        },
-        {
-            label: t('admin.nav.inventory'),
-            links: [
-                { label: t('admin.nav.stock'), href: route('admin.inventory.index'), icon: ClipboardList, permission: 'inventory.view' },
-                { label: t('admin.nav.movements'), href: route('admin.inventory.movements'), icon: ArchiveRestore, permission: 'inventory.view' },
-                { label: t('admin.nav.warehouses'), href: route('admin.warehouses.index'), icon: Warehouse, permission: 'warehouses.manage' },
-            ],
-        },
-        {
-            label: t('admin.nav.purchasing'),
-            links: [
-                { label: t('admin.nav.suppliers'), href: route('admin.suppliers.index'), icon: Truck, permission: 'suppliers.manage' },
-                {
-                    label: t('admin.nav.purchase_orders'),
-                    href: route('admin.purchase-orders.index'),
-                    icon: ClipboardList,
-                    permission: 'purchase_orders.view',
-                },
-            ],
-        },
-        {
-            label: t('admin.nav.sales'),
-            links: [
-                { label: t('admin.nav.pos'), href: route('admin.pos.register'), icon: ScanLine, permission: 'pos.use' },
-                { label: t('admin.nav.pos_shifts'), href: route('admin.pos.shifts.index'), icon: Wallet, permission: 'pos.shifts.view' },
-                { label: t('admin.nav.orders'), href: route('admin.orders.index'), icon: ShoppingCart, permission: 'orders.view' },
-                { label: t('admin.nav.refunds'), href: route('admin.refunds.index'), icon: CreditCard, permission: 'refunds.manage' },
-                { label: t('admin.nav.treasury'), href: route('admin.treasury.index'), icon: Wallet, permission: 'treasury.view' },
-            ],
-        },
-        {
-            label: t('admin.nav.customers'),
-            links: [
-                { label: t('admin.nav.customers'), href: route('admin.customers.index'), icon: Users, permission: 'customers.view' },
-                { label: t('admin.nav.reviews'), href: route('admin.reviews.index'), icon: Star, permission: 'reviews.moderate' },
-                { label: t('admin.nav.coupons'), href: route('admin.coupons.index'), icon: Percent, permission: 'coupons.manage' },
-            ],
-        },
-        {
-            label: t('admin.nav.insights'),
-            links: [{ label: t('admin.nav.reports'), href: route('admin.reports.sales'), icon: BarChart3, permission: 'reports.view' }],
-        },
-        {
-            label: t('admin.nav.platform'),
-            links: [
-                { label: t('admin.nav.users'), href: route('admin.users.index'), icon: Users, permission: 'users.manage' },
-                { label: t('admin.nav.roles'), href: route('admin.roles.index'), icon: ShieldCheck, permission: 'roles.manage' },
-                { label: t('admin.nav.audit_logs'), href: route('admin.audit-logs.index'), icon: FileClock, permission: 'audit.view' },
-                { label: t('admin.nav.settings'), href: route('admin.settings.index'), icon: Settings, permission: 'settings.manage' },
-            ],
-        },
-    ]
-        .map((section) => ({
-            ...section,
-            links: section.links.filter((link) => can(link.permission)),
-        }))
-        .filter((section) => section.links.length > 0),
-);
-
-/** AntD Menu keys are the route paths, so the active item falls out of the URL. */
-const selectedKeys = computed(() => {
-    const active = sections.value.flatMap((section) => section.links).filter((link) => isActive(link.href));
-
-    // Longest match wins: /admin/inventory/movements must not also light up /admin/inventory.
-    return active.length > 0 ? [pathOf(active.sort((a, b) => pathOf(b.href).length - pathOf(a.href).length)[0].href)] : [];
-});
+/** The register moved from the nav to the top bar (as in the reference); same permission. */
+const canUsePos = computed(() => (user.value?.roles.includes('super_admin') || user.value?.permissions.includes('pos.use')) ?? false);
 
 const sidebarOpen = ref(false);
 
@@ -202,7 +57,8 @@ function logout(): void {
     router.post(route('logout'));
 }
 
-const antTheme = useAntdTheme({ colorPrimary: '#2563eb', borderRadius: 6 });
+const antTheme = useAdminTheme();
+useAdminMoneyBidi();
 
 /** AntD's own strings (calendar, table, pagination) plus the dayjs calendar itself. */
 const antLocale = computed(() => (locale.value === 'ar' ? arEG : enGB));
@@ -222,28 +78,15 @@ watchEffect(() => dayjs.locale(locale.value === 'ar' ? 'ar' : 'en-gb'));
                 breakpoint="lg"
                 collapsed-width="0"
                 :trigger="null"
-                class="admin-sider !fixed inset-y-0 start-0 z-50 hidden overflow-hidden border-e border-black/[0.06] dark:border-white/[0.08] lg:!block"
+                class="admin-sider !fixed inset-y-0 start-0 z-50 hidden overflow-hidden lg:!block"
             >
-                <div class="flex h-14 shrink-0 items-center gap-2 border-b border-black/[0.06] px-4 dark:border-white/[0.08]">
-                    <Store class="h-5 w-5 shrink-0 text-blue-600" />
-                    <Link :href="route('admin.dashboard')" class="truncate text-[0.9375rem] font-semibold tracking-tight">{{ appName }}</Link>
-                </div>
+                <Link :href="route('admin.dashboard')" class="admin-brand">
+                    <Store class="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                    <span class="truncate">{{ appName }}</span>
+                </Link>
 
-                <div class="overlay-scroll min-h-0 flex-1 overflow-y-auto py-2">
-                    <Menu mode="inline" :selected-keys="selectedKeys" class="!border-e-0">
-                        <template v-for="section in sections" :key="section.label ?? 'root'">
-                            <MenuItemGroup v-if="section.label" :title="section.label">
-                                <MenuItem v-for="link in section.links" :key="pathOf(link.href)">
-                                    <template #icon><component :is="link.icon" class="h-4 w-4" /></template>
-                                    <Link :href="link.href" class="block">{{ link.label }}</Link>
-                                </MenuItem>
-                            </MenuItemGroup>
-                            <MenuItem v-for="link in section.label ? [] : section.links" :key="pathOf(link.href)">
-                                <template #icon><component :is="link.icon" class="h-4 w-4" /></template>
-                                <Link :href="link.href" class="block">{{ link.label }}</Link>
-                            </MenuItem>
-                        </template>
-                    </Menu>
+                <div class="overlay-scroll min-h-0 flex-1 overflow-y-auto">
+                    <AdminNav />
                 </div>
             </Sider>
 
@@ -254,88 +97,85 @@ watchEffect(() => dayjs.locale(locale.value === 'ar' ? 'ar' : 'en-gb'));
                 :width="256"
                 :body-style="{ padding: 0 }"
                 :title="appName"
+                root-class-name="admin-drawer"
                 @close="sidebarOpen = false"
             >
-                <Menu mode="inline" :selected-keys="selectedKeys" class="!border-e-0" @click="sidebarOpen = false">
-                    <template v-for="section in sections" :key="section.label ?? 'root'">
-                        <MenuItemGroup v-if="section.label" :title="section.label">
-                            <MenuItem v-for="link in section.links" :key="pathOf(link.href)">
-                                <template #icon><component :is="link.icon" class="h-4 w-4" /></template>
-                                <Link :href="link.href" class="block">{{ link.label }}</Link>
-                            </MenuItem>
-                        </MenuItemGroup>
-                        <MenuItem v-for="link in section.label ? [] : section.links" :key="pathOf(link.href)">
-                            <template #icon><component :is="link.icon" class="h-4 w-4" /></template>
-                            <Link :href="link.href" class="block">{{ link.label }}</Link>
-                        </MenuItem>
-                    </template>
-                </Menu>
+                <AdminNav @navigate="sidebarOpen = false" />
             </Drawer>
 
             <Layout class="lg:ms-64">
-                <Header
-                    class="admin-header sticky top-0 z-30 flex h-14 items-center justify-between gap-3 border-b border-black/[0.06] !px-4 !leading-none dark:border-white/[0.08]"
-                >
-                    <div class="flex items-center gap-3">
-                        <Button type="text" class="lg:!hidden" :aria-label="t('admin.nav.open_menu')" @click="sidebarOpen = true">
-                            <template #icon><MenuIcon class="h-5 w-5" /></template>
+                <Header class="admin-header sticky top-0 z-30 flex flex-wrap items-center gap-x-[18px] gap-y-2">
+                    <Button type="text" class="admin-top-link lg:!hidden" :aria-label="t('admin.nav.open_menu')" @click="sidebarOpen = true">
+                        <template #icon><MenuIcon class="h-5 w-5" /></template>
+                    </Button>
+
+                    <Link v-if="canUsePos" :href="route('admin.pos.register')">
+                        <Button type="primary" class="admin-pos-btn" :aria-label="t('admin.nav.pos')">
+                            <template #icon><ScanLine class="h-[18px] w-[18px]" /></template>
+                            <span class="!hidden sm:!inline">{{ t('admin.nav.pos') }}</span>
                         </Button>
-                        <slot name="header" />
-                    </div>
+                    </Link>
 
-                    <div class="flex items-center gap-1">
-                        <Link :href="route('home')" class="hidden sm:block">
-                            <Button type="text">
-                                <template #icon><Home class="h-4 w-4" /></template>
-                                {{ t('admin.nav.storefront') }}
-                            </Button>
-                        </Link>
+                    <slot name="header" />
 
-                        <Button type="text" :aria-label="`Switch language to ${otherLocaleLabel}`" @click="switchLocale(otherLocale)">
-                            <template #icon><Languages class="h-4 w-4" /></template>
-                            <span class="hidden sm:inline">{{ otherLocaleLabel }}</span>
+                    <div class="flex-1" />
+
+                    <Link :href="route('home')" class="hidden sm:block">
+                        <Button type="text" class="admin-top-link">
+                            <template #icon><Home class="h-[18px] w-[18px]" /></template>
+                            {{ t('admin.nav.storefront') }}
                         </Button>
+                    </Link>
 
-                        <Tooltip :title="t('admin.nav.toggle_dark')">
-                            <Button type="text" :aria-label="t('admin.nav.toggle_dark')" @click="toggleDark">
-                                <template #icon>
-                                    <Moon v-if="appearance !== 'dark'" class="h-4 w-4" />
-                                    <Sun v-else class="h-4 w-4" />
-                                </template>
-                            </Button>
-                        </Tooltip>
+                    <Button
+                        type="text"
+                        class="admin-top-link"
+                        :aria-label="`Switch language to ${otherLocaleLabel}`"
+                        @click="switchLocale(otherLocale)"
+                    >
+                        <template #icon><Languages class="h-[18px] w-[18px]" /></template>
+                        <span class="!hidden sm:!inline">{{ otherLocaleLabel }}</span>
+                    </Button>
 
-                        <Dropdown trigger="click" placement="bottomRight">
-                            <Button type="text" class="!px-2">
-                                <Avatar :size="28" class="!bg-blue-600 !text-xs !font-semibold uppercase">
-                                    {{ user?.name?.charAt(0) ?? '?' }}
-                                </Avatar>
-                                <span class="hidden max-w-32 truncate sm:block">{{ user?.name }}</span>
-                            </Button>
-                            <template #overlay>
-                                <Menu>
-                                    <MenuItem key="email" disabled>
-                                        <Text type="secondary" class="!text-xs">{{ user?.email }}</Text>
-                                    </MenuItem>
-                                    <MenuItem key="account">
-                                        <template #icon><UserCog class="h-4 w-4" /></template>
-                                        <Link :href="route('profile.edit')" class="block">{{ t('admin.nav.account_settings') }}</Link>
-                                    </MenuItem>
-                                    <MenuItem key="password">
-                                        <template #icon><KeyRound class="h-4 w-4" /></template>
-                                        <Link :href="route('password.edit')" class="block">{{ t('admin.nav.change_password') }}</Link>
-                                    </MenuItem>
-                                    <MenuItem key="logout" @click="logout">
-                                        <template #icon><LogOut class="h-4 w-4" /></template>
-                                        {{ t('admin.nav.log_out') }}
-                                    </MenuItem>
-                                </Menu>
+                    <Tooltip :title="t('admin.nav.toggle_dark')">
+                        <Button type="text" class="admin-top-link" :aria-label="t('admin.nav.toggle_dark')" @click="toggleDark">
+                            <template #icon>
+                                <Moon v-if="appearance !== 'dark'" class="h-[18px] w-[18px]" />
+                                <Sun v-else class="h-[18px] w-[18px]" />
                             </template>
-                        </Dropdown>
-                    </div>
+                        </Button>
+                    </Tooltip>
+
+                    <Dropdown trigger="click" placement="bottomRight">
+                        <Button type="text" class="admin-top-link">
+                            <Avatar :size="30" class="admin-avatar uppercase">
+                                {{ user?.name?.charAt(0) ?? '?' }}
+                            </Avatar>
+                            <span class="!hidden max-w-32 truncate sm:!block">{{ user?.name }}</span>
+                        </Button>
+                        <template #overlay>
+                            <Menu>
+                                <MenuItem key="email" disabled>
+                                    <Text type="secondary" class="!text-xs">{{ user?.email }}</Text>
+                                </MenuItem>
+                                <MenuItem key="account">
+                                    <template #icon><UserCog class="h-4 w-4" /></template>
+                                    <Link :href="route('profile.edit')" class="block">{{ t('admin.nav.account_settings') }}</Link>
+                                </MenuItem>
+                                <MenuItem key="password">
+                                    <template #icon><KeyRound class="h-4 w-4" /></template>
+                                    <Link :href="route('password.edit')" class="block">{{ t('admin.nav.change_password') }}</Link>
+                                </MenuItem>
+                                <MenuItem key="logout" @click="logout">
+                                    <template #icon><LogOut class="h-4 w-4" /></template>
+                                    {{ t('admin.nav.log_out') }}
+                                </MenuItem>
+                            </Menu>
+                        </template>
+                    </Dropdown>
                 </Header>
 
-                <Content class="p-4 sm:p-6">
+                <Content class="admin-content">
                     <slot />
                 </Content>
             </Layout>

@@ -23,7 +23,8 @@ final class StoreTreasuryTransactionRequest extends FormRequest
             'account' => ['required', Rule::enum(TreasuryAccount::class)],
             'amount' => ['required', 'numeric', 'decimal:0,2', 'min:0.01'],
             'reference' => ['nullable', 'string', 'max:120'],
-            'note' => ['nullable', 'string', 'max:500'],
+            // Money moving by hand must say why (audit invariant A2).
+            'note' => ['required', 'string', 'max:500'],
         ];
     }
 }

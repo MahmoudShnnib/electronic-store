@@ -31,8 +31,27 @@ final class ReportService
      */
     private const REVENUE_STATUSES = ['in_progress', 'completed', 'refunded'];
 
-    /** An order's total minus what was refunded on it; needs revenueOrders()'s join. */
-    private const NET_TOTAL = '(orders.total_cents - COALESCE(rf.refunded_cents, 0))';
+    /**
+     * What an order is worth as revenue; needs the `rf` refunds join. An open order is
+     * booked at its total — a refund on it only gives back a prepayment, the sale is
+     * unchanged. A finished order is worth what the shop kept: payments minus refunds
+     * (completing always collects the full total, so this is the total less whatever
+     * went back afterwards). A cancelled order keeps the old figure (it is only shown
+     * in the by-status table).
+     */
+    private const NET_TOTAL = "(CASE orders.status WHEN 'in_progress' THEN orders.total_cents"
+        ." WHEN 'cancelled' THEN orders.total_cents - COALESCE(rf.refunded_cents, 0)"
+        ." ELSE COALESCE((SELECT SUM(p.amount_cents) FROM payments p WHERE p.order_id = orders.id AND p.status = 'confirmed'), 0)"
+        .' - COALESCE(rf.refunded_cents, 0) END)';
+
+    /**
+     * What is still owed on an order: exactly what completing it would collect
+     * (UpdateOrderStatus::settleOutstanding — total minus payments net of refunds).
+     * A cancelled or refunded order owes nothing.
+     */
+    private const OWED = "CASE WHEN orders.status IN ('in_progress', 'completed') THEN GREATEST(orders.total_cents"
+        ." - COALESCE((SELECT SUM(p.amount_cents) FROM payments p WHERE p.order_id = orders.id AND p.status = 'confirmed'), 0)"
+        ." + COALESCE((SELECT SUM(r.amount_cents) FROM refunds r WHERE r.order_id = orders.id AND r.status = 'completed'), 0), 0) ELSE 0 END";
 
     private function revenueOrders(CarbonImmutable $from, CarbonImmutable $to): Builder
     {
@@ -231,7 +250,7 @@ final class ReportService
     /** Totals for the invoice report — computed without the row limit so the
      *  headline numbers stay correct even when the table is truncated. */
     /** The order's calendar day in the shop's timezone (timestamps are stored in UTC). */
-    private static function localDay(): string
+    public static function localDay(): string
     {
         $tz = preg_replace('/[^A-Za-z_\/+-]/', '', (string) config('store.timezone'));
 
@@ -245,7 +264,7 @@ final class ReportService
             ->whereNull('deleted_at')
             ->where('status', '!=', OrderStatus::Cancelled->value)
             ->whereBetween('created_at', [$from, $to])
-            ->selectRaw('COUNT(*) as invoices, COALESCE(SUM(total_cents),0) as invoiced')
+            ->selectRaw('COUNT(*) as invoices, COALESCE(SUM(total_cents),0) as invoiced, COALESCE(SUM('.self::OWED.'),0) as owed')
             ->first();
 
         $paid = (int) DB::table('payments')
@@ -260,7 +279,7 @@ final class ReportService
             'invoices' => (int) $orders->invoices,
             'invoiced_formatted' => Money::format((int) $orders->invoiced),
             'paid_formatted' => Money::format($paid),
-            'outstanding_formatted' => Money::format(max(0, (int) $orders->invoiced - $paid)),
+            'outstanding_formatted' => Money::format((int) $orders->owed),
         ];
     }
 
@@ -277,12 +296,12 @@ final class ReportService
             ->groupBy('orders.id')
             ->orderByDesc('orders.created_at')
             ->limit($limit)
-            ->selectRaw('orders.id, orders.number, orders.customer, orders.status, orders.payment_status, orders.total_cents, orders.created_at, COALESCE(SUM(payments.amount_cents),0) as paid_cents')
+            ->selectRaw('orders.id, orders.number, orders.customer, orders.status, orders.payment_status, orders.total_cents, orders.created_at, COALESCE(SUM(payments.amount_cents),0) as paid_cents, '.self::OWED.' as owed_cents')
             ->get()
             ->map(function ($r): array {
                 $customer = json_decode((string) $r->customer, true) ?: [];
                 $paid = (int) $r->paid_cents;
-                $outstanding = $r->status === OrderStatus::Cancelled->value ? 0 : max(0, (int) $r->total_cents - $paid);
+                $outstanding = (int) $r->owed_cents;
 
                 return [
                     'order_id' => (int) $r->id,
@@ -304,11 +323,13 @@ final class ReportService
 
     public function inventoryValuation(): array
     {
+        // A variant saved without its own cost stores 0 and falls back to the product's
+        // cost — the same rule the sale-time cost snapshot and the profit report use.
         $rows = DB::table('stock_levels')
             ->leftJoin('product_variants', 'product_variants.id', '=', 'stock_levels.product_variant_id')
             ->join('products', 'products.id', '=', 'stock_levels.product_id')
             ->selectRaw('
-                SUM((stock_levels.quantity + stock_levels.reserved) * COALESCE(product_variants.cost_price_cents, products.cost_price_cents, 0)) as cost_value,
+                SUM((stock_levels.quantity + stock_levels.reserved) * COALESCE(NULLIF(product_variants.cost_price_cents, 0), products.cost_price_cents, 0)) as cost_value,
                 SUM((stock_levels.quantity + stock_levels.reserved) * COALESCE(product_variants.price_cents, products.price_cents, 0)) as retail_value,
                 SUM(stock_levels.quantity + stock_levels.reserved) as units
             ')

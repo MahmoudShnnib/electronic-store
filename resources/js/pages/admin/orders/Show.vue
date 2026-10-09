@@ -110,9 +110,7 @@ const itemColumns: Column[] = [
  * exactly one way to send an order back.
  */
 const quickTransitions = computed(() =>
-    props.order.can.manage
-        ? props.order.allowed_transitions.filter((option) => !(option.value === 'returned' && props.order.can_resolve_issue))
-        : [],
+    props.order.can.manage ? props.order.allowed_transitions.filter((option) => !(option.value === 'returned' && props.order.can_resolve_issue)) : [],
 );
 
 /** Transitions that undo the sale — always ask for a reason before firing. */
@@ -296,7 +294,7 @@ function addressRows(address: Address): { label: string; value: string }[] {
                     <Link
                         v-if="order.account"
                         :href="route('admin.customers.show', order.account.id)"
-                        class="mt-2 inline-block text-sm text-blue-600 hover:underline dark:text-blue-400"
+                        class="admin-link mt-2 inline-block text-sm hover:underline"
                         >{{ t('admin.orders.view_account') }}</Link
                     >
                     <Text v-else type="secondary" class="mt-2 block !text-xs">{{ t('admin.orders.guest_checkout') }}</Text>

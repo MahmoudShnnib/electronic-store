@@ -102,7 +102,7 @@ function customRow(row: T): Record<string, unknown> {
     if (!props.clickableRows) return {};
 
     return {
-        class: 'cursor-pointer focus:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:focus:bg-gray-800/50',
+        class: 'cursor-pointer focus:bg-ad-row-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ad-accent',
         tabindex: 0,
         role: 'button',
         onClick: (event: Event) => activate(row, event),

@@ -61,7 +61,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="mb-4 flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap items-center gap-3">
         <!-- Plain input, not InputSearch: the 400ms debounce already applies the
              query, so the attached submit button was a dead control. -->
         <Input
@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
             class="min-w-56 flex-1 md:max-w-sm"
             @press-enter="apply"
         >
-            <template #prefix><Search class="h-4 w-4 text-black/25 dark:text-white/30" /></template>
+            <template #prefix><Search class="h-4 w-4 text-ad-label" /></template>
         </Input>
 
         <!-- `!w-auto`: the trigger carries w-full so it fills a form field, and

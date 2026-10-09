@@ -1,0 +1,155 @@
+/**
+ * Admin design tokens — the only place the dashboard's raw colours and sizes live.
+ *
+ * `useAdminTheme` feeds these to Ant Design's ConfigProvider and mirrors every
+ * entry onto `<html>` as a `--ad-<kebab-name>` custom property while an admin
+ * layout is mounted. CSS (`app.css`, "Admin theme") and Tailwind (`ad-*`
+ * colours) only ever read the variables. The values come from the reference
+ * design; see design/ADMIN_STYLE.md for what each one is for.
+ *
+ * They are hex in TS rather than variables in CSS because AntD derives its
+ * hover/active shades from real colour values at runtime and cannot read a
+ * `var()`.
+ */
+
+export const adminPalette = {
+    dark: {
+        bg: '#000000',
+        side: '#0a0a0a',
+        card: '#141414',
+        head: '#1a1a1a',
+        elevated: '#1a1a1a',
+        hover: '#171717',
+        rowHover: '#181818',
+        line: '#262626',
+        lineSoft: '#1f1f1f',
+        lineStrong: '#333333',
+        rail: '#2a2a2a',
+        text: '#f5f5f5',
+        text2: '#e5e5e5',
+        text3: '#c4c4c4',
+        muted: '#a3a3a3',
+        label: '#808080',
+        faint: '#737373',
+        primary: '#2563eb',
+        primaryHover: '#1d4ed8',
+        accent: '#3b82f6',
+        accentHover: '#60a5fa',
+        activeBg: '#111827',
+        money: '#10b981',
+        success: '#10b981',
+        warning: '#f59e0b',
+        danger: '#ef4444',
+        iconBg: '#1c1c1c',
+        icon: '#d4d4d4',
+        iconMoneyBg: '#0a2a1f',
+        iconMoney: '#34d399',
+        badgeBg: '#3a1515',
+        badge: '#fca5a5',
+        chartFill: 'rgb(23 37 84 / 0.55)',
+        overlay: 'rgb(0 0 0 / 0.9)',
+        shadowPop: '0 8px 24px rgb(0 0 0 / 0.5)',
+        // Status pills: border / fill / label per family (AntD tag preset).
+        tagGreenLine: '#166534',
+        tagGreenBg: '#052e16',
+        tagGreen: '#4ade80',
+        tagPurpleLine: '#6b21a8',
+        tagPurpleBg: '#2e1065',
+        tagPurple: '#d8b4fe',
+        tagBlueLine: '#1e40af',
+        tagBlueBg: '#172554',
+        tagBlue: '#93c5fd',
+        tagIndigoLine: '#3730a3',
+        tagIndigoBg: '#1e1b4b',
+        tagIndigo: '#a5b4fc',
+        tagAmberLine: '#92400e',
+        tagAmberBg: '#451a03',
+        tagAmber: '#fcd34d',
+        tagRedLine: '#991b1b',
+        tagRedBg: '#450a0a',
+        tagRed: '#fca5a5',
+        tagGrayLine: '#404040',
+        tagGrayBg: '#1f1f1f',
+        tagGray: '#d4d4d4',
+    },
+    light: {
+        bg: '#f5f5f5',
+        side: '#fafafa',
+        card: '#ffffff',
+        head: '#f7f7f7',
+        elevated: '#ffffff',
+        hover: '#f0f0f0',
+        rowHover: '#fafafa',
+        line: '#e5e5e5',
+        lineSoft: '#ededed',
+        lineStrong: '#d4d4d4',
+        rail: '#e5e5e5',
+        text: '#0a0a0a',
+        text2: '#262626',
+        text3: '#404040',
+        muted: '#525252',
+        label: '#737373',
+        faint: '#8a8a8a',
+        primary: '#2563eb',
+        primaryHover: '#1d4ed8',
+        accent: '#2563eb',
+        accentHover: '#1d4ed8',
+        activeBg: '#eff6ff',
+        money: '#047857',
+        success: '#059669',
+        warning: '#b45309',
+        danger: '#dc2626',
+        iconBg: '#f5f5f5',
+        icon: '#404040',
+        iconMoneyBg: '#ecfdf5',
+        iconMoney: '#047857',
+        badgeBg: '#fee2e2',
+        badge: '#b91c1c',
+        chartFill: 'rgb(219 234 254 / 0.6)',
+        overlay: 'rgb(245 245 245 / 0.9)',
+        shadowPop: '0 8px 24px rgb(0 0 0 / 0.08)',
+        tagGreenLine: '#bbf7d0',
+        tagGreenBg: '#f0fdf4',
+        tagGreen: '#15803d',
+        tagPurpleLine: '#e9d5ff',
+        tagPurpleBg: '#faf5ff',
+        tagPurple: '#7e22ce',
+        tagBlueLine: '#bfdbfe',
+        tagBlueBg: '#eff6ff',
+        tagBlue: '#1d4ed8',
+        tagIndigoLine: '#c7d2fe',
+        tagIndigoBg: '#eef2ff',
+        tagIndigo: '#4338ca',
+        tagAmberLine: '#fde68a',
+        tagAmberBg: '#fffbeb',
+        tagAmber: '#b45309',
+        tagRedLine: '#fecaca',
+        tagRedBg: '#fef2f2',
+        tagRed: '#b91c1c',
+        tagGrayLine: '#e5e5e5',
+        tagGrayBg: '#f5f5f5',
+        tagGray: '#404040',
+    },
+} as const;
+
+export type AdminColors = { [K in keyof (typeof adminPalette)['dark']]: string };
+
+/** Mode-independent tokens. Sizes are px numbers so AntD can use them too. */
+export const adminScale = {
+    font: "'IBM Plex Sans Arabic', system-ui, sans-serif",
+    fontSize: 14,
+    radiusSm: 6,
+    radius: 8,
+    radiusLg: 10,
+    sidebarWidth: 256,
+    topbarHeight: 64,
+    pagePadding: 28,
+    pagePaddingMobile: 16,
+    gap: 16,
+} as const;
+
+/** Bunny Fonts — the project's existing font CDN — loaded only by admin layouts. */
+export const adminFontHref = 'https://fonts.bunny.net/css?family=ibm-plex-sans-arabic:400,500,600,700&display=swap';
+
+/** Categorical series for charts that colour by category (doughnuts). Readable on both themes. */
+export const adminChartSeries = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899', '#64748b'];

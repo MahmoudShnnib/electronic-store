@@ -133,8 +133,8 @@ const changeColumns: TableColumnType[] = [
         :custom-row="(record: LogRow) => ({ onClick: () => toggle(record.id), style: { cursor: 'pointer' } })"
     >
         <template #expandIcon="{ expanded: isExpanded }">
-            <ChevronDown v-if="isExpanded" class="inline-block h-4 w-4 align-middle text-gray-400" />
-            <ChevronRight v-else class="inline-block h-4 w-4 align-middle text-gray-400" />
+            <ChevronDown v-if="isExpanded" class="inline-block h-4 w-4 align-middle text-ad-label" />
+            <ChevronRight v-else class="inline-block h-4 w-4 align-middle text-ad-label" />
         </template>
 
         <template #bodyCell="{ column, record }">
@@ -187,7 +187,7 @@ const changeColumns: TableColumnType[] = [
                     {{ record.event === 'updated' ? t('admin.audit.no_changes') : t('admin.audit.no_details') }}
                 </Text>
 
-                <div v-if="record.ip || record.user_agent" class="text-xs text-gray-400">
+                <div v-if="record.ip || record.user_agent" class="text-xs text-ad-label">
                     <template v-if="record.ip">{{ t('admin.audit.ip') }}: {{ record.ip }}</template>
                     <template v-if="record.ip && record.user_agent"> · </template>
                     <template v-if="record.user_agent">{{ t('admin.audit.browser') }}: {{ record.user_agent }}</template>

@@ -219,7 +219,7 @@ function submit(): void {
                     <Field :label="t('admin.common.unit_cost')">
                         <InputNumber v-model:value="item.unit_cost" :min="0" :step="0.01" class="w-full" />
                     </Field>
-                    <p class="pb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <p class="pb-2 text-sm font-medium text-ad-text-2">
                         {{ money(item.quantity * (item.unit_cost || 0)) }}
                     </p>
                     <Tooltip :title="t('admin.common.remove')">
@@ -243,8 +243,8 @@ function submit(): void {
                         <InputNumber v-model:value="form.shipping" :min="0" :step="0.01" class="w-full" />
                     </Field>
                 </div>
-                <dl class="mt-4 space-y-1 border-t border-gray-100 pt-3 text-sm dark:border-gray-800">
-                    <div class="flex justify-between text-base font-semibold text-gray-900 dark:text-gray-100">
+                <dl class="mt-4 space-y-1 border-t border-ad-line pt-3 text-sm">
+                    <div class="flex justify-between text-base font-semibold text-ad-text">
                         <dt>{{ t('admin.common.total') }}</dt>
                         <dd>{{ money(total) }}</dd>
                     </div>

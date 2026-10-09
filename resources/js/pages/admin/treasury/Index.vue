@@ -145,28 +145,21 @@ function submit(): void {
 
     <DataTable :columns="columns" :rows="transactions.data">
         <template #cell-direction_label="{ row }">
-            <span
-                class="inline-flex items-center gap-1 text-sm font-medium"
-                :class="row.direction === 'in' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'"
-            >
+            <span class="inline-flex items-center gap-1 text-sm font-medium" :class="row.direction === 'in' ? 'is-money' : 'is-danger'">
                 <component :is="row.direction === 'in' ? ArrowDownLeft : ArrowUpRight" class="h-4 w-4" />
                 {{ row.direction_label }}
             </span>
         </template>
         <template #cell-amount_formatted="{ row }">
-            <span :class="row.direction === 'in' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+            <span :class="row.direction === 'in' ? 'is-money' : 'is-danger'">
                 {{ row.direction === 'in' ? '+' : '−' }}{{ row.amount_formatted }}
             </span>
         </template>
         <template #cell-order="{ row }">
-            <Link
-                v-if="row.order"
-                :href="route('admin.orders.show', row.order.id)"
-                class="font-medium text-blue-600 hover:underline dark:text-blue-400"
-            >
+            <Link v-if="row.order" :href="route('admin.orders.show', row.order.id)" class="admin-link font-medium hover:underline">
                 {{ row.order.number }}
             </Link>
-            <span v-else class="text-gray-400">—</span>
+            <span v-else class="text-ad-label">—</span>
         </template>
     </DataTable>
 

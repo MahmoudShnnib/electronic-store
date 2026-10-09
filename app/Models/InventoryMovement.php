@@ -21,7 +21,7 @@ final class InventoryMovement extends Model
 
     protected $fillable = [
         'warehouse_id', 'product_id', 'product_variant_id', 'type',
-        'quantity_before', 'quantity_change', 'quantity_after',
+        'quantity_before', 'quantity_change', 'quantity_after', 'damaged_change',
         'reference_type', 'reference_id', 'reason', 'user_id',
     ];
 
@@ -32,6 +32,7 @@ final class InventoryMovement extends Model
             'quantity_before' => 'integer',
             'quantity_change' => 'integer',
             'quantity_after' => 'integer',
+            'damaged_change' => 'integer',
         ];
     }
 

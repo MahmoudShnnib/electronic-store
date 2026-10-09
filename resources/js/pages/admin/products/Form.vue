@@ -483,7 +483,7 @@ function deleteImage(image: ProductImage): void {
                                 <th v-for="(variant, index) in form.variants" :key="index" class="px-2 py-1 text-start font-medium">
                                     {{ variant.name || variant.sku || `#${index + 1}` }}
                                 </th>
-                                <th class="ps-3 py-1 text-start font-medium">{{ t('admin.products.split_left') }}</th>
+                                <th class="py-1 ps-3 text-start font-medium">{{ t('admin.products.split_left') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -492,7 +492,7 @@ function deleteImage(image: ProductImage): void {
                                 <td v-for="(_, index) in form.variants" :key="index" class="px-2 py-1">
                                     <InputNumber v-model:value="stockSplit[level.warehouse_id][index]" :min="0" :precision="0" class="w-24" />
                                 </td>
-                                <td class="ps-3 py-1">
+                                <td class="py-1 ps-3">
                                     <Typography.Text :type="splitLeft(level.warehouse_id, level.quantity) === 0 ? 'success' : 'danger'">
                                         {{ splitLeft(level.warehouse_id, level.quantity) }}
                                     </Typography.Text>
@@ -577,7 +577,7 @@ function deleteImage(image: ProductImage): void {
                             width="200"
                             height="200"
                             loading="lazy"
-                            class="aspect-square w-full rounded-md border border-gray-200 object-cover dark:border-gray-700"
+                            class="aspect-square w-full rounded-md border border-ad-line object-cover"
                         />
                         <Tag v-if="image.is_primary" color="blue" class="absolute start-1 top-1 !me-0">{{ t('admin.common.primary') }}</Tag>
                         <Tooltip :title="t('admin.products.delete_image')">

@@ -192,8 +192,12 @@ function destroyAttribute(): void {
                     </Tooltip>
                 </Space>
             </template>
-            <ul class="divide-y divide-gray-100 dark:divide-gray-800">
-                <li v-for="attribute in group.attributes" :key="attribute.id" class="flex items-center justify-between px-4 py-2.5 text-sm">
+            <ul class="divide-y divide-ad-line">
+                <li
+                    v-for="attribute in group.attributes"
+                    :key="attribute.id"
+                    class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm"
+                >
                     <div>
                         <span>{{ attribute.name }}</span>
                         <Typography.Text v-if="attribute.unit" type="secondary" class="ms-1 text-xs">({{ attribute.unit }})</Typography.Text>
@@ -292,10 +296,10 @@ function destroyAttribute(): void {
             <Field :label="t('admin.specifications.categories_label')" :hint="t('admin.specifications.categories_hint')">
                 <CheckboxGroup
                     v-model:value="attributeForm.categories"
-                    class="grid max-h-44 w-full grid-cols-2 gap-1 overflow-y-auto rounded-md border border-gray-200 p-2 dark:border-gray-700"
+                    class="grid max-h-44 w-full grid-cols-2 gap-1 overflow-y-auto rounded-md border border-ad-line p-2"
                 >
                     <Checkbox v-for="category in categories" :key="category.id" :value="category.id">
-                        <span :class="{ 'ps-3 text-gray-500': category.parent_id !== null }">{{ category.name }}</span>
+                        <span :class="{ 'ps-3 text-ad-muted': category.parent_id !== null }">{{ category.name }}</span>
                     </Checkbox>
                 </CheckboxGroup>
             </Field>
