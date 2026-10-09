@@ -84,6 +84,10 @@ final class ProductController extends Controller
     {
         $this->authorize('delete', $product);
 
+        if ($product->holdsStock()) {
+            return back()->with('error', __('This product still has stock. Write it off, return it or sell it before deleting the product.'));
+        }
+
         $product->delete();
 
         return redirect()->route('admin.products.index')->with('success', __('Product moved to trash.'));

@@ -340,7 +340,8 @@ it('does not lose work when deleting things other records point at', function ()
     $t = $this;
     qaSend($t, $t->buyer, 'cart: add cable', 'post', '/cart/items', ['product_id' => $t->cable->id, 'quantity' => 1]);
     qaSend($t, $t->buyer, 'checkout', 'post', '/checkout', qaCheckout());
-    qaSend($t, $t->admin, 'delete product with an open order', 'delete', "/admin/products/{$t->cable->id}");
+    // BD8 (2026-10-10): a product whose units are still reserved for an open order can't be deleted.
+    qaSend($t, $t->admin, 'delete product with an open order', 'delete', "/admin/products/{$t->cable->id}", [], 'reject');
     qaSend($t, $t->admin, 'delete warehouse holding stock', 'delete', "/admin/warehouses/{$t->branch->id}", [], 'reject');
     qaSend($t, $t->admin, 'delete default warehouse', 'delete', "/admin/warehouses/{$t->main->id}", [], 'reject');
     qaSend($t, $t->admin, 'delete used coupon', 'delete', "/admin/coupons/{$t->coupon->id}");

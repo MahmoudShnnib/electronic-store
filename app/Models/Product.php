@@ -104,6 +104,18 @@ final class Product extends Model
         return $this->hasMany(StockLevel::class);
     }
 
+    /**
+     * Whether any unit is still on premises (shelf, reserved, damaged) or on a sent
+     * purchase order. Such a product can't be deleted: its units would keep counting
+     * in inventory value with nothing to sell them under.
+     */
+    public function holdsStock(): bool
+    {
+        return $this->stockLevels()
+            ->where(fn ($q) => $q->where('quantity', '>', 0)->orWhere('reserved', '>', 0)->orWhere('damaged', '>', 0)->orWhere('incoming', '>', 0))
+            ->exists();
+    }
+
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);

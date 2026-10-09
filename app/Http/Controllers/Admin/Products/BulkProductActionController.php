@@ -24,10 +24,18 @@ final class BulkProductActionController extends Controller
         $validated = $request->validated();
 
         $products = Product::query()->whereIn('id', $validated['ids'])->get();
+        $keptWithStock = [];
 
         foreach ($products as $product) {
             if ($validated['action'] === 'delete') {
                 $this->authorize('delete', $product);
+
+                if ($product->holdsStock()) {
+                    $keptWithStock[] = $product->name;
+
+                    continue;
+                }
+
                 $product->delete();
 
                 continue;
@@ -44,6 +52,10 @@ final class BulkProductActionController extends Controller
                 'feature' => ['is_featured' => true],
                 'unfeature' => ['is_featured' => false],
             });
+        }
+
+        if ($keptWithStock !== []) {
+            return back()->with('error', __('Not deleted because they still have stock: :names', ['names' => implode(', ', $keptWithStock)]));
         }
 
         return back()->with('success', __('Bulk action applied.'));

@@ -450,7 +450,9 @@ it('INV-24: cancelling an open order after its product was trashed still returns
     $p = Product::factory()->create();
     giveStock($p, 10);
     $order = invOrder($p, 4);
-    $this->actingAs(staff('super_admin'))->delete(route('admin.products.destroy', $p));
+    // The admin screen now refuses this (BD8, 2026-10-10); products trashed before that
+    // rule, or by code, must still cancel cleanly.
+    $p->delete();
     expect($p->refresh()->trashed())->toBeTrue();
 
     app(CancelOrder::class)->handle($order->refresh());
