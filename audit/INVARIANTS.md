@@ -15,7 +15,7 @@ dashboard and sales report already use). Money is integer hundredths.
   `quantity_before` = previous row's `quantity_after`, and `before + change = after`.
   (This is "on hand = received − sold + returned − written off ± adjustments": every one of
   those is a ledger type.)
-- **S2 Movement signs.** A movement's sign matches its type: `customer_order`,
+- **S2 Movement signs.** A movement's sign matches its type: `customer_order`, `lost`,
   `damaged`, `manual_decrease`, `supplier_return`, `transfer_out` ≤ 0;
   `initial`, `purchase_receipt`, `order_cancellation`, `customer_return`,
   `manual_increase`, `transfer_in` ≥ 0; `correction` either way. No row has change 0

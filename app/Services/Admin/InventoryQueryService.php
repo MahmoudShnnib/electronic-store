@@ -62,7 +62,7 @@ final class InventoryQueryService
             'filters' => (object) $request->only(['q', 'warehouse_id', 'filter']),
             'movementTypes' => array_map(
                 fn (MovementType $t) => ['value' => $t->value, 'label' => $t->label()],
-                [MovementType::ManualIncrease, MovementType::ManualDecrease, MovementType::Damaged, MovementType::Correction, MovementType::Initial],
+                [MovementType::ManualIncrease, MovementType::ManualDecrease, MovementType::Damaged, MovementType::Lost, MovementType::Correction, MovementType::Initial],
             ),
         ];
     }

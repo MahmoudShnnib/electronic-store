@@ -27,6 +27,7 @@ return [
         'manual_increase' => 'زيادة يدوية',
         'manual_decrease' => 'خصم يدوي',
         'damaged' => 'تالف',
+        'lost' => 'مفقود / مسروق',
         'transfer_out' => 'تحويل صادر',
         'transfer_in' => 'تحويل وارد',
         'correction' => 'تصحيح',

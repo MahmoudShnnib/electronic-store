@@ -119,7 +119,7 @@ function auditInvariants(): array
         }
     }
 
-    $out = ['customer_order', 'damaged', 'manual_decrease', 'supplier_return', 'transfer_out'];
+    $out = ['customer_order', 'damaged', 'lost', 'manual_decrease', 'supplier_return', 'transfer_out'];
     $in = ['initial', 'purchase_receipt', 'order_cancellation', 'customer_return', 'manual_increase', 'transfer_in'];
     $zeroOk = ['purchase_incoming', 'purchase_cancelled', 'correction', 'supplier_return'];
     foreach ($movements as $m) {
@@ -342,7 +342,7 @@ function auditInvariants(): array
     }
 
     // ── Audit trail on stock, write-offs ─────────────────────────────────────
-    $manual = ['initial', 'manual_increase', 'manual_decrease', 'damaged', 'correction', 'supplier_return'];
+    $manual = ['initial', 'manual_increase', 'manual_decrease', 'damaged', 'lost', 'correction', 'supplier_return'];
     $refMorphs = [$orderMorph, (new PurchaseOrder)->getMorphClass(), (new StockTransfer)->getMorphClass()];
     foreach ($movements as $m) {
         if (in_array($m->type, $manual, true)) {
@@ -352,7 +352,7 @@ function auditInvariants(): array
         } elseif (! in_array($m->reference_type, $refMorphs, true) || $m->reference_id === null) {
             $v['A1'][] = "movement #{$m->id} ({$m->type}): no order/PO/transfer reference";
         }
-        if (in_array($m->type, ['damaged', 'manual_decrease', 'supplier_return'], true) && $m->reference_type === $orderMorph) {
+        if (in_array($m->type, ['damaged', 'lost', 'manual_decrease', 'supplier_return'], true) && $m->reference_type === $orderMorph) {
             $v['W1'][] = "write-off movement #{$m->id} references order #{$m->reference_id}";
         }
     }

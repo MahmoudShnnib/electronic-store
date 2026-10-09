@@ -15,6 +15,8 @@ enum MovementType: string
     case ManualIncrease = 'manual_increase';
     case ManualDecrease = 'manual_decrease';
     case Damaged = 'damaged';
+    /** Stolen or missing: gone for good, unlike damaged units that are still on premises. */
+    case Lost = 'lost';
     case TransferOut = 'transfer_out';
     case TransferIn = 'transfer_in';
     case Correction = 'correction';
@@ -28,7 +30,7 @@ enum MovementType: string
      */
     public function isDecrease(): bool
     {
-        return in_array($this, [self::ManualDecrease, self::Damaged, self::SupplierReturn], true);
+        return in_array($this, [self::ManualDecrease, self::Damaged, self::Lost, self::SupplierReturn], true);
     }
 
     public function label(): string

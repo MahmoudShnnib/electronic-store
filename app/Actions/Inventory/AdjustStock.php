@@ -39,6 +39,7 @@ final class AdjustStock
             MovementType::ManualIncrease,
             MovementType::ManualDecrease,
             MovementType::Damaged,
+            MovementType::Lost,
             MovementType::Correction,
             MovementType::SupplierReturn,
         ], true)) {

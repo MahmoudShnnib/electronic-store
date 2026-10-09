@@ -48,7 +48,7 @@ final class AdjustStockRequest extends FormRequest
             ],
             'quantity_change' => ['required', 'integer', 'not_in:0', 'min:-100000', 'max:100000'],
             'type' => ['required', Rule::in([
-                'initial', 'manual_increase', 'manual_decrease', 'damaged', 'correction', 'supplier_return',
+                'initial', 'manual_increase', 'manual_decrease', 'damaged', 'lost', 'correction', 'supplier_return',
             ])],
             'reason' => ['required', 'string', 'max:255'],
             'from_damaged' => ['boolean'],

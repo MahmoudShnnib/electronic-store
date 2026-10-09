@@ -28,6 +28,7 @@ return [
         'manual_increase' => 'Manual increase',
         'manual_decrease' => 'Manual decrease',
         'damaged' => 'Damaged',
+        'lost' => 'Lost / stolen',
         'transfer_out' => 'Transfer out',
         'transfer_in' => 'Transfer in',
         'correction' => 'Correction',
