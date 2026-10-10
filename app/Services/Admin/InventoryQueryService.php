@@ -32,17 +32,37 @@ final class InventoryQueryService
         $levels = StockLevel::query()
             ->with(['product:id,name,sku,low_stock_threshold,cost_price_cents', 'variant:id,name,sku,low_stock_threshold,cost_price_cents', 'warehouse:id,name,code'])
             ->join('products', 'products.id', '=', 'stock_levels.product_id')
+            // Joined unconditionally so the search and the ordering can reach the
+            // variant, not only the low-stock threshold.
+            ->leftJoin('product_variants', 'product_variants.id', '=', 'stock_levels.product_variant_id')
             ->select('stock_levels.*')
+            // Once a product has variants, its own row is dead weight: SaveProduct
+            // drains it into the first variant and RecordMovement refuses to top it
+            // up again. Listed anyway it reads as a second, permanently empty copy
+            // of the product — the "ghost" the admin keeps trying to count into. It
+            // is only hidden once it is genuinely empty; a row still holding
+            // something has to stay visible to be got rid of.
+            ->where(fn ($q) => $q
+                ->where('products.has_variants', false)
+                ->orWhereNotNull('stock_levels.product_variant_id')
+                ->orWhere(fn ($held) => $held
+                    ->where('stock_levels.quantity', '!=', 0)
+                    ->orWhere('stock_levels.reserved', '!=', 0)
+                    ->orWhere('stock_levels.damaged', '!=', 0)
+                    ->orWhere('stock_levels.incoming', '!=', 0)))
             ->when($request->filled('warehouse_id'), fn ($q) => $q->where('warehouse_id', (int) $request->query('warehouse_id')))
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($qq) => $qq
                 ->whereRaw('products.name ILIKE ?', ['%'.$request->query('q').'%'])
-                ->orWhereRaw('products.sku ILIKE ?', ['%'.$request->query('q').'%'])))
+                ->orWhereRaw('products.sku ILIKE ?', ['%'.$request->query('q').'%'])
+                ->orWhereRaw('product_variants.name ILIKE ?', ['%'.$request->query('q').'%'])
+                ->orWhereRaw('product_variants.sku ILIKE ?', ['%'.$request->query('q').'%'])))
             ->when($request->query('filter') === 'low', fn ($q) => $q
-                ->leftJoin('product_variants', 'product_variants.id', '=', 'stock_levels.product_variant_id')
                 ->whereRaw('stock_levels.quantity <= COALESCE(product_variants.low_stock_threshold, products.low_stock_threshold)')
                 ->where('stock_levels.quantity', '>', 0))
             ->when($request->query('filter') === 'out', fn ($q) => $q->where('stock_levels.quantity', '<=', 0))
             ->orderBy('products.name')
+            // Variants sit under their product, in the order the product form lists them.
+            ->orderByRaw('product_variants.position ASC NULLS FIRST')
             ->paginate(30)
             ->withQueryString()
             ->through(fn (StockLevel $s) => [

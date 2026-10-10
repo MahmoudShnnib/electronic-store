@@ -19,6 +19,7 @@ import {
     CreditCard,
     FileClock,
     LayoutDashboard,
+    LayoutTemplate,
     Megaphone,
     Package,
     Percent,
@@ -143,6 +144,7 @@ const blocks = computed<NavItem[][]>(() => {
                 label: t('admin.nav.marketing'),
                 icon: Megaphone,
                 links: [
+                    { label: t('admin.nav.homepage'), href: route('admin.homepage.index'), icon: LayoutTemplate, permission: 'settings.manage' },
                     { label: t('admin.nav.coupons'), href: route('admin.coupons.index'), icon: Percent, permission: 'coupons.manage' },
                     { label: t('admin.nav.reviews'), href: route('admin.reviews.index'), icon: Star, permission: 'reviews.moderate' },
                 ],

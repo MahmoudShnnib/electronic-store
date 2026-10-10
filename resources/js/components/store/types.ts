@@ -24,6 +24,17 @@ export interface ProductCardData {
     wishlisted: boolean;
 }
 
+/**
+ * One homepage hero slide. `title` / `title_ar` / `image` are the dashboard's
+ * optional overrides (Homepage page); null means "use the product's own".
+ */
+export interface HeroSlide {
+    product: ProductCardData;
+    title: string | null;
+    title_ar: string | null;
+    image: string | null;
+}
+
 export interface PaginationLink {
     url: string | null;
     label: string;

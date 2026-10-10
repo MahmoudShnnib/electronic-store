@@ -4,7 +4,7 @@ import { usePosPrinting } from '@/composables/usePosPrinting';
 import PosLayout from '@/layouts/PosLayout.vue';
 import { formatMoney } from '@/lib/money';
 import { Head, Link, router, usePage, usePoll } from '@inertiajs/vue3';
-import { Button, Empty, Input, InputNumber, message, Modal, Radio, Result, Tooltip, Typography } from 'ant-design-vue';
+import { Button, Empty, Input, InputNumber, message, Modal, Radio, Result, Select, Tooltip, Typography } from 'ant-design-vue';
 import { ChevronDown, ImageOff, Minus, Plus, Search, Trash2, X } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -42,23 +42,33 @@ interface ProductOption {
     max_cost_formatted?: string;
     image: string | null;
     category_id: number | null;
+    brand_id: number | null;
+    brand: Chip | null;
     variants: VariantOption[];
 }
 
-interface CategoryChip {
+/** A category or a brand, as the filter row shows it. */
+interface Chip {
     id: number;
     name: string;
     name_ar: string | null;
+}
+
+interface CountedChip extends Chip {
     products_count: number;
 }
 
-/** One sellable thing on the grid — a plain product, or one variant of one. */
-interface Tile {
+/**
+ * One sellable thing — a plain product, or one variant of one. Keyed the way the
+ * basket keys its lines, which is how a line finds its stock back.
+ */
+interface Unit {
     key: string;
     product: ProductOption;
     variant: VariantOption | null;
     title: string;
     subtitle: string;
+    price: number;
     priceFormatted: string;
     /** What the warehouse holds, as of the last poll. */
     stock: number;
@@ -67,6 +77,26 @@ interface Tile {
     /** Admins only (absent for cashiers): the highest price paid for the units held. */
     maxCost?: string;
     image: string | null;
+}
+
+/**
+ * One card on the grid — always a whole product.
+ *
+ * A product with variants is one card that opens a picker, not a row of
+ * near-identical cards differing only in a word of small print. The cashier
+ * looks for the phone, then picks the colour; they do not scan four "iPhone"
+ * tiles to find the one that says 256GB.
+ */
+interface Tile {
+    key: string;
+    product: ProductOption;
+    title: string;
+    subtitle: string;
+    priceFormatted: string;
+    image: string | null;
+    /** One for a plain product, one per active variant otherwise. */
+    units: Unit[];
+    available: number;
 }
 
 const props = defineProps<{
@@ -78,7 +108,8 @@ const props = defineProps<{
         expected_cash_formatted: string;
     };
     products: ProductOption[];
-    categories: CategoryChip[];
+    categories: CountedChip[];
+    brands: CountedChip[];
     paymentMethods: { value: string; label: string }[];
     recentSales: { id: number; number: string; total_formatted: string; created_at: string }[];
     // Flashed for one render straight after a sale, null otherwise.
@@ -91,12 +122,20 @@ function money(amount: number): string {
 
 const locale = computed(() => (page.props.locale as string) ?? 'en');
 
-function categoryLabel(category: CategoryChip): string {
-    return locale.value === 'ar' && category.name_ar ? category.name_ar : category.name;
+function chipLabel(chip: Chip): string {
+    return locale.value === 'ar' && chip.name_ar ? chip.name_ar : chip.name;
 }
 
 /** null is "everything" — the chip row's default. */
 const activeCategory = ref<number | null>(null);
+
+/**
+ * The second and third filters, beside the search box rather than in a chip row
+ * of their own: three stacked rows of chips would push the grid off the screen,
+ * which is the one thing the shelf cannot afford.
+ */
+const activeBrand = ref<number | undefined>(undefined);
+const stockMode = ref<'all' | 'in' | 'out'>('all');
 
 const canDiscount = computed(() => {
     const auth = page.props.auth as { user: { roles: string[]; permissions: string[] } | null };
@@ -143,15 +182,32 @@ function stockOf(line: BasketLine): number {
 }
 
 /**
+ * Tapping a card. A plain product drops straight into the basket; one with
+ * variants asks which, because guessing on the cashier's behalf is how the
+ * wrong colour ends up on the receipt.
+ */
+function addTile(tile: Tile): void {
+    if (tile.available < 1) return;
+
+    if (tile.units.length === 1) {
+        addUnit(tile.units[0]);
+
+        return;
+    }
+
+    pickingId.value = tile.product.id;
+}
+
+/**
  * Adding the same item twice bumps the quantity rather than stacking a second
  * line — a cashier scanning three identical items expects "×3", not three rows.
  */
-function addTile(tile: Tile): void {
+function addUnit(unit: Unit): void {
     // `available` is already net of the basket, so this is the shelf refusing a
     // tap it cannot honour — not a second guard on the same number.
-    if (tile.available < 1) return;
+    if (unit.available < 1) return;
 
-    const existing = basket.value.find((line) => line.key === tile.key);
+    const existing = basket.value.find((line) => line.key === unit.key);
 
     if (existing) {
         existing.quantity += 1;
@@ -160,15 +216,24 @@ function addTile(tile: Tile): void {
     }
 
     basket.value.push({
-        key: tile.key,
-        product_id: tile.product.id,
-        product_variant_id: tile.variant?.id ?? null,
-        name: tile.title,
-        subtitle: tile.subtitle,
-        unitPrice: tile.variant ? tile.variant.price : tile.product.price,
+        key: unit.key,
+        product_id: unit.product.id,
+        product_variant_id: unit.variant?.id ?? null,
+        // The variant is part of the name here, the way the receipt prints it:
+        // once the choice is made on the shelf, the basket is the only place it
+        // can still be checked before the money is taken.
+        name: unit.variant ? `${unit.title} — ${unit.variant.name}` : unit.title,
+        subtitle: unit.subtitle,
+        unitPrice: unit.price,
         quantity: 1,
-        image: tile.image,
+        image: unit.image,
     });
+}
+
+/** Picked from the variant sheet: take it, then get out of the way. */
+function pickUnit(unit: Unit): void {
+    addUnit(unit);
+    pickingId.value = null;
 }
 
 function step(line: BasketLine, by: number): void {
@@ -202,12 +267,12 @@ const search = ref('');
 const searchInput = ref<HTMLInputElement | null>(null);
 
 /**
- * A product with variants is not sellable as itself, so each variant becomes
- * its own tile. Flattening here rather than in the template is what lets the
- * grid stay one uniform list — nested v-for produced rows of ragged height.
+ * Every sellable thing, flat: a plain product contributes one entry, a product
+ * with variants contributes one per variant. The grid does not render this —
+ * it is what the basket, the scanner and the stock poll look things up in.
  */
-const catalogue = computed<Omit<Tile, 'available'>[]>(() =>
-    props.products.flatMap((product) =>
+const units = computed<Omit<Unit, 'available'>[]>(() =>
+    props.products.flatMap((product): Omit<Unit, 'available'>[] =>
         product.has_variants
             ? product.variants.map((variant) => ({
                   key: `${product.id}:${variant.id}`,
@@ -215,6 +280,7 @@ const catalogue = computed<Omit<Tile, 'available'>[]>(() =>
                   variant,
                   title: product.name,
                   subtitle: variant.name,
+                  price: variant.price,
                   priceFormatted: variant.price_formatted,
                   stock: variant.available,
                   maxCost: variant.max_cost_formatted,
@@ -227,6 +293,7 @@ const catalogue = computed<Omit<Tile, 'available'>[]>(() =>
                       variant: null,
                       title: product.name,
                       subtitle: product.sku,
+                      price: product.price,
                       priceFormatted: product.price_formatted,
                       stock: product.available,
                       maxCost: product.max_cost_formatted,
@@ -237,37 +304,96 @@ const catalogue = computed<Omit<Tile, 'available'>[]>(() =>
 );
 
 /** Keyed the same way as the basket, which is how a line finds its stock back. */
-const stockByKey = computed(() => new Map(catalogue.value.map((tile) => [tile.key, tile.stock])));
+const stockByKey = computed(() => new Map(units.value.map((unit) => [unit.key, unit.stock])));
+
+/** What the basket is already holding, subtracted. */
+function withAvailability(unit: Omit<Unit, 'available'>): Unit {
+    return { ...unit, available: unit.stock - (reserved.value.get(unit.key) ?? 0) };
+}
+
+/** Grouped once rather than filtered per product: the shelf is rebuilt on every poll. */
+const unitsByProduct = computed(() => {
+    const grouped = new Map<number, Unit[]>();
+
+    for (const unit of units.value) {
+        const own = grouped.get(unit.product.id);
+
+        if (own) {
+            own.push(withAvailability(unit));
+        } else {
+            grouped.set(unit.product.id, [withAvailability(unit)]);
+        }
+    }
+
+    return grouped;
+});
 
 /**
- * The shelf: everything that can still be sold right now.
+ * The shelf: one card per product, sold-out ones included.
  *
- * Sold out — on the shelf or into this basket — means gone, not greyed out. A
- * dimmed tile is still a tile to read past, and the one thing a cashier must
- * never do is offer something the warehouse cannot hand over.
+ * Nothing is hidden for being empty. A cashier asked for something the shelf has
+ * none of needs to see that the shop stocks it at all — a tile that vanishes
+ * reads as "we have never sold that", which is a different answer to give a
+ * customer. The card is greyed and cannot be tapped, so the till still refuses
+ * to promise what the warehouse cannot hand over.
  */
 const tiles = computed<Tile[]>(() =>
-    catalogue.value.map((tile) => ({ ...tile, available: tile.stock - (reserved.value.get(tile.key) ?? 0) })).filter((tile) => tile.available > 0),
+    props.products.flatMap((product) => {
+        const own = unitsByProduct.value.get(product.id) ?? [];
+
+        // Flagged as having variants but with none active left: nothing to sell
+        // and no price to put on the card.
+        if (own.length === 0) return [];
+
+        const cheapest = own.reduce((low, unit) => (unit.price < low.price ? unit : low), own[0]);
+        // Variants rarely share a price and a card can only carry one, so an
+        // uneven set is labelled as starting at the cheapest.
+        const uniform = own.every((unit) => unit.price === cheapest.price);
+
+        return [
+            {
+                key: String(product.id),
+                product,
+                title: product.name,
+                subtitle: product.has_variants ? t('admin.pos.variants_n', { count: own.length }) : product.sku,
+                priceFormatted: uniform ? cheapest.priceFormatted : t('admin.pos.price_from', { price: cheapest.priceFormatted }),
+                image: product.image ?? cheapest.image,
+                units: own,
+                available: own.reduce((sum, unit) => sum + Math.max(0, unit.available), 0),
+            },
+        ];
+    }),
 );
 
 /**
  * Chips counted off the shelf rather than off the server's catalogue: the count
- * has to agree with what tapping the chip actually shows, and a category whose
- * last piece just went into the basket should not still be offered.
+ * has to agree with what tapping the chip actually shows.
  */
-const shelves = computed(() => {
+const shelves = computed(() => countChips(props.categories, (tile) => tile.product.category_id));
+
+const brandShelves = computed(() => countChips(props.brands, (tile) => tile.product.brand_id));
+
+function countChips(chips: CountedChip[], idOf: (tile: Tile) => number | null): CountedChip[] {
     const counts = new Map<number, number>();
 
     for (const tile of tiles.value) {
-        if (tile.product.category_id === null) continue;
+        const id = idOf(tile);
 
-        counts.set(tile.product.category_id, (counts.get(tile.product.category_id) ?? 0) + 1);
+        if (id === null) continue;
+
+        counts.set(id, (counts.get(id) ?? 0) + 1);
     }
 
-    return props.categories
-        .filter((category) => counts.has(category.id))
-        .map((category) => ({ ...category, products_count: counts.get(category.id) ?? 0 }));
-});
+    return chips.filter((chip) => counts.has(chip.id)).map((chip) => ({ ...chip, products_count: counts.get(chip.id) ?? 0 }));
+}
+
+const brandOptions = computed(() => brandShelves.value.map((brand) => ({ value: brand.id, label: `${chipLabel(brand)} (${brand.products_count})` })));
+
+const stockOptions = computed(() => [
+    { value: 'all', label: t('admin.pos.stock_any') },
+    { value: 'in', label: t('admin.pos.stock_in') },
+    { value: 'out', label: t('admin.pos.stock_out') },
+]);
 
 // A chip that empties out takes its filter with it, rather than leaving the
 // cashier staring at an empty shelf with no obvious way back.
@@ -277,6 +403,30 @@ watch(shelves, (list) => {
     }
 });
 
+watch(brandShelves, (list) => {
+    if (activeBrand.value !== undefined && !list.some((brand) => brand.id === activeBrand.value)) {
+        activeBrand.value = undefined;
+    }
+});
+
+/**
+ * Everything a cashier might have in their hand or in their head: the name in
+ * either language, the brand, the product's own codes, and every variant's.
+ */
+function matches(tile: Tile, term: string): boolean {
+    const product = tile.product;
+
+    return (
+        product.name.toLowerCase().includes(term) ||
+        (product.name_ar?.toLowerCase().includes(term) ?? false) ||
+        product.sku.toLowerCase().includes(term) ||
+        (product.barcode?.toLowerCase().includes(term) ?? false) ||
+        (product.brand?.name.toLowerCase().includes(term) ?? false) ||
+        (product.brand?.name_ar?.toLowerCase().includes(term) ?? false) ||
+        tile.units.some((unit) => unit.subtitle.toLowerCase().includes(term) || (unit.variant?.sku.toLowerCase().includes(term) ?? false))
+    );
+}
+
 /**
  * Searched in the browser over the whole catalogue: a cashier scanning a
  * barcode cannot wait for a round trip, and the scanner types the code and
@@ -285,34 +435,31 @@ watch(shelves, (list) => {
 const results = computed<Tile[]>(() => {
     const term = search.value.trim().toLowerCase();
 
-    // The chip narrows the shelf; the search box then looks only inside it.
-    const inCategory = activeCategory.value === null ? tiles.value : tiles.value.filter((tile) => tile.product.category_id === activeCategory.value);
-
-    if (term === '') return inCategory.slice(0, 60);
-
-    return inCategory
-        .filter(
-            (tile) =>
-                tile.title.toLowerCase().includes(term) ||
-                tile.subtitle.toLowerCase().includes(term) ||
-                (tile.product.name_ar?.toLowerCase().includes(term) ?? false) ||
-                tile.product.sku.toLowerCase().includes(term) ||
-                (tile.variant?.sku.toLowerCase().includes(term) ?? false) ||
-                (tile.product.barcode?.toLowerCase().includes(term) ?? false),
-        )
+    return tiles.value
+        .filter((tile) => activeCategory.value === null || tile.product.category_id === activeCategory.value)
+        .filter((tile) => activeBrand.value === undefined || tile.product.brand_id === activeBrand.value)
+        .filter((tile) => (stockMode.value === 'all' ? true : stockMode.value === 'in' ? tile.available > 0 : tile.available < 1))
+        .filter((tile) => term === '' || matches(tile, term))
         .slice(0, 60);
 });
+
+/** The product whose variant sheet is open, kept live so the poll can empty it under the cashier. */
+const pickingId = ref<number | null>(null);
+
+const picking = computed<Tile | null>(() =>
+    pickingId.value === null ? null : (tiles.value.find((tile) => tile.product.id === pickingId.value) ?? null),
+);
 
 /**
  * A barcode scanner ends its input with Enter. An exact barcode or SKU match
  * goes straight into the basket and clears the box, ready for the next scan;
  * anything else leaves the results on screen to be tapped.
  */
-function matchesCode(tile: { product: ProductOption; variant: VariantOption | null }, term: string): boolean {
+function matchesCode(unit: { product: ProductOption; variant: VariantOption | null }, term: string): boolean {
     return (
-        tile.product.barcode?.toLowerCase() === term ||
-        tile.variant?.sku.toLowerCase() === term ||
-        (tile.variant === null && tile.product.sku.toLowerCase() === term)
+        unit.product.barcode?.toLowerCase() === term ||
+        unit.variant?.sku.toLowerCase() === term ||
+        (unit.variant === null && unit.product.sku.toLowerCase() === term)
     );
 }
 
@@ -321,26 +468,33 @@ function onSearchEnter(): void {
 
     if (term === '') return;
 
-    const exact = tiles.value.find((tile) => matchesCode(tile, term));
+    // Matched against every unit, sold out ones included: a scanner that
+    // silently does nothing on the last piece reads as a broken scanner.
+    const scanned = units.value.find((unit) => matchesCode(unit, term));
 
-    const hit = exact ?? (results.value.length === 1 ? results.value[0] : null);
+    if (scanned) {
+        const unit = withAvailability(scanned);
 
-    if (hit) {
-        // A scanned code outranks the chip: the item in the cashier's hand is
-        // the item they meant, whatever shelf is on screen.
-        addTile(hit);
+        if (unit.available < 1) {
+            message.warning(t('admin.pos.sold_out', { name: unit.title }));
+        } else {
+            // A scanned code outranks the filters: the item in the cashier's
+            // hand is the item they meant, whatever shelf is on screen.
+            addUnit(unit);
+        }
+
         search.value = '';
 
         return;
     }
 
-    // The shelf hides whatever has nothing left, so scanning the last piece —
-    // already in the basket — now matches nothing at all. Say why: a scanner
-    // that silently does nothing reads as a broken scanner.
-    const soldOut = catalogue.value.find((tile) => matchesCode(tile, term));
+    // No code matched, so this was typed rather than scanned. One card left on
+    // screen with nothing to choose between goes in; anything else waits to be
+    // tapped, because a variant sheet is a question, not a result.
+    const only = results.value.length === 1 ? results.value[0] : null;
 
-    if (soldOut) {
-        message.warning(t('admin.pos.sold_out', { name: soldOut.title }));
+    if (only && only.units.length === 1 && only.available > 0) {
+        addUnit(only.units[0]);
         search.value = '';
     }
 }
@@ -529,7 +683,7 @@ function closeSold(): void {
 const stockPoll = usePoll(
     10_000,
     {
-        only: ['products', 'categories', 'shift', 'recentSales'],
+        only: ['products', 'categories', 'brands', 'shift', 'recentSales'],
         showProgress: false,
         // The stop() below is the ordinary guard; this is the one that holds when
         // the poll restarts itself — it does that on its own when the tab comes
@@ -614,7 +768,7 @@ watch(
 
         <div class="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_25rem]">
             <!-- Catalogue -->
-            <section class="flex min-h-0 flex-col border-e border-ad-line">
+            <section class="flex min-h-0 min-w-0 flex-col border-e border-ad-line">
                 <!-- One scrolling row, not a wrapping block: the shelf must never
                      push the search box and the grid down the screen. -->
                 <div v-if="shelves.length > 0" class="flex shrink-0 gap-1.5 overflow-x-auto border-b border-ad-line px-3 py-2">
@@ -643,22 +797,42 @@ watch(
                         "
                         @click="activeCategory = activeCategory === category.id ? null : category.id"
                     >
-                        {{ categoryLabel(category) }}
+                        {{ chipLabel(category) }}
                         <span class="ms-1 tabular-nums opacity-60">{{ category.products_count }}</span>
                     </button>
                 </div>
 
-                <div class="shrink-0 p-3">
+                <div class="flex shrink-0 items-center gap-2 p-3">
                     <Input
                         ref="searchInput"
                         v-model:value="search"
                         size="large"
                         allow-clear
+                        class="min-w-0 flex-1"
                         :placeholder="t('admin.pos.scan_placeholder')"
                         @press-enter="onSearchEnter"
                     >
                         <template #prefix><Search class="size-4 text-ad-label" /></template>
                     </Input>
+
+                    <Select
+                        v-if="brandShelves.length > 0"
+                        v-model:value="activeBrand"
+                        size="large"
+                        allow-clear
+                        class="w-40 shrink-0"
+                        :options="brandOptions"
+                        :placeholder="t('admin.pos.all_brands')"
+                        :aria-label="t('admin.pos.all_brands')"
+                    />
+
+                    <Select
+                        v-model:value="stockMode"
+                        size="large"
+                        class="w-36 shrink-0"
+                        :options="stockOptions"
+                        :aria-label="t('admin.pos.stock_any')"
+                    />
                 </div>
 
                 <div class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
@@ -669,7 +843,9 @@ watch(
                             v-for="tile in results"
                             :key="tile.key"
                             type="button"
-                            class="group flex h-full flex-col rounded-lg border border-ad-line bg-ad-card p-2.5 text-start transition hover:border-ad-accent"
+                            :disabled="tile.available < 1"
+                            class="group flex h-full flex-col rounded-lg border border-ad-line bg-ad-card p-2.5 text-start transition"
+                            :class="tile.available < 1 ? 'cursor-not-allowed opacity-60 grayscale' : 'hover:border-ad-accent'"
                             @click="addTile(tile)"
                         >
                             <!-- Square, so every tile in a row is the same height
@@ -682,7 +858,8 @@ watch(
                                     :src="tile.image"
                                     :alt="tile.title"
                                     loading="lazy"
-                                    class="size-full object-contain transition-transform duration-200 group-hover:scale-105"
+                                    class="size-full object-contain transition-transform duration-200"
+                                    :class="tile.available > 0 && 'group-hover:scale-105'"
                                 />
                                 <ImageOff v-else class="size-6 text-ad-faint" />
                             </span>
@@ -702,7 +879,19 @@ watch(
                                  price up, whatever the title wrapped to. -->
                             <span class="mt-auto flex items-baseline justify-between gap-1 pt-2">
                                 <span class="text-sm font-semibold text-ad-accent">{{ tile.priceFormatted }}</span>
+
+                                <!-- Sold out is a label, not an absence: the card
+                                     stays on the shelf so the cashier can tell a
+                                     customer "we stock it, we are out" rather than
+                                     "we have never heard of it". -->
                                 <span
+                                    v-if="tile.available < 1"
+                                    class="shrink-0 rounded bg-ad-hover px-1.5 py-0.5 text-[0.6875rem] font-medium text-ad-danger"
+                                >
+                                    {{ t('admin.pos.out_of_stock') }}
+                                </span>
+                                <span
+                                    v-else
                                     class="shrink-0 text-[0.6875rem] font-medium tabular-nums"
                                     :class="tile.available > 3 ? 'text-ad-label' : 'is-warning'"
                                 >
@@ -854,6 +1043,42 @@ watch(
             </aside>
         </div>
     </div>
+
+    <!-- The variant sheet. One card on the shelf, the choice made here, so the
+         grid stays a list of products rather than a list of near-duplicates. -->
+    <Modal :open="picking !== null" :title="picking?.title" :footer="null" centered width="420px" @cancel="pickingId = null">
+        <ul v-if="picking" class="-mx-2 divide-y divide-ad-line">
+            <li v-for="unit in picking.units" :key="unit.key">
+                <button
+                    type="button"
+                    :disabled="unit.available < 1"
+                    class="flex w-full items-center gap-3 rounded px-2 py-2.5 text-start transition"
+                    :class="unit.available < 1 ? 'cursor-not-allowed opacity-60' : 'hover:bg-ad-hover'"
+                    @click="pickUnit(unit)"
+                >
+                    <span class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded bg-ad-icon-bg">
+                        <img v-if="unit.image" :src="unit.image" :alt="unit.subtitle" loading="lazy" class="size-full object-contain" />
+                        <ImageOff v-else class="size-4 text-ad-faint" />
+                    </span>
+
+                    <span class="min-w-0 flex-1">
+                        <span dir="auto" class="block truncate text-sm font-medium">{{ unit.subtitle }}</span>
+                        <span v-if="unit.variant" dir="auto" class="block truncate text-[0.6875rem] text-ad-muted">{{ unit.variant.sku }}</span>
+                    </span>
+
+                    <span class="shrink-0 text-end">
+                        <span class="block text-sm font-semibold text-ad-accent">{{ unit.priceFormatted }}</span>
+                        <span v-if="unit.available < 1" class="block text-[0.6875rem] font-medium text-ad-danger">
+                            {{ t('admin.pos.out_of_stock') }}
+                        </span>
+                        <span v-else class="block text-[0.6875rem] tabular-nums text-ad-label">
+                            {{ t('admin.pos.in_stock_n', { count: unit.available }) }}
+                        </span>
+                    </span>
+                </button>
+            </li>
+        </ul>
+    </Modal>
 
     <!-- Asked before anything is committed. The confirm button is focused on
          open and Enter is bound in `onKeydown`, so the whole sale is keyboard

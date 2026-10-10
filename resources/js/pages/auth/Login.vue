@@ -56,7 +56,11 @@ const submit = () => {
                 <template #label>
                     <span class="flex w-full items-center justify-between gap-2">
                         {{ t('auth.password') }}
-                        <Link v-if="canResetPassword" :href="route('password.request')" class="text-sm font-normal text-[#0F9D58] hover:underline">
+                        <Link
+                            v-if="canResetPassword"
+                            :href="route('password.request')"
+                            class="text-sm font-normal text-st-accent-text hover:underline"
+                        >
                             {{ t('auth.forgot_password') }}
                         </Link>
                     </span>
@@ -103,7 +107,7 @@ const submit = () => {
 
             <p class="mt-6 text-center text-sm opacity-65">
                 {{ t('auth.no_account') }}
-                <Link :href="route('register')" class="font-medium text-[#0F9D58] hover:underline">{{ t('auth.sign_up') }}</Link>
+                <Link :href="route('register')" class="font-medium text-st-accent-text hover:underline">{{ t('auth.sign_up') }}</Link>
             </p>
         </Form>
     </AuthBase>

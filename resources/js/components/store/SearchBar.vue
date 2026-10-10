@@ -2,7 +2,7 @@
 import { router } from '@inertiajs/vue3';
 import { AutoComplete, Input, Spin } from 'ant-design-vue';
 import { Search } from 'lucide-vue-next';
-import { onBeforeUnmount, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 interface Suggestion {
@@ -14,7 +14,14 @@ interface Suggestion {
     image: string | null;
 }
 
+/**
+ * `shortcut` binds "/" to focus this box. Only the desktop header's instance
+ * takes it — the mobile row's copy is hidden there and must not steal focus.
+ */
+const props = defineProps<{ shortcut?: boolean }>();
+
 const { t } = useI18n();
+const input = ref<{ focus: () => void } | null>(null);
 
 const query = ref('');
 const suggestions = ref<Suggestion[]>([]);
@@ -69,9 +76,26 @@ function select(slug: unknown) {
     router.get(route('products.show', String(slug)));
 }
 
+/** "/" focuses the search unless the user is already typing somewhere. */
+function onKeydown(event: KeyboardEvent) {
+    if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey) return;
+
+    const target = event.target as HTMLElement | null;
+
+    if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+
+    event.preventDefault();
+    input.value?.focus();
+}
+
+onMounted(() => {
+    if (props.shortcut) window.addEventListener('keydown', onKeydown);
+});
+
 onBeforeUnmount(() => {
     if (timer) clearTimeout(timer);
     controller?.abort();
+    window.removeEventListener('keydown', onKeydown);
 });
 </script>
 
@@ -90,6 +114,7 @@ onBeforeUnmount(() => {
              second, dead search control beside the debounced suggestions —
              the same call the dashboard's FilterBar makes. -->
         <Input
+            ref="input"
             :placeholder="t('nav.search_placeholder')"
             size="large"
             type="search"
@@ -102,6 +127,9 @@ onBeforeUnmount(() => {
             <template #prefix>
                 <Spin v-if="loading" size="small" />
                 <Search v-else class="h-4 w-4 opacity-45" />
+            </template>
+            <template v-if="shortcut && query === ''" #suffix>
+                <kbd class="store-kbd" :title="t('nav.search_hint')" aria-hidden="true">/</kbd>
             </template>
         </Input>
 

@@ -257,7 +257,7 @@ onBeforeUnmount(() => stopLoop());
         <button
             v-if="!open"
             type="button"
-            class="group relative block w-full overflow-hidden rounded-3xl border border-[#0F9D58]/25 bg-gradient-to-l from-[#0F9D58]/15 via-card to-card p-6 text-start transition hover:border-[#0F9D58]/60 hover:shadow-xl hover:shadow-[#0F9D58]/10 sm:p-9"
+            class="group relative block w-full overflow-hidden rounded-3xl border border-st-accent/25 bg-gradient-to-l from-st-accent/15 via-card to-card p-6 text-start transition hover:border-st-accent/60 hover:shadow-xl hover:shadow-st-accent/10 sm:p-9"
             @click="toggleOpen"
         >
             <!-- Drifting catalogue items -->
@@ -276,25 +276,25 @@ onBeforeUnmount(() => stopLoop());
 
             <!-- Dotted catch line -->
             <span
-                class="pointer-events-none absolute inset-x-8 bottom-6 hidden border-t-2 border-dashed border-[#0F9D58]/30 sm:block"
+                class="pointer-events-none absolute inset-x-8 bottom-6 hidden border-t-2 border-dashed border-st-accent/30 sm:block"
                 aria-hidden="true"
             />
 
             <div class="relative z-10 flex flex-wrap items-center justify-between gap-6">
                 <span class="flex items-center gap-5">
-                    <span class="game-wiggle rounded-2xl bg-[#0F9D58] p-3.5 text-white shadow-lg shadow-[#0F9D58]/40">
+                    <span class="game-wiggle rounded-2xl bg-st-accent p-3.5 text-st-on-accent shadow-lg shadow-st-accent/40">
                         <Gamepad2 class="h-8 w-8" />
                     </span>
                     <span>
                         <span
-                            class="block bg-gradient-to-l from-[#0F9D58] to-foreground bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl"
+                            class="block bg-gradient-to-l from-st-accent to-foreground bg-clip-text text-2xl font-extrabold text-transparent sm:text-3xl"
                         >
                             {{ t('home.game_title') }}
                         </span>
                         <span class="mt-1.5 block max-w-md text-sm text-muted-foreground">{{ t('home.game_subtitle') }}</span>
                         <span
                             v-if="best > 0"
-                            class="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-[#0F9D58]/10 px-3 py-1 text-xs font-bold text-[#0F9D58]"
+                            class="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-st-accent/10 px-3 py-1 text-xs font-bold text-st-accent-text"
                         >
                             🏆 {{ t('home.game_best', { best }) }}
                         </span>
@@ -302,9 +302,9 @@ onBeforeUnmount(() => stopLoop());
                 </span>
 
                 <span class="relative shrink-0">
-                    <span class="game-glow absolute inset-0 rounded-2xl bg-[#0F9D58]" aria-hidden="true" />
+                    <span class="game-glow absolute inset-0 rounded-2xl bg-st-accent" aria-hidden="true" />
                     <span
-                        class="relative flex items-center gap-2 rounded-2xl bg-[#0F9D58] px-8 py-3.5 text-base font-bold text-white transition group-hover:scale-105"
+                        class="relative flex items-center gap-2 rounded-2xl bg-st-accent px-8 py-3.5 text-base font-bold text-st-on-accent transition group-hover:scale-105"
                     >
                         ▶ {{ t('home.game_play') }}
                     </span>
@@ -316,11 +316,13 @@ onBeforeUnmount(() => stopLoop());
         <div v-else class="overflow-hidden rounded-2xl border border-border bg-card">
             <div class="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
                 <div class="flex items-center gap-2 font-semibold">
-                    <Gamepad2 class="h-5 w-5 text-[#0F9D58]" />
+                    <Gamepad2 class="h-5 w-5 text-st-accent-text" />
                     {{ t('home.game_title') }}
                 </div>
                 <div class="flex items-center gap-4 text-sm">
-                    <span :key="score" class="game-score-pop inline-block font-semibold text-[#0F9D58]">{{ t('home.game_score', { score }) }}</span>
+                    <span :key="score" class="game-score-pop inline-block font-semibold text-st-accent-text">{{
+                        t('home.game_score', { score })
+                    }}</span>
                     <span class="text-muted-foreground">{{ t('home.game_best', { best }) }}</span>
                     <span class="flex items-center gap-0.5" aria-hidden="true">
                         <Heart v-for="n in 3" :key="n" class="h-4 w-4" :class="n <= lives ? 'fill-red-500 text-red-500' : 'text-border'" />
@@ -341,7 +343,7 @@ onBeforeUnmount(() => stopLoop());
                  keyboard user can actually reach, not only on a window listener. -->
             <div
                 ref="arena"
-                class="relative h-96 touch-none select-none overflow-hidden bg-gradient-to-b from-transparent to-[#0F9D58]/5 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#0F9D58]"
+                class="relative h-96 touch-none select-none overflow-hidden bg-gradient-to-b from-transparent to-st-accent/5 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-st-accent"
                 :class="{ 'game-shake': arenaShake }"
                 tabindex="0"
                 role="application"
@@ -367,7 +369,7 @@ onBeforeUnmount(() => stopLoop());
                 <span
                     v-for="pop in poppers"
                     :key="pop.id"
-                    class="game-plus-pop pointer-events-none absolute text-lg font-extrabold text-[#0F9D58]"
+                    class="game-plus-pop pointer-events-none absolute text-lg font-extrabold text-st-accent-text"
                     :style="{ left: pop.x + '%', top: pop.y + 'px' }"
                     aria-hidden="true"
                 >
@@ -390,13 +392,13 @@ onBeforeUnmount(() => stopLoop());
                             <p class="text-2xl font-bold">{{ t('home.game_over') }}</p>
                             <p class="text-lg">
                                 {{ t('home.game_score', { score }) }}
-                                <span v-if="score >= best && score > 0" class="ms-1 font-semibold text-[#0F9D58]">🏆</span>
+                                <span v-if="score >= best && score > 0" class="ms-1 font-semibold text-st-accent-text">🏆</span>
                             </p>
                         </template>
                         <p v-else class="max-w-xs text-center text-sm text-muted-foreground">{{ t('home.game_help') }}</p>
                         <button
                             type="button"
-                            class="inline-flex items-center gap-2 rounded-xl bg-[#0F9D58] px-6 py-3 font-semibold text-white transition hover:scale-105 hover:opacity-90"
+                            class="inline-flex items-center gap-2 rounded-xl bg-st-accent px-6 py-3 font-semibold text-st-on-accent transition hover:scale-105 hover:opacity-90"
                             @click="start"
                         >
                             <RotateCcw v-if="gameOver" class="h-4 w-4" />

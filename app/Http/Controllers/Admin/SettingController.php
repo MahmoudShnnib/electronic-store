@@ -16,7 +16,7 @@ final class SettingController extends Controller implements HasMiddleware
 {
     /** Whitelist of editable settings; anything else is rejected. */
     private const EDITABLE = [
-        'store_name', 'contact_info', 'bank_transfer_details', 'invoice_details',
+        'store_name', 'contact_info', 'social_links', 'bank_transfer_details', 'invoice_details',
         'page.about', 'page.contact', 'page.privacy-policy', 'page.terms', 'page.return-policy',
     ];
 

@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Storefront;
 
+use App\Http\Controllers\Admin\HomepageController;
 use App\Http\Resources\ProductCardResource;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Setting;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -58,7 +60,100 @@ final class HomePageService
             'onSale' => ProductCardResource::collection($sections['onSale']),
             'bestSellers' => ProductCardResource::collection($sections['bestSellers']),
             'categorySections' => $this->categorySections(),
+            'heroSlides' => $this->heroSlides(),
+            'promoTiles' => $this->promoTiles(),
         ];
+    }
+
+    /**
+     * The hero as curated in the dashboard (Homepage page), or null for
+     * "automatic" — the storefront then rotates featured products itself.
+     *
+     * Products that can't be shown (draft, hidden, deleted since) are skipped
+     * rather than failing the page; if none survive, it falls back to
+     * automatic so the hero is never empty.
+     *
+     * @return list<array{product: array<string, mixed>, title: string|null, title_ar: string|null, image: string|null}>|null
+     */
+    private function heroSlides(): ?array
+    {
+        $config = Setting::get(HomepageController::HERO_KEY) ?? [];
+
+        if ($config === []) {
+            return null;
+        }
+
+        $products = Cache::remember('home.hero', now()->addMinutes(10), fn () => Product::query()
+            ->visibleInStore()
+            ->whereIn('id', array_column($config, 'product_id'))
+            ->with(['brand:id,name,slug', 'images'])
+            ->withAvg('approvedReviews as rating_avg', 'rating')
+            ->withCount('approvedReviews as rating_count')
+            ->withStock()
+            ->get()
+            ->keyBy('id'));
+
+        $slides = [];
+
+        foreach ($config as $slide) {
+            $product = $products->get($slide['product_id']);
+
+            if ($product === null) {
+                continue;
+            }
+
+            $slides[] = [
+                // Resolved here, not cached: the card carries the viewer's own
+                // wishlist state.
+                'product' => (new ProductCardResource($product))->resolve(request()),
+                'title' => $slide['title'] ?? null,
+                'title_ar' => $slide['title_ar'] ?? null,
+                'image' => $this->publicUrl($slide['image_path'] ?? null),
+            ];
+        }
+
+        return $slides === [] ? null : $slides;
+    }
+
+    /**
+     * The two promo tiles beside the hero as curated in the dashboard, or null
+     * for "automatic" (best live discount, then biggest category). A tile whose
+     * category has nothing to sell is dropped, like on the category rail.
+     *
+     * @return list<array<string, mixed>>|null
+     */
+    private function promoTiles(): ?array
+    {
+        $config = Setting::get(HomepageController::TILES_KEY) ?? [];
+
+        if ($config === []) {
+            return null;
+        }
+
+        $cards = collect($this->categoryCards())->keyBy('id');
+        $tiles = [];
+
+        foreach ($config as $tile) {
+            $card = $cards->get($tile['category_id']);
+
+            if ($card === null) {
+                continue;
+            }
+
+            $tiles[] = [
+                ...$card,
+                'title' => $tile['title'] ?? null,
+                'title_ar' => $tile['title_ar'] ?? null,
+                'image' => $this->publicUrl($tile['image_path'] ?? null) ?? $card['image'],
+            ];
+        }
+
+        return $tiles === [] ? null : $tiles;
+    }
+
+    private function publicUrl(?string $path): ?string
+    {
+        return $path !== null ? Storage::disk('public')->url($path) : null;
     }
 
     /**

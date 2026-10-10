@@ -19,6 +19,7 @@ final class HomeCache
         'home.sections',
         'home.category_cards',
         'home.category_sections',
+        'home.hero',
     ];
 
     public static function flush(): void
