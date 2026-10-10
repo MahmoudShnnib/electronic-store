@@ -13,19 +13,28 @@
 
 Also on `feat/fifo-costing`: `32e0af1` (separate session) — two requests creating the same new
 stock row at once no longer abort the Postgres transaction. Checks on the branch tip: 536 tests
-pass, Concurrency suite 5 pass, `php audit/check_invariants.php` ALL RULES PASS (dev DB), pint clean.
+pass (543 after the owner-call commits), Concurrency suite 5 pass, `php audit/check_invariants.php` ALL RULES PASS (dev DB), pint clean.
 
 Rules M3/M4: the case that broke them (deposit refunded, then paid in full) can no longer
 happen now that payments and refunds are always whole.
 
 Needs on deploy: `php artisan down`, `php artisan migrate` (2026_10_05_100000, 2026_10_10_100000,
-2026_10_10_110000), reload PHP-FPM, `php audit/check_invariants.php` (S10/S11 must pass), `php artisan up`.
+2026_10_10_110000, 2026_10_11_100000, 2026_10_11_110000), reload PHP-FPM, `php audit/check_invariants.php` (S10/S11 must pass), `php artisan up`.
 The FIFO migration seeds one batch per stock row at today's cost; stock moved by old code between
 the migration and the code switch would have no batch, hence the maintenance window.
 
-FIFO known gaps (owner's call, not built): PO shipping/discount are not spread into unit cost;
-supplier returns use FIFO, not the returned PO's batch; free (0-total) orders' goods never reach
-profit cost; write-offs (damaged/lost) have no report line of their own.
+Owner calls on the FIFO gaps (2026-10-10), all built on `feat/fifo-costing`:
+- PO shipping and discount are spread over the received units (`d3a2b0f`).
+- Free (0-total) orders book their goods' cost the day they're completed (`6e626c4`).
+- Sales report shows what written-off stock cost, by kind (`15929f9`, `321a54c`; migrations
+  `2026_10_11_100000`, `2026_10_11_110000`). Moving stock onto new variants has its own type
+  (`variant_split`) and is not a write-off; old write-offs are costed at the cost price of the time.
+- Supplier returns keep using the oldest stock: the owner only cancels POs, never ships received
+  stock back (no screen for it today).
+- Still open: cashiers can see product cost prices on the products page (owner: later).
+- Mahmoud's PR #5 (POS one card per product) merges cleanly but hides the admin "highest cost" line;
+  integration fix ready on local branch `compat/pr-check` (`c05d0b4`) — apply after #5 lands on main.
+  PR #4 (storefront restyle) is compatible as is.
 
 ---
 

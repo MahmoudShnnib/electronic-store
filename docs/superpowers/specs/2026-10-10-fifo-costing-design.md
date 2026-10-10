@@ -57,9 +57,10 @@ slice. Deploy under `php artisan down`, then run `php audit/check_invariants.php
 - S11: per order line, slices add up to its quantity and to `cost_cents`.
 - Harmony checker gets the S10 check; CheckerSelfTest gets S10/S11 corruption cases.
 
-## Known gaps (owner decisions, not built)
+## Owner decisions on the gaps (2026-10-10)
 
-- PO shipping/discount are not spread into unit cost (batch cost = PO line price).
-- Supplier returns use FIFO, not the batch of the PO being returned.
-- Free (0-total) orders: their goods leave stock value but never reach profit cost.
-- Write-offs (damaged/lost) leave stock value but have no report line of their own.
+- PO shipping/discount are spread over the received units: unit cost = line price × PO total / PO subtotal.
+- Supplier returns keep using FIFO (no screen ships received stock back; POs are only cancelled).
+- Free (0-total) orders book their goods' cost on the day they're completed.
+- Write-offs: every movement stores the cost of its units (`inventory_movements.cost_cents`); the sales
+  report shows written-off stock by kind for the chosen dates, apart from the estimated profit.
