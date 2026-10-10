@@ -141,3 +141,16 @@ it('counts a paid order as sold even before delivery: its cost leaves stock valu
         ->and($done['report.summary.estimated_cost_formatted'])->toBe(finFmt(70_000))
         ->and(auditFailures())->toBe([]);
 });
+
+it('takes the unit cost typed in the stock dialog, and prefills it only for staff who can add stock', function (): void {
+    finAdjust($this, $this->phone, 4, 'manual_increase', 'New delivery', ['unit_cost' => 612.5])->assertSessionHasNoErrors();
+    finAdjust($this, $this->phone, 1, 'manual_increase', 'Bad cost', ['unit_cost' => -1])->assertSessionHasErrors('unit_cost');
+
+    expect(fifoBatches($this->phone))->toBe([[70_000 => 10], [65_000 => 5], [61_250 => 4]])
+        ->and(auditFailures())->toBe([]);
+
+    $row = fn ($user) => collect($this->actingAs($user)->get('/admin/inventory')->viewData('page')['props']['levels']['data'])
+        ->firstWhere('sku', 'PHONE');
+    expect($row($this->admin)['unit_cost'])->toEqual(700)
+        ->and($row(staff('cashier')))->not->toHaveKey('unit_cost');
+});

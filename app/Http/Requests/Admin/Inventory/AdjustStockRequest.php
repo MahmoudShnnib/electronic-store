@@ -52,6 +52,9 @@ final class AdjustStockRequest extends FormRequest
             ])],
             'reason' => ['required', 'string', 'max:255'],
             'from_damaged' => ['boolean'],
+            // What one added unit cost this time (FIFO batch). The stock dialog always asks;
+            // left out, the variant's (else the product's) cost price is used.
+            'unit_cost' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:99999999'],
         ];
     }
 

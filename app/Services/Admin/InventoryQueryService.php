@@ -9,6 +9,7 @@ use App\Models\InventoryMovement;
 use App\Models\StockLevel;
 use App\Models\Warehouse;
 use App\Services\Reports\ReportDateRange;
+use App\Support\Money;
 use Illuminate\Http\Request;
 
 /**
@@ -25,8 +26,11 @@ final class InventoryQueryService
      */
     public function indexProps(Request $request): array
     {
+        // Cost prices only go to staff who can add stock (cashiers can view this page).
+        $canAdjust = (bool) $request->user()?->can('inventory.adjust');
+
         $levels = StockLevel::query()
-            ->with(['product:id,name,sku,low_stock_threshold', 'variant:id,name,sku,low_stock_threshold', 'warehouse:id,name,code'])
+            ->with(['product:id,name,sku,low_stock_threshold,cost_price_cents', 'variant:id,name,sku,low_stock_threshold,cost_price_cents', 'warehouse:id,name,code'])
             ->join('products', 'products.id', '=', 'stock_levels.product_id')
             ->select('stock_levels.*')
             ->when($request->filled('warehouse_id'), fn ($q) => $q->where('warehouse_id', (int) $request->query('warehouse_id')))
@@ -54,6 +58,8 @@ final class InventoryQueryService
                 'damaged' => $s->damaged,
                 'incoming' => $s->incoming,
                 'low_stock' => $s->quantity <= ($s->variant?->low_stock_threshold ?? $s->product->low_stock_threshold),
+                // Prefills the unit cost asked for when stock is added.
+                ...($canAdjust ? ['unit_cost' => Money::toDecimal((int) ($s->variant?->cost_price_cents ?: $s->product->cost_price_cents))] : []),
             ]);
 
         return [

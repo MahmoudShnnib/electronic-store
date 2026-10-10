@@ -661,6 +661,7 @@
             "low_stock_threshold": "Low-stock threshold",
             "adjust_hint": "Positive to add, negative to remove",
             "adjust_reason_hint": "e.g. Annual stock count correction",
+            "unit_cost_hint": "What one unit cost you this time. Sales use up the oldest stock first.",
             "return_damaged": "These are units already written off as damaged",
             "from_warehouse": "From warehouse",
             "to_warehouse": "To warehouse",
