@@ -16,7 +16,15 @@
         "admin": "Admin",
         "search_placeholder": "Search for phones, laptops, accessories…",
         "all_categories": "All categories",
-        "primary": "Main"
+        "primary": "Main",
+        "search_hint": "Press / to search",
+        "welcome": "Welcome",
+        "guest_pitch": "Sign in to track your orders and keep your wishlist on every device.",
+        "preferences": "Preferences",
+        "language": "Language",
+        "appearance": "Appearance",
+        "light": "Light",
+        "dark": "Dark"
     },
     "home": {
         "featured": "Featured products",
@@ -30,7 +38,7 @@
         "shop_now": "Shop now",
         "previous_slide": "Previous slide",
         "next_slide": "Next slide",
-        "go_to_slide": "Go to slide {number}",
+        "go_to_slide": "Go to slide {n}",
         "product_count": "no products | 1 product | {count} products",
         "scroll_back": "Scroll back",
         "scroll_forward": "Scroll forward",
@@ -50,7 +58,11 @@
         "trust_cod": "Cash on delivery",
         "trust_delivery": "Fast delivery across Libya",
         "trust_genuine": "100% genuine products",
-        "trust_returns": "Easy returns"
+        "trust_returns": "Easy returns",
+        "featured_badge": "Featured",
+        "browse_deals": "Browse deals",
+        "pause_slides": "Pause slideshow",
+        "play_slides": "Play slideshow"
     },
     "catalog": {
         "filters": "Filters",
@@ -230,12 +242,14 @@
         "tagline": "Your one-stop shop for phones, laptops, gaming and accessories.",
         "quick_links": "Quick links",
         "customer_service": "Customer service",
-        "newsletter": "Newsletter",
-        "newsletter_hint": "Get the latest offers and discounts first.",
-        "email_placeholder": "Your email address",
-        "subscribe": "Subscribe",
         "cod": "Cash on delivery",
-        "bank_transfer": "Bank transfer"
+        "bank_transfer": "Bank transfer",
+        "shop": "Shop",
+        "your_account": "Your account",
+        "help": "Help",
+        "all_products": "All products",
+        "payment_methods": "Payment methods",
+        "get_in_touch": "Get in touch"
     },
     "admin": {
         "nav": {
@@ -278,7 +292,8 @@
             "pos_shifts": "Cashier shifts",
             "sales_cash": "Sales & cash",
             "catalog_setup": "Catalog setup",
-            "marketing": "Marketing"
+            "marketing": "Marketing",
+            "homepage": "Homepage"
         },
         "common": {
             "id": "ID",
@@ -877,7 +892,9 @@
             "privacy": "Privacy policy",
             "terms": "Terms & conditions",
             "return_policy": "Return policy",
-            "contact_page": "Contact page text"
+            "contact_page": "Contact page text",
+            "social": "Social media",
+            "social_hint": "Paste the full page address. Networks left empty are hidden from the store footer."
         },
         "specifications": {
             "title": "Specifications",
@@ -1019,6 +1036,42 @@
             "sold_out": "{name} — nothing left to sell.",
             "line_trimmed": "Only {count} left of {name} — the basket was trimmed.",
             "line_gone": "{name} sold out elsewhere and was removed from the basket."
+        },
+        "homepage": {
+            "title": "Homepage",
+            "subtitle": "Choose what the storefront opens with.",
+            "hero": "Hero slides",
+            "hero_hint": "Products the hero rotates through, in this order. Leave empty to show featured products automatically.",
+            "tiles": "Promo tiles",
+            "tiles_hint": "The two tiles beside the hero. Leave empty to pick automatically (best discount, then biggest category).",
+            "automatic": "Automatic",
+            "curated": "Curated",
+            "add_slide": "Add slide",
+            "add_tile": "Add tile",
+            "product": "Product",
+            "category": "Category",
+            "search_product": "Search by name or SKU…",
+            "choose_category": "Choose a category",
+            "headline": "Headline (English)",
+            "headline_ar": "Headline (Arabic)",
+            "headline_hint": "Optional. Defaults to the product name.",
+            "tile_title_hint": "Optional. Defaults to the category name.",
+            "artwork": "Artwork",
+            "artwork_hint": "Optional. Replaces the product photo. JPG, PNG or WebP, up to 4 MB.",
+            "upload": "Upload image",
+            "replace": "Replace",
+            "remove_image": "Remove image",
+            "move_up": "Move up",
+            "move_down": "Move down",
+            "remove_slide": "Remove",
+            "hidden_warning": "Not visible in the store (draft, hidden or inactive category) — this slide will be skipped.",
+            "inactive_category": "inactive",
+            "empty_hero": "No slides yet — the hero shows featured products automatically.",
+            "empty_tiles": "No tiles yet — the store picks them automatically.",
+            "slide_n": "Slide {n}",
+            "tile_n": "Tile {n}",
+            "limit_reached": "Limit reached ({max})",
+            "view_store": "View store"
         }
     },
     "settings": {

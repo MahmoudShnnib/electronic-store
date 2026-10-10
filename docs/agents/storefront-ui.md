@@ -16,7 +16,7 @@ apply here unchanged. This file covers what is specific to the shop.
 | --- | --- |
 | Accent colour, corner radius | `resources/js/composables/useStoreTheme.ts` |
 | Header, drawer, tab bar, "All categories" menu | `resources/js/layouts/StoreLayout.vue` |
-| Footer (the gc-footer-v2 clone) | `resources/js/components/store/StoreFooter.vue` |
+| Footer (rebuilt 2026-10-10) | `resources/js/components/store/StoreFooter.vue` |
 | The snake-border CTA | `resources/js/components/store/SnakeButton.vue` |
 | The homepage mini-game | `resources/js/components/store/CatchGame.vue` |
 | Anything shared across shop pages | `resources/js/components/store/*` |
@@ -24,9 +24,32 @@ apply here unchanged. This file covers what is specific to the shop.
 | Sign-in / register / reset screens | `resources/js/layouts/auth/AuthSimpleLayout.vue` + `pages/auth/*` |
 | Account settings | `resources/js/layouts/settings/Layout.vue` + `pages/settings/*` |
 
-## The reference site
+## Current direction: dark tech (2026-10-10)
 
-The user's stated design direction is **gamingcenter.ly, remapped to this shop's green**.
+The user rejected the green gamingcenter.ly look and chose **"dark tech", across the whole
+store**. The layout and components below are unchanged; what changed is the skin:
+
+- **Accent is electric cyan**, not green: `#22D3EE` in dark, `#0891B2` in light, with a
+  violet partner (`--st-accent-2`) used only inside gradients and glows. Dark is the
+  default and the design target.
+- **Accent tokens** (`--st-accent`, `-rgb`, `-hover`, `-text`, `-bright`, `-2`,
+  `--st-on-accent`) live on `html:has(.store-shell)` so AntD portals get them too.
+  Tailwind exposes them as `st-accent`, `st-accent-2`, `st-accent-text`,
+  `st-accent-bright`, `st-on-accent` (alpha works: `bg-st-accent/15`). **Never hardcode
+  an accent hex again** — that is why the recolour touched 95 lines.
+- **Surfaces are blue-black** (`#05070c` / `#0b111b` / `#121a27`), and the ground carries
+  a faint fixed circuit grid plus a cyan glow off the top edge.
+- **The "Tech layer" block in `app.css`** holds the look: lit gradient hairline under the
+  header, glowing primary buttons with dark ink (AntD v4 has no per-button label token, and
+  its dark algorithm dims the seed to `#20b6cd`, so the fill is pinned in CSS), cyan → violet
+  gradient border on product-card hover, accent sale flag (not AntD `success`), dark framed
+  category tiles (replacing the reference site's white tiles), LED-style trust icons.
+- Semantic green stays green: "In stock", "Verified purchase", applied coupon.
+
+## The reference site (layout origin)
+
+The layout's original direction was **gamingcenter.ly**; its colours are now the cyan
+accent above.
 Two pieces are *literal clones* of that site, not approximations:
 
 - **`SnakeButton.vue` + the `.gc-snake-btn` CSS block** — their markup (four
@@ -38,26 +61,27 @@ Two pieces are *literal clones* of that site, not approximations:
   overrides the hover to a solid green fill with a white label
   (`html:not(.dark) .gc-snake-btn:hover`). Used by the hero "Shop now" and the sale
   banner "View all".
-- **`StoreFooter.vue` + the `.gc-footer-v2` CSS block** — their footer structure and class
-  names end to end: `#gc-particles` canvas (a real JS particle field, ~70 green embers,
-  skipped under reduced motion), `gc-scanlines`, `gc-grid-overlay`, pulsing logo glow,
-  four social links (their exact Facebook/Instagram/YouTube/TikTok SVG paths; hrefs are
-  `#` placeholders in one array until real profiles exist), mobile accordion columns,
-  a working newsletter form, payment badges, and the line–dot–line decor bar. **The footer
-  is deliberately dark in both themes** — it is the closing statement and the neon reads
-  only on darkness — so it owns its own palette instead of the `--st-*` tokens. This is a
-  knowing exception to the "no hardcoded dark-only colours" rule below, made at the user's
-  explicit request.
+- **The footer is no longer a clone.** The gc-footer-v2 copy (particle canvas, scanlines,
+  grid overlay, glowing headings) was replaced on 2026-10-10 because the user found it
+  noisy. The current `StoreFooter.vue` is four columns (brand with
+  phone/email/socials from the `storeContact` shared prop · Shop = top 5 `navCategories` +
+  All products · Your account · Help) → legal bar with the payment methods. It uses the
+  `--st-*` tokens like everything else, so it follows light/dark; the only flourish is a lit
+  hairline on its top edge. No accordion on phones — the lists sit two-up. Social links come
+  from Settings → Social media (`social_links`, shared as `socialLinks`); a network with no
+  link has no icon.
 
 ## Theme
 
 `useStoreTheme()` wraps `useAntdTheme()` with the shop's tokens and is the single source
 for both `StoreLayout` and `AuthSimpleLayout`:
 
-- `colorPrimary: '#0F9D58'` — green was already the site's commerce colour, so it is the
-  seed. The dashboard stays blue on purpose; they are different products to the person
-  using them.
-- `borderRadius: 10` — the dashboard is 6 and businesslike, the shop is softer.
+- `colorPrimary` is cyan, per mode: `#22D3EE` dark, `#0891B2` light (must match
+  `--st-accent`). The dashboard has its own theme; they are different products to the
+  person using them.
+- `colorBgBase` (dark only) pulls AntD's inputs, selects and modals onto the blue-black
+  surface family instead of the dark algorithm's neutral grey.
+- `borderRadius: 10` — the dashboard is businesslike, the shop is softer.
 
 **Every page needs a `ConfigProvider` above it.** `StoreLayout` has one (theme + AntD
 locale + `direction`), so any page using that layout is covered. The auth screens sit
@@ -70,22 +94,36 @@ Both themes are declared as custom properties on `.store-shell` (`--st-ground`,
 `--st-surface`, `--st-ink`, `--st-line`, `--st-slab`, …), so a surface is described once
 and the two modes stay in step.
 
-- **Nothing in the storefront may hardcode a light- or dark-only colour** — with two
-  deliberate exceptions: the footer (see above) and the category cards' white tiles
-  (white in both themes is what makes the row pop on a dark page, same as the reference
-  site).
-- **Light mode is not pure white.** The ground is a warm off-white with white cards on
-  top. `--st-slab` is a tinted bright panel in light and a near-black one in dark.
+- **Nothing in the storefront may hardcode a light- or dark-only colour.** The footer used
+  to be the exception (dark in both themes); since its rebuild it follows the tokens too.
+- **Light mode is not pure white.** The ground is a cool off-white with white cards on
+  top. `--st-slab` is a tinted bright panel in light and a blue-black one in dark.
 
-The accent green is the only saturated colour on the page.
+Cyan is the only saturated colour on the page; violet appears only blended into it.
 
 ## Homepage anatomy (top to bottom)
 
 All in `pages/storefront/Home.vue` unless noted. The order copies the reference site.
 
-1. **Hero** — a framed, rounded carousel card (2/3 width, `.store-slab .store-slab-deco`)
-   with two promo tiles beside it. The tiles are data-driven stand-ins for the reference
-   site's ad banners: the category with the best live discount, then the biggest category.
+1. **Hero** — `components/store/HeroCarousel.vue` (rebuilt 2026-10-10; was an AntD
+   carousel that hid the photo below `lg` and repeated one tagline on every slide). One
+   product per slide: photo on a lit floor (shown at every width — first on phones,
+   trailing on desktop), Featured/brand/discount chips, name, price + struck old price,
+   rating and stock, "Shop now" + "Browse deals". A bottom bar holds a progress bar per
+   slide, an `01 / 05` counter, pause and arrows. Custom, not AntD: RTL-aware swipe and
+   arrow keys, hover/focus/hidden-tab hold, a real pause (WCAG 2.2.2). Slides share one
+   grid cell so the frame never changes height. The two promo tiles stay beside it.
+
+   **Both are curated in the dashboard** (Marketing → Homepage, `admin/homepage`,
+   `HomepageController`, permission `settings.manage`). Stored as two settings rows —
+   `home.hero` (≤8 × product_id, title, title_ar, image_path) and `home.tiles` (≤2 ×
+   category_id, …) — not tables. **An empty list means automatic**: `heroSlides` /
+   `promoTiles` props are `null` and `Home.vue` falls back to featured + newest products
+   and best-discount / biggest category. Hidden or draft products and empty categories are
+   skipped on render; if nothing survives it falls back to automatic too. Uploaded artwork
+   lives under `homepage/` on the public disk; a resave only keeps an `image_path` the
+   server stored itself, and replaced files are deleted. Tests:
+   `tests/Feature/Storefront/HomepageCurationTest.php`.
 2. **Category cards** (`.store-category-card`) — white tiles holding the category photo
    (icon fallback), name and count/discount beneath. A grid, not a rail.
 3. **Trust strip** (`.store-trust-item`) — COD / fast delivery / genuine / easy returns.
@@ -105,6 +143,23 @@ All in `pages/storefront/Home.vue` unless noted. The order copies the reference 
 
 ## Header
 
+- **Five items on desktop, no more** (the user's rule, 2026-10-10): wordmark, All
+  categories, search, cart chip, account chip. Wishlist, language, theme, sign-in/register
+  and the account pages all live in the **account menu**, which guests get too. Home and
+  Products links were dropped — the wordmark is home, All categories ends in "view all".
+  Below `lg` the bar shows only the drawer button, wordmark and the language/theme icons.
+- **The account chip says "My account", never "Log in"** — a sign-in label made guests read
+  the whole menu as sign-in only. It opens `.store-account-panel` (a custom panel, not an
+  AntD `Menu`): identity (avatar + name/email, or a welcome line + Log in / Register CTAs
+  for guests) → links (orders, wishlist with count, addresses, settings) → preferences as
+  two segmented controls showing the *current* language and appearance → log out.
+- **The palette tokens are also declared on `html:has(.store-shell)`** so portaled panels
+  (dropdowns, drawers) can read `--st-surface`, `--st-line`, `--st-ink*`.
+- **Wrap AntD `Dropdown`s in a `div` to hide them.** `Dropdown` does not pass its `class`
+  to the trigger, so `class="hidden lg:inline-flex"` on it did nothing — that is how the
+  "All categories" pill used to leak onto mobile.
+- **Search takes "/"** (`<SearchBar shortcut />`, desktop instance only) and shows a
+  `.store-kbd` hint while empty.
 - **"All categories" pill** (`.store-cats-btn`) — the loudest header control, cloned from
   the reference site's كل الأقسام button. A `Dropdown` listing every root category with
   its product count. Data comes from `Inertia::share('navCategories', …)` in
@@ -112,12 +167,12 @@ All in `pages/storefront/Home.vue` unless noted. The order copies the reference 
   the same 10-minute `home.category_cards` cache the homepage uses.
 - Desktop only; the drawer covers mobile.
 
-## Newsletter (real backend)
+## Newsletter (backend only, no UI)
 
-The footer form posts to `newsletter.subscribe` → `Web\NewsletterController` →
-`newsletter_subscribers` table (email unique + locale). Throttled with the `auth`
-limiter. Success returns a normal flash message; the Arabic translation lives in
-`lang/ar.json`. It stores emails and nothing else — there is no sending machinery.
+The footer's signup card was **removed at the user's request (2026-10-10)**. The backend is
+still there and untouched — `newsletter.subscribe` → `Web\NewsletterController` →
+`newsletter_subscribers` (email unique + locale) — but nothing on the storefront posts to it.
+Don't bring the card back unasked; if signup returns, it needs a place to live first.
 
 ## Class hooks (`app.css`)
 
@@ -130,7 +185,7 @@ limiter. Success returns a normal flash message; the Arabic translation lives in
 | `.store-slab-deco` | both slabs | The abstract shapes: an outlined ring + accent blob at `z-index: -1` under `isolation: isolate`, slow-drifting, reduced-motion aware. |
 | `.store-band` | category grid section | Alternate ground for scroll rhythm. |
 | `.gc-snake-btn` | `SnakeButton.vue` | The cloned snake-border CTA (see reference-site section). |
-| `.gc-footer-v2` | `StoreFooter.vue` | The cloned footer (see reference-site section). |
+| `.store-footer*` | `StoreFooter.vue` | Newsletter card, link grid, legal bar. |
 | `.store-category-card` | homepage category tiles | White photo tile; hover lifts with an accent ring. |
 | `.store-trust-item` | trust strip | Bordered surface chip with accent icon. |
 | `.store-section-title` | every section heading | The short accent underline stamp (flips in RTL). |
@@ -162,8 +217,8 @@ bounce in. Every animation is disabled under `prefers-reduced-motion`.
   without adding columns is what produced 367×540px product cards once already.
 - **The brand marquee is full-bleed on purpose.** Clipped inside the container it stopped
   dead ~300px from each edge.
-- **Size dark-surface steps in L\*, not contrast ratio.** Ground L* ~4, band L* ~10,
-  card L* ~15. Ratio compresses near black; 1.045:1 measured as "different" and was
+- **Size dark-surface steps in L\*, not contrast ratio.** Ground L* ~2, band L* ~6,
+  card L* ~10. Ratio compresses near black; 1.045:1 measured as "different" and was
   invisible.
 - **Content rules are shared with the dashboard.** Scoped
   `html:has(.admin-shell, .store-shell)`. Change them once; check both sides.
@@ -209,13 +264,8 @@ findings fixed. The parts that are easy to undo by accident:
   the container in `FlashMessages.vue`), not the individual toast. A live
   element inserted after the page settles is announced unreliably; text
   arriving inside a region that already exists is not.
-- **The footer's accordion headings are `<button>`s inside the `<h4>`,** and
-  they only report `aria-expanded` below `lg` (`useMediaQuery`) because above it
-  the columns are always open — a collapsed state there would be a lie.
-- **The particle canvas has a stop.** `.gc-motion-toggle` in the footer's bottom
-  bar, remembered in `localStorage`; reduced motion still skips the canvas
-  entirely. Motion that outlives five seconds beside other content needs a
-  pause control, not only a reduced-motion path.
+- *(Footer accordion and particle-canvas notes removed — that footer was replaced on
+  2026-10-10; the new one has neither.)*
 - **The mini-game owns the arrow keys through a focusable arena**
   (`tabindex="0"`, `role="application"`), not a `window` listener. The old
   global listener stole Left/Right from the whole page while the game was open.
@@ -232,7 +282,7 @@ findings fixed. The parts that are easy to undo by accident:
   (`.store-tabbar-safe`, `.store-toast-safe`).
 - **`theme-color` tracks the theme.** The blade bootstrap sets it before first
   paint and `updateTheme` keeps it in step; both use the `--st-ground` pair
-  (`#f1f1ec` / `#0a0c0d`). Changing the ground means changing those two too.
+  (`#eef2f7` / `#05070c`). Changing the ground means changing those two too.
 - **Autofocus is desktop-only** on the auth screens and `DeleteUser`
   (`useMediaQuery('(min-width: 768px) and (pointer: fine)')`).
 

@@ -24,7 +24,7 @@
                 const themeColor = document.querySelector('meta[name="theme-color"]');
 
                 if (themeColor) {
-                    themeColor.setAttribute('content', dark ? '#0a0c0d' : '#f1f1ec');
+                    themeColor.setAttribute('content', dark ? '#05070c' : '#eef2f7');
                 }
             })();
         </script>

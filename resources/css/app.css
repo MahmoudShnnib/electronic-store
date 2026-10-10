@@ -1790,37 +1790,73 @@ html:has(.store-shell) .max-w-7xl {
 }
 
 /*
- * Storefront palette.
+ * Storefront palette — the "dark tech" direction.
  *
- * Both themes are defined as tokens on the shell so a surface is described once
- * and the two modes stay in step. Light mode is deliberately *not* pure white:
- * white cards on a white page have no edge, which is the same flatness the
- * dashboard had before its content field was stepped back. The ground is a warm
- * off-white, cards sit on top of it, and the accent green is the only saturated
- * colour on the page.
+ * Both themes are defined as tokens so a surface is described once and the two
+ * modes stay in step. Dark is the default and the design target: blue-black
+ * surfaces, cool hairlines, and an electric-cyan accent with a violet second
+ * stop that only ever appears inside gradients and glows.
  *
- * `--st-slab` is the full-bleed surface behind the hero, the sale banner and the
- * footer. It follows the theme: a tinted bright panel in light mode, a near
- * black one in dark. Pinning it dark in both was what left a black band across
- * an otherwise light page.
+ * The accent tokens live on `html:has(.store-shell)`, not on the shell itself,
+ * because AntD portals its Drawer, Dropdown and Modal panels to `<body>` —
+ * outside the shell — and they paint with the accent too. Surface tokens stay
+ * on the shell. `--st-accent` must match `colorPrimary` in useStoreTheme.ts.
+ *
+ *   --st-accent         fills, borders, rings
+ *   --st-accent-rgb     the same, for rgb(var(--st-accent-rgb) / alpha)
+ *   --st-accent-hover   a filled control under the pointer
+ *   --st-accent-text    accent used as text on the ground (contrast-safe)
+ *   --st-accent-bright  the neon highlight: glows, gradient ends, dark panels
+ *   --st-accent-2       violet, gradient partner only — never a fill on its own
+ *   --st-on-accent      label colour on an accent fill
  */
+html:has(.store-shell) {
+    --st-accent: #0891b2;
+    --st-accent-rgb: 8 145 178;
+    --st-accent-hover: #0e7490;
+    --st-accent-text: #0e7490;
+    --st-accent-bright: #22d3ee;
+    --st-accent-bright-rgb: 34 211 238;
+    --st-accent-2: #7c3aed;
+    --st-accent-2-rgb: 124 58 237;
+    --st-on-accent: #ffffff;
+}
+
+html.dark:has(.store-shell) {
+    --st-accent: #22d3ee;
+    --st-accent-rgb: 34 211 238;
+    --st-accent-hover: #67e8f9;
+    --st-accent-text: #67e8f9;
+    --st-accent-bright: #67e8f9;
+    --st-accent-bright-rgb: 103 232 249;
+    --st-accent-2: #a78bfa;
+    --st-accent-2-rgb: 167 139 250;
+    --st-on-accent: #03141b;
+}
+
+/* Declared on <html> as well as the shell: AntD portals its dropdowns and
+   drawers to <body>, outside the shell, and the account panel paints with
+   these surfaces too. */
+html:has(.store-shell),
 .store-shell {
-    --st-ground: #f1f1ec;
-    --st-ground-alt: #e4e6dd;
+    --st-ground: #eef2f7;
+    --st-ground-alt: #e2e8f1;
     --st-surface: #ffffff;
-    --st-ink: #14161a;
-    --st-ink-soft: rgb(20 22 26 / 0.62);
-    --st-ink-faint: rgb(20 22 26 / 0.45);
-    --st-line: rgb(20 22 26 / 0.1);
-    --st-lift: 0 1px 2px rgb(20 22 26 / 0.04), 0 12px 28px -18px rgb(20 22 26 / 0.28);
+    --st-ink: #0b1220;
+    --st-ink-soft: rgb(11 18 32 / 0.64);
+    --st-ink-faint: rgb(11 18 32 / 0.46);
+    --st-line: rgb(15 23 42 / 0.1);
+    --st-lift: 0 1px 2px rgb(15 23 42 / 0.05), 0 12px 28px -18px rgb(15 23 42 / 0.3);
+    --st-grid: rgb(15 23 42 / 0.045);
 
     --st-slab:
-        radial-gradient(115% 85% at 78% 12%, rgb(15 157 88 / 0.16) 0%, transparent 58%),
-        linear-gradient(160deg, #edf4ef 0%, #f6f6f3 55%, #e6f0ea 100%);
-    --st-slab-ink: #14161a;
-    --st-slab-ink-soft: rgb(20 22 26 / 0.6);
-    --st-slab-line: rgb(20 22 26 / 0.16);
-    --st-slab-well: rgb(20 22 26 / 0.05);
+        radial-gradient(90% 80% at 82% 8%, rgb(var(--st-accent-rgb) / 0.18) 0%, transparent 60%),
+        radial-gradient(70% 70% at 8% 100%, rgb(var(--st-accent-2-rgb) / 0.1) 0%, transparent 60%),
+        linear-gradient(160deg, #f4f8fc 0%, #eaf1f8 55%, #e6eef8 100%);
+    --st-slab-ink: #0b1220;
+    --st-slab-ink-soft: rgb(11 18 32 / 0.6);
+    --st-slab-line: rgb(15 23 42 / 0.16);
+    --st-slab-well: rgb(15 23 42 / 0.05);
 
     background: var(--st-ground);
     color: var(--st-ink);
@@ -1828,35 +1864,52 @@ html:has(.store-shell) .max-w-7xl {
 
 /* Three surfaces, each a real step apart.
  *
- * The previous set measured 1.045:1 between the ground and a banded section —
- * invisible. Contrast *ratio* is the wrong tool down here: near black it
- * compresses, so two colours can look four points apart on paper and still read
- * as one flat sheet. Perceptual lightness is what matters, so these are spaced
- * about five points of L* each:
+ * Contrast *ratio* is the wrong tool down here: near black it compresses, so two
+ * colours can look four points apart on paper and still read as one flat sheet.
+ * Perceptual lightness is what matters, so these are spaced about five points
+ * of L* each, tinted toward blue so the page reads as hardware, not paper:
  *
- *   ground  #0a0c0d   L* ~4    the page itself
- *   band    #151a1c   L* ~10   a section that steps forward (.store-band)
- *   surface #202629   L* ~15   cards, which must read as objects on both
+ *   ground  #05070c   L* ~2    the page itself
+ *   band    #0b111b   L* ~6    a section that steps forward (.store-band)
+ *   surface #121a27   L* ~10   cards, which must read as objects on both
  *
  * Keep the steps if you retune. Closing them is what made the page look flat.
  */
+html.dark:has(.store-shell),
 html.dark .store-shell {
-    --st-ground: #0a0c0d;
-    --st-ground-alt: #151a1c;
-    --st-surface: #202629;
-    --st-ink: #f2f2f3;
-    --st-ink-soft: rgb(242 242 243 / 0.64);
-    --st-ink-faint: rgb(242 242 243 / 0.44);
-    --st-line: rgb(255 255 255 / 0.14);
-    --st-lift: 0 1px 2px rgb(0 0 0 / 0.5), 0 16px 34px -20px rgb(0 0 0 / 0.9);
+    --st-ground: #05070c;
+    --st-ground-alt: #0b111b;
+    --st-surface: #121a27;
+    --st-ink: #e8eef7;
+    --st-ink-soft: rgb(232 238 247 / 0.66);
+    --st-ink-faint: rgb(232 238 247 / 0.44);
+    --st-line: rgb(148 178 220 / 0.14);
+    --st-lift: 0 1px 2px rgb(0 0 0 / 0.6), 0 18px 36px -22px rgb(0 0 0 / 0.95);
+    --st-grid: rgb(103 232 249 / 0.035);
 
     --st-slab:
-        radial-gradient(115% 90% at 76% 10%, rgb(15 157 88 / 0.28) 0%, transparent 60%),
-        linear-gradient(160deg, #1b2124 0%, #0d1011 58%, #12241a 100%);
-    --st-slab-ink: #f2f2f3;
-    --st-slab-ink-soft: rgb(242 242 243 / 0.6);
-    --st-slab-line: rgb(255 255 255 / 0.28);
-    --st-slab-well: rgb(255 255 255 / 0.06);
+        radial-gradient(80% 90% at 80% 0%, rgb(var(--st-accent-rgb) / 0.2) 0%, transparent 60%),
+        radial-gradient(60% 80% at 0% 100%, rgb(var(--st-accent-2-rgb) / 0.18) 0%, transparent 60%),
+        linear-gradient(160deg, #0d1422 0%, #070b13 58%, #0b1020 100%);
+    --st-slab-ink: #e8eef7;
+    --st-slab-ink-soft: rgb(232 238 247 / 0.62);
+    --st-slab-line: rgb(148 178 220 / 0.26);
+    --st-slab-well: rgb(148 178 220 / 0.07);
+}
+
+/* The ground carries a faint circuit grid and a cold glow off the top edge —
+   the one decorative move that runs the whole page, so every screen (catalogue,
+   cart, account) feels like the same product as the homepage. Fixed, so it
+   doesn't scroll as a texture; masked so it fades out instead of tiling hard. */
+.store-shell {
+    background-image:
+        radial-gradient(70rem 32rem at 50% -8rem, rgb(var(--st-accent-rgb) / 0.08), transparent 70%),
+        linear-gradient(var(--st-grid) 1px, transparent 1px), linear-gradient(90deg, var(--st-grid) 1px, transparent 1px);
+    background-size:
+        100% 100%,
+        44px 44px,
+        44px 44px;
+    background-attachment: fixed;
 }
 
 /* The header is the only chrome content scrolls beneath, so it is the only
@@ -1867,7 +1920,7 @@ html.dark .store-shell {
 }
 
 html.dark .store-header {
-    background: rgb(11 11 12 / 0.92);
+    background: rgb(5 8 14 / 0.92);
     border-bottom-color: rgb(255 255 255 / 0.09);
 }
 
@@ -1878,7 +1931,7 @@ html.dark .store-header {
     }
 
     html.dark .store-header {
-        background: rgb(11 11 12 / 0.68);
+        background: rgb(5 8 14 / 0.68);
     }
 }
 
@@ -1898,7 +1951,7 @@ html.dark .store-header {
 .store-wordmark-glyph {
     font-size: 1.15em;
     line-height: 1;
-    color: #0f9d58;
+    color: var(--st-accent-text);
 }
 
 /* AntD's text button is 32px and sized for a toolbar; the storefront's chrome
@@ -1952,13 +2005,13 @@ html.dark:has(.store-shell) .store-drawer-row:hover {
 }
 
 html:has(.store-shell) .store-drawer-row-active {
-    background: rgb(15 157 88 / 0.12);
-    color: #0b7c45;
+    background: rgb(var(--st-accent-rgb) / 0.12);
+    color: var(--st-accent-text);
 }
 
 html.dark:has(.store-shell) .store-drawer-row-active {
-    background: rgb(15 157 88 / 0.18);
-    color: #4ade9b;
+    background: rgb(var(--st-accent-rgb) / 0.18);
+    color: var(--st-accent-text);
 }
 
 .store-drawer-brand {
@@ -1970,434 +2023,151 @@ html.dark .store-drawer-brand {
 }
 
 /*
- * The footer is a structural clone of the reference site's gc-footer-v2 —
- * see components/store/StoreFooter.vue for the markup and the particle
- * canvas. Deliberately dark in BOTH themes: it is the page's closing
- * statement, and the neon treatment only reads against darkness. It owns its
- * own palette below instead of the --st-* tokens for that reason.
+ * Footer (components/store/StoreFooter.vue), rebuilt 2026-10-10: four link
+ * columns → legal bar. Follows the theme tokens like every
+ * other surface; the only tech flourish is the lit hairline along the top.
  */
-.gc-footer-v2 {
+.store-footer {
     position: relative;
-    overflow: hidden;
-    background: radial-gradient(90% 120% at 85% 0%, rgb(15 157 88 / 0.12) 0%, transparent 55%), linear-gradient(180deg, #0c0f0e 0%, #080a09 100%);
-    color: #eef1ef;
+    background: var(--st-ground-alt);
+    color: var(--st-ink);
 }
 
-#gc-particles {
+.store-footer::before {
+    content: '';
     position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
+    inset-inline: 0;
+    inset-block-start: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgb(var(--st-accent-rgb) / 0.5) 30%, rgb(var(--st-accent-2-rgb) / 0.4) 70%, transparent);
 }
 
-/* CRT scanlines across the whole footer. */
-.gc-scanlines {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.02) 0 1px, transparent 1px 3px);
-}
-
-/* Faint cyber grid behind the content, fading upward. */
-.gc-grid-overlay {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background-image:
-        linear-gradient(rgb(74 222 155 / 0.05) 1px, transparent 1px), linear-gradient(90deg, rgb(74 222 155 / 0.05) 1px, transparent 1px);
-    background-size: 42px 42px;
-    mask-image: linear-gradient(to top, #000 30%, transparent 90%);
-}
-
-.gc-footer-container {
-    position: relative;
-    margin-inline: auto;
-    max-width: 90rem;
-    padding: 2.25rem 1rem 7rem;
-}
-
-@media (min-width: 1024px) {
-    .gc-footer-container {
-        padding-bottom: 1.25rem;
-    }
-}
-
-.gc-footer-row {
+/* Columns: brand spans the row on phones, then 2-up lists; 4-up from lg. */
+.store-footer-grid {
     display: grid;
-    gap: 1.75rem;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem 1.5rem;
+    padding-block: 2.5rem;
 }
 
-@media (min-width: 640px) {
-    .gc-footer-row {
-        grid-template-columns: repeat(2, 1fr);
-    }
+.store-footer-brand {
+    grid-column: 1 / -1;
 }
 
 @media (min-width: 1024px) {
-    .gc-footer-row {
-        grid-template-columns: 1.2fr 1fr 1fr 1.3fr;
+    .store-footer-grid {
+        grid-template-columns: 1.6fr 1fr 1fr 1fr;
+        gap: 2.5rem;
+        padding-block: 3rem;
+    }
+
+    .store-footer-brand {
+        grid-column: auto;
     }
 }
 
-/* Logo column: the wordmark sits in a pulsing accent glow. */
-.gc-logo-wrapper {
-    position: relative;
-    display: inline-block;
-}
-
-.gc-logo {
-    position: relative;
-    z-index: 1;
-    color: #eef1ef;
-}
-
-.gc-logo-glow {
-    position: absolute;
-    inset: -1.25rem -2rem;
-    pointer-events: none;
-    background: radial-gradient(closest-side, rgb(15 157 88 / 0.35), transparent 75%);
-    animation: gc-logo-pulse 3.2s ease-in-out infinite;
-}
-
-@keyframes gc-logo-pulse {
-    0%,
-    100% {
-        opacity: 0.5;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.12);
-    }
-}
-
-.gc-brand-text {
-    margin-top: 1rem;
-    max-width: 20rem;
-    font-size: 0.875rem;
-    line-height: 1.6;
-    color: rgb(238 241 239 / 0.65);
-}
-
-.gc-social-icons {
-    display: flex;
-    gap: 0.625rem;
-    margin-top: 1.25rem;
-}
-
-.gc-social-link {
-    position: relative;
-    display: flex;
-    height: 2.5rem;
-    width: 2.5rem;
-    align-items: center;
-    justify-content: center;
-    border-radius: 9999px;
-    border: 1px solid rgb(255 255 255 / 0.14);
-    color: rgb(238 241 239 / 0.75);
-    transition:
-        color 0.2s ease,
-        border-color 0.2s ease,
-        transform 0.2s ease;
-}
-
-.gc-social-link:hover {
-    color: #4ade9b;
-    border-color: #0f9d58;
-    transform: translateY(-3px);
-}
-
-.gc-social-glow {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    opacity: 0;
-    box-shadow: 0 0 18px rgb(15 157 88 / 0.65);
-    transition: opacity 0.2s ease;
-    pointer-events: none;
-}
-
-.gc-social-link:hover .gc-social-glow {
-    opacity: 1;
-}
-
-/* Column headings: label + accent underline; a chevron appears only when the
-   heading acts as a mobile accordion toggle. */
-.gc-footer-heading {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: 0.75rem;
-    font-size: 0.9375rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    color: #eef1ef;
-}
-
-.gc-heading-line {
-    position: absolute;
-    inset-block-end: 0;
-    inset-inline-start: 0;
-    height: 3px;
-    width: 3.75rem;
-    border-radius: 9999px;
-    background: linear-gradient(90deg, #0f9d58, transparent);
-}
-
-[dir='rtl'] .gc-heading-line {
-    background: linear-gradient(-90deg, #0f9d58, transparent);
-}
-
-.gc-accordion-icon {
-    display: none;
-    transition: transform 0.25s ease;
-}
-
-/* The accordion's control is a real button inside the heading, so it has to be
-   stripped back to the heading's own typography and fill the row. */
-.gc-accordion-trigger {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    border: 0;
-    background: none;
-    padding: 0;
-    font: inherit;
-    color: inherit;
-    text-align: start;
-    cursor: default;
-}
-
-.gc-accordion-trigger:focus-visible {
-    outline: 2px solid #4ade9b;
-    outline-offset: 4px;
-    border-radius: 4px;
-}
-
-.gc-footer-links {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin-top: 1.125rem;
-    font-size: 0.875rem;
-    list-style: none;
-    padding: 0;
-}
-
-.gc-footer-links a {
-    color: rgb(238 241 239 / 0.65);
-    transition:
-        color 0.2s ease,
-        padding-inline-start 0.2s ease;
-}
-
-.gc-footer-links a:hover {
-    color: #4ade9b;
-    padding-inline-start: 0.375rem;
-}
-
-/* Below lg the link columns collapse into accordions, like the original. */
-@media (max-width: 1023px) {
-    .gc-accordion-heading {
-        user-select: none;
-    }
-
-    .gc-accordion-trigger {
-        cursor: pointer;
-    }
-
-    .gc-accordion-icon {
-        display: block;
-    }
-
-    .gc-accordion-heading.active .gc-accordion-icon {
-        transform: rotate(180deg);
-    }
-
-    .gc-accordion-content {
-        display: none;
-    }
-
-    .gc-accordion-content.open {
-        display: flex;
-    }
-}
-
-/* Newsletter */
-.gc-newsletter-text {
-    margin-top: 1.125rem;
-    font-size: 0.875rem;
-    color: rgb(238 241 239 / 0.65);
-}
-
-.gc-input-wrapper {
-    display: flex;
-    margin-top: 1rem;
-    border-radius: 12px;
-    border: 1px solid rgb(255 255 255 / 0.16);
-    background: rgb(255 255 255 / 0.05);
-    padding: 0.25rem;
-    transition: border-color 0.2s ease;
-}
-
-.gc-input-wrapper:focus-within {
-    border-color: #0f9d58;
-    box-shadow: 0 0 14px rgb(15 157 88 / 0.35);
-}
-
-.gc-email-input {
-    flex: 1;
-    min-width: 0;
-    border: 0;
-    background: transparent;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
-    color: #eef1ef;
-    /* The wrapper's :focus-within ring is the focus indicator for this field; the
-       input's own outline would draw a second box inside it. */
-    outline: none;
-}
-
-.gc-email-input:focus-visible {
-    outline: 2px solid #4ade9b;
-    outline-offset: -2px;
-}
-
-.gc-email-input::placeholder {
-    color: rgb(238 241 239 / 0.4);
-}
-
-.gc-submit-btn {
-    position: relative;
-    overflow: hidden;
-    border: 0;
-    border-radius: 9px;
-    background: #0f9d58;
-    padding: 0.5rem 1.125rem;
+.store-footer-heading {
+    margin-bottom: 1rem;
     font-size: 0.8125rem;
     font-weight: 700;
-    color: #ffffff;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
+    letter-spacing: 0.04em;
+    color: var(--st-ink);
 }
 
-.gc-submit-btn:hover {
-    background: #12b465;
+.store-footer-links {
+    display: grid;
+    gap: 0.625rem;
 }
 
-.gc-submit-btn:disabled {
-    opacity: 0.7;
-    cursor: default;
+.store-footer-links a {
+    font-size: 0.875rem;
+    color: var(--st-ink-soft);
+    transition: color 0.15s ease;
 }
 
-.gc-btn-glow {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(120deg, transparent 30%, rgb(255 255 255 / 0.35) 50%, transparent 70%);
-    transform: translateX(-120%);
-    animation: gc-btn-sheen 2.8s ease-in-out infinite;
+.store-footer-links a:hover,
+.store-footer-links a:focus-visible {
+    color: var(--st-accent-text);
 }
 
-@keyframes gc-btn-sheen {
-    0%,
-    55% {
-        transform: translateX(-120%);
-    }
-    85%,
-    100% {
-        transform: translateX(120%);
-    }
+.store-footer-links .store-footer-more {
+    color: var(--st-accent-text);
+    font-weight: 600;
 }
 
-.gc-newsletter-error {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    color: #f87171;
+.store-footer-contact {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.875rem;
+    color: var(--st-ink-soft);
+    transition: color 0.15s ease;
 }
 
-.gc-payment-badges {
+.store-footer-contact svg {
+    color: var(--st-accent-text);
+}
+
+.store-footer-contact:hover {
+    color: var(--st-ink);
+}
+
+.store-footer-social {
+    display: inline-flex;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--st-line);
+    border-radius: 10px;
+    color: var(--st-ink-soft);
+    transition:
+        color 0.15s ease,
+        border-color 0.15s ease,
+        background-color 0.15s ease;
+}
+
+.store-footer-social:hover,
+.store-footer-social:focus-visible {
+    color: var(--st-accent-text);
+    border-color: rgb(var(--st-accent-rgb) / 0.5);
+    background: rgb(var(--st-accent-rgb) / 0.08);
+}
+
+/* Legal bar. Extra bottom room below lg clears the floating mobile tab bar. */
+.store-footer-bottom {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 1.25rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    padding-block: 1.25rem 6rem;
+    border-top: 1px solid var(--st-line);
+    font-size: 0.8125rem;
+    color: var(--st-ink-faint);
 }
 
-.gc-badge {
+@media (min-width: 1024px) {
+    .store-footer-bottom {
+        padding-block-end: 1.5rem;
+    }
+}
+
+.store-footer-pay {
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
+    height: 28px;
+    padding-inline: 0.625rem;
+    border: 1px solid var(--st-line);
     border-radius: 9999px;
-    border: 1px solid rgb(255 255 255 / 0.14);
-    padding: 0.3125rem 0.875rem;
+    color: var(--st-ink-soft);
     font-size: 0.75rem;
-    font-weight: 600;
-    color: rgb(238 241 239 / 0.8);
+    font-weight: 500;
 }
 
-.gc-badge svg {
-    color: #4ade9b;
-}
-
-/* Copyright bar with the line–dot–line decor. */
-.gc-footer-bottom {
-    margin-top: 1.75rem;
-    border-top: 1px solid rgb(255 255 255 / 0.08);
-    padding-top: 1rem;
-    text-align: center;
-}
-
-.gc-copyright {
-    font-size: 0.75rem;
-    color: rgb(238 241 239 / 0.55);
-}
-
-.gc-footer-decor {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-top: 1rem;
-}
-
-.gc-decor-line {
-    height: 1px;
-    width: 5rem;
-    background: linear-gradient(90deg, transparent, rgb(15 157 88 / 0.6), transparent);
-}
-
-.gc-decor-dot {
-    height: 6px;
-    width: 6px;
-    border-radius: 9999px;
-    background: #0f9d58;
-    box-shadow: 0 0 10px rgb(15 157 88 / 0.9);
-    animation: gc-dot-pulse 2.4s ease-in-out infinite;
-}
-
-@keyframes gc-dot-pulse {
-    0%,
-    100% {
-        opacity: 0.6;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.35);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .gc-logo-glow,
-    .gc-btn-glow,
-    .gc-decor-dot {
-        animation: none;
-    }
+.store-footer-pay svg {
+    color: var(--st-accent-text);
 }
 
 /* Section titles carry a short accent underline (the reference site's section
@@ -2415,11 +2185,11 @@ html.dark .store-drawer-brand {
     height: 3px;
     width: 2.5rem;
     border-radius: 9999px;
-    background: linear-gradient(90deg, #0f9d58, rgb(15 157 88 / 0.15));
+    background: linear-gradient(90deg, var(--st-accent), rgb(var(--st-accent-rgb) / 0.15));
 }
 
 [dir='rtl'] .store-section-title::after {
-    background: linear-gradient(-90deg, #0f9d58, rgb(15 157 88 / 0.15));
+    background: linear-gradient(-90deg, var(--st-accent), rgb(var(--st-accent-rgb) / 0.15));
 }
 
 /* Trust strip: the compact service-promises band under the hero. */
@@ -2437,7 +2207,7 @@ html.dark .store-drawer-brand {
 
 .store-trust-item svg {
     flex-shrink: 0;
-    color: #0f9d58;
+    color: var(--st-accent-text);
 }
 
 /*
@@ -2465,10 +2235,10 @@ html:has(.store-shell) .store-product-card.ant-card {
    lift is what makes the whole grid feel alive rather than printed. */
 html:has(.store-shell) .store-product-card.ant-card:hover {
     transform: translateY(-4px);
-    border-color: rgb(15 157 88 / 0.45);
+    border-color: rgb(var(--st-accent-rgb) / 0.45);
     box-shadow:
         var(--st-lift),
-        0 0 0 1px rgb(15 157 88 / 0.14);
+        0 0 0 1px rgb(var(--st-accent-rgb) / 0.14);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2536,7 +2306,7 @@ html:has(.store-shell) .store-product-wish.ant-btn {
 }
 
 html.dark:has(.store-shell) .store-product-wish.ant-btn {
-    background: rgb(20 20 22 / 0.8);
+    background: rgb(10 15 24 / 0.8);
     color: rgb(255 255 255 / 0.65);
 }
 
@@ -2641,11 +2411,11 @@ html.dark:has(.store-shell) .store-wish-on.ant-btn {
 .store-product-save {
     font-size: 0.75rem;
     font-weight: 600;
-    color: #0f9d58;
+    color: var(--st-accent-text);
 }
 
 html.dark .store-product-save {
-    color: #4ade9b;
+    color: var(--st-accent-text);
 }
 
 /* AntD's Rate is sized by font-size; the card needs a smaller one than a
@@ -2733,26 +2503,26 @@ html.dark:has(.store-shell) .store-filter-tag.ant-tag {
 }
 
 html:has(.store-shell) .store-filter-tag.ant-tag:hover {
-    border-color: #0f9d58;
-    color: #0f9d58;
+    border-color: var(--st-accent);
+    color: var(--st-accent-text);
 }
 
 /* The chips are keyboard-operable checkboxes, so they need a focus ring — AntD's
    CheckableTag ships as a bare span with none. */
 html:has(.store-shell) .store-filter-tag.ant-tag:focus-visible {
-    outline: 2px solid #0f9d58;
+    outline: 2px solid var(--st-accent);
     outline-offset: 2px;
 }
 
 html:has(.store-shell) .store-filter-tag.ant-tag-checkable-checked {
-    border-color: #0f9d58;
-    background: #0f9d58;
-    color: #ffffff;
+    border-color: var(--st-accent);
+    background: var(--st-accent);
+    color: var(--st-on-accent);
 }
 
 html:has(.store-shell) .store-filter-tag.ant-tag-checkable-checked:hover {
-    background: #0c8a4d;
-    color: #ffffff;
+    background: var(--st-accent-hover);
+    color: var(--st-on-accent);
 }
 
 .store-filters-heading {
@@ -2810,11 +2580,11 @@ html:has(.store-shell) .store-filter-tag.ant-tag-checkable-checked:hover {
 }
 
 .store-totals-discount {
-    color: #0f9d58;
+    color: var(--st-accent-text);
 }
 
 html.dark .store-totals-discount {
-    color: #4ade9b;
+    color: var(--st-accent-text);
 }
 
 .store-totals-grand {
@@ -2873,12 +2643,12 @@ html.dark .store-thumb {
 }
 
 .store-thumb:hover {
-    border-color: rgb(15 157 88 / 0.6);
+    border-color: rgb(var(--st-accent-rgb) / 0.6);
 }
 
 .store-thumb-active,
 html.dark .store-thumb-active {
-    border-color: #0f9d58;
+    border-color: var(--st-accent);
 }
 
 .store-detail-price {
@@ -2926,10 +2696,10 @@ html:has(.store-shell) .store-variants .ant-radio-button-wrapper::before {
     justify-content: center;
     margin-inline-end: 0.5rem;
     border-radius: 9999px;
-    background: #0f9d58;
+    background: var(--st-accent);
     font-size: 0.75rem;
     font-weight: 700;
-    color: #ffffff;
+    color: var(--st-on-accent);
     font-variant-numeric: tabular-nums;
 }
 
@@ -2958,8 +2728,8 @@ html.dark:has(.store-shell) .store-payment-option.ant-radio-wrapper {
 }
 
 html:has(.store-shell) .store-payment-option.ant-radio-wrapper-checked {
-    border-color: #0f9d58;
-    background: rgb(15 157 88 / 0.08);
+    border-color: var(--st-accent);
+    background: rgb(var(--st-accent-rgb) / 0.08);
 }
 
 /* Return request: each line is a selectable row, so the whole row carries the
@@ -2981,8 +2751,8 @@ html.dark .store-return-row {
 }
 
 .store-return-row-on {
-    border-color: #0f9d58;
-    background: rgb(15 157 88 / 0.08);
+    border-color: var(--st-accent);
+    background: rgb(var(--st-accent-rgb) / 0.08);
 }
 
 /* A form label that carries a trailing link ("Forgot password?") needs the
@@ -3070,7 +2840,7 @@ html:has(.store-shell) .store-settings-nav.ant-menu .ant-menu-item {
     inset-inline-start: -130px;
     width: 440px;
     height: 440px;
-    border: 1.5px solid rgb(15 157 88 / 0.22);
+    border: 1.5px solid rgb(var(--st-accent-rgb) / 0.22);
     animation: slab-drift 14s ease-in-out infinite alternate;
 }
 
@@ -3079,16 +2849,16 @@ html:has(.store-shell) .store-settings-nav.ant-menu .ant-menu-item {
     inset-inline-end: -150px;
     width: 560px;
     height: 560px;
-    background: radial-gradient(closest-side, rgb(15 157 88 / 0.18), transparent 72%);
+    background: radial-gradient(closest-side, rgb(var(--st-accent-rgb) / 0.18), transparent 72%);
     animation: slab-drift 18s ease-in-out infinite alternate-reverse;
 }
 
 html.dark .store-slab-deco::before {
-    border-color: rgb(15 157 88 / 0.32);
+    border-color: rgb(var(--st-accent-rgb) / 0.32);
 }
 
 html.dark .store-slab-deco::after {
-    background: radial-gradient(closest-side, rgb(15 157 88 / 0.26), transparent 72%);
+    background: radial-gradient(closest-side, rgb(var(--st-accent-rgb) / 0.26), transparent 72%);
 }
 
 @keyframes slab-drift {
@@ -3110,7 +2880,7 @@ html.dark .store-slab-deco::after {
 
 /* The snake-border CTA — the reference site's gc-snake-btn CSS verbatim
    (fetched from the live page), with only the red remapped to this shop's
-   green (#ec1d24 → #0f9d58, #ff3439 → #4ade9b) and the label taking the slab
+   accent (#ec1d24 → --st-accent, #ff3439 → --st-accent-bright) and the label taking the slab
    ink so it stays readable on the light theme's bright panel. Markup lives in
    components/store/SnakeButton.vue. */
 .gc-snake-btn {
@@ -3119,9 +2889,9 @@ html.dark .store-slab-deco::after {
     align-items: center;
     justify-content: center;
     padding: 14px 32px;
-    background: rgba(15, 157, 88, 0.1);
+    background: rgb(var(--st-accent-rgb) / 0.1);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(15, 157, 88, 0.3);
+    border: 1px solid rgb(var(--st-accent-rgb) / 0.3);
     color: var(--st-slab-ink);
     font-size: 15px;
     font-weight: 700;
@@ -3138,8 +2908,8 @@ html.dark .store-slab-deco::after {
         color 0.3s ease,
         box-shadow 0.3s ease;
     box-shadow:
-        0 4px 20px rgba(15, 157, 88, 0.2),
-        inset 0 0 20px rgba(15, 157, 88, 0.1);
+        0 4px 20px rgb(var(--st-accent-rgb) / 0.2),
+        inset 0 0 20px rgb(var(--st-accent-rgb) / 0.1);
     z-index: 1;
 }
 
@@ -3147,7 +2917,7 @@ html.dark .store-slab-deco::after {
     position: relative;
     z-index: 2;
     color: inherit;
-    text-shadow: 0 0 10px rgba(15, 157, 88, 0.6);
+    text-shadow: 0 0 10px rgb(var(--st-accent-rgb) / 0.6);
     transition:
         color 0.3s ease,
         text-shadow 0.3s ease;
@@ -3156,11 +2926,11 @@ html.dark .store-slab-deco::after {
 /* Snake border elements - 4 sides with BRIGHTER glow */
 .gc-snake-btn-border {
     position: absolute;
-    background: linear-gradient(90deg, transparent, #0f9d58, #4ade9b);
+    background: linear-gradient(90deg, transparent, var(--st-accent), var(--st-accent-bright));
     pointer-events: none;
     box-shadow:
-        0 0 10px #0f9d58,
-        0 0 20px #0f9d58;
+        0 0 10px var(--st-accent),
+        0 0 20px var(--st-accent);
 }
 
 .gc-snake-btn-border:nth-child(1) {
@@ -3168,7 +2938,7 @@ html.dark .store-slab-deco::after {
     left: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(90deg, transparent, #0f9d58, #4ade9b);
+    background: linear-gradient(90deg, transparent, var(--st-accent), var(--st-accent-bright));
     animation: gc-snake-top 2s linear infinite;
 }
 
@@ -3177,7 +2947,7 @@ html.dark .store-slab-deco::after {
     right: 0;
     width: 3px;
     height: 100%;
-    background: linear-gradient(180deg, transparent, #0f9d58, #4ade9b);
+    background: linear-gradient(180deg, transparent, var(--st-accent), var(--st-accent-bright));
     animation: gc-snake-right 2s linear infinite;
     animation-delay: 0.5s;
 }
@@ -3187,7 +2957,7 @@ html.dark .store-slab-deco::after {
     right: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(270deg, transparent, #0f9d58, #4ade9b);
+    background: linear-gradient(270deg, transparent, var(--st-accent), var(--st-accent-bright));
     animation: gc-snake-bottom 2s linear infinite;
     animation-delay: 1s;
 }
@@ -3197,7 +2967,7 @@ html.dark .store-slab-deco::after {
     left: 0;
     width: 3px;
     height: 100%;
-    background: linear-gradient(0deg, transparent, #0f9d58, #4ade9b);
+    background: linear-gradient(0deg, transparent, var(--st-accent), var(--st-accent-bright));
     animation: gc-snake-left 2s linear infinite;
     animation-delay: 1.5s;
 }
@@ -3251,21 +3021,21 @@ html.dark .store-slab-deco::after {
 
 /* Hover state - MORE VISIBLE */
 .gc-snake-btn:hover {
-    background: rgba(15, 157, 88, 0.2);
-    border-color: rgba(15, 157, 88, 0.6);
+    background: rgb(var(--st-accent-rgb) / 0.2);
+    border-color: rgb(var(--st-accent-rgb) / 0.6);
     box-shadow:
-        0 6px 30px rgba(15, 157, 88, 0.5),
-        inset 0 0 30px rgba(15, 157, 88, 0.2),
-        0 0 40px rgba(15, 157, 88, 0.3);
+        0 6px 30px rgb(var(--st-accent-rgb) / 0.5),
+        inset 0 0 30px rgb(var(--st-accent-rgb) / 0.2),
+        0 0 40px rgb(var(--st-accent-rgb) / 0.3);
     transform: translateY(-2px);
 }
 
 .gc-snake-btn:hover .gc-snake-btn-text {
-    color: #4ade9b;
+    color: var(--st-accent-bright);
     text-shadow:
-        0 0 10px rgba(15, 157, 88, 1),
-        0 0 20px rgba(15, 157, 88, 0.8),
-        0 0 30px rgba(15, 157, 88, 0.6);
+        0 0 10px rgb(var(--st-accent-rgb) / 1),
+        0 0 20px rgb(var(--st-accent-rgb) / 0.8),
+        0 0 30px rgb(var(--st-accent-rgb) / 0.6);
 }
 
 /* Speed up animation on hover */
@@ -3280,8 +3050,8 @@ html.dark .store-slab-deco::after {
 .gc-snake-btn:active {
     transform: translateY(0px);
     box-shadow:
-        0 2px 15px rgba(15, 157, 88, 0.5),
-        inset 0 0 20px rgba(15, 157, 88, 0.3);
+        0 2px 15px rgb(var(--st-accent-rgb) / 0.5),
+        inset 0 0 20px rgb(var(--st-accent-rgb) / 0.3);
 }
 
 /* Inner glow effect - BRIGHTER */
@@ -3293,7 +3063,7 @@ html.dark .store-slab-deco::after {
     transform: translate(-50%, -50%);
     width: 0%;
     height: 0%;
-    background: radial-gradient(circle, rgba(15, 157, 88, 0.4) 0%, transparent 70%);
+    background: radial-gradient(circle, rgb(var(--st-accent-rgb) / 0.4) 0%, transparent 70%);
     border-radius: 50%;
     transition:
         width 0.5s ease,
@@ -3316,8 +3086,8 @@ html.dark .store-slab-deco::after {
     right: 0;
     bottom: 0;
     background-image:
-        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(15, 157, 88, 0.05) 2px, rgba(15, 157, 88, 0.05) 4px),
-        repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(15, 157, 88, 0.05) 2px, rgba(15, 157, 88, 0.05) 4px);
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgb(var(--st-accent-rgb) / 0.05) 2px, rgb(var(--st-accent-rgb) / 0.05) 4px),
+        repeating-linear-gradient(90deg, transparent, transparent 2px, rgb(var(--st-accent-rgb) / 0.05) 2px, rgb(var(--st-accent-rgb) / 0.05) 4px);
     opacity: 0;
     transition: opacity 0.3s ease;
     pointer-events: none;
@@ -3332,12 +3102,12 @@ html.dark .store-slab-deco::after {
    slab just washes out. In light mode the hover fills the button solid and
    flips the label to white; the snakes, lift and grid overlay stay as-is. */
 html:not(.dark) .gc-snake-btn .gc-snake-btn-text {
-    text-shadow: 0 0 10px rgba(15, 157, 88, 0.25);
+    text-shadow: 0 0 10px rgb(var(--st-accent-rgb) / 0.25);
 }
 
 html:not(.dark) .gc-snake-btn:hover {
-    background: #0f9d58;
-    border-color: #0b7c45;
+    background: var(--st-accent);
+    border-color: var(--st-accent-text);
 }
 
 html:not(.dark) .gc-snake-btn:hover .gc-snake-btn-text {
@@ -3370,18 +3140,6 @@ html[dir='rtl'] .gc-snake-btn {
     .gc-snake-btn::after {
         transition: none;
     }
-}
-
-/* Carousel arrows sit on the slab too. */
-html:has(.store-shell) .store-slab-arrow.ant-btn {
-    border: 0;
-    background: var(--st-slab-well);
-    color: var(--st-slab-ink);
-}
-
-html:has(.store-shell) .store-slab-arrow.ant-btn:hover {
-    background: var(--st-slab-line);
-    color: var(--st-slab-ink);
 }
 
 .store-slab-well {
@@ -3417,9 +3175,859 @@ html:has(.store-shell) .store-slab-arrow.ant-btn:hover {
 .group:hover .store-category-card {
     transform: translateY(-4px);
     box-shadow:
-        0 0 0 2px rgb(15 157 88 / 0.55),
-        0 0 24px rgb(15 157 88 / 0.35),
-        0 14px 28px -14px rgb(15 157 88 / 0.5);
+        0 0 0 2px rgb(var(--st-accent-rgb) / 0.55),
+        0 0 24px rgb(var(--st-accent-rgb) / 0.35),
+        0 14px 28px -14px rgb(var(--st-accent-rgb) / 0.5);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Tech layer (2026-10 "dark tech" direction).
+ *
+ * The overrides that turn the reference-site layout into the dark tech look:
+ * hairlines that light up cyan → violet, glows instead of drop shadows, HUD-
+ * style labels. Everything reads the --st-* tokens, so light mode follows on
+ * its own, just quieter. Kept in one block so the direction can be retuned —
+ * or reverted — without hunting through the component rules above.
+ * ---------------------------------------------------------------------------
+ */
+
+/* A neon fill is too bright for a white label. AntD v4 has no per-button token
+   for the label (it reads colorTextLightSolid, shared with tooltips), so the
+   primary button takes the on-accent ink here. Danger buttons keep white. */
+html:has(.store-shell) .ant-btn-primary:not(.ant-btn-dangerous):not(:disabled),
+html:has(.store-shell) .ant-btn-primary:not(.ant-btn-dangerous):not(:disabled):hover {
+    color: var(--st-on-accent);
+    font-weight: 600;
+}
+
+/* AntD's dark algorithm dims the seed (#22d3ee → #20b6cd), which left primary
+   buttons a shade off the header pill and tab bar. Pin the fill to the token. */
+html.dark:has(.store-shell) .ant-btn-primary:not(.ant-btn-dangerous):not(:disabled) {
+    background: var(--st-accent);
+    box-shadow:
+        0 0 0 1px rgb(var(--st-accent-rgb) / 0.35),
+        0 0 18px -4px rgb(var(--st-accent-rgb) / 0.55);
+}
+
+html.dark:has(.store-shell) .ant-btn-primary:not(.ant-btn-dangerous):not(:disabled):hover {
+    background: var(--st-accent-hover);
+    box-shadow:
+        0 0 0 1px rgb(var(--st-accent-rgb) / 0.6),
+        0 0 26px -2px rgb(var(--st-accent-rgb) / 0.7);
+}
+
+/* Header: a lit hairline under the glass instead of a flat grey rule. */
+.store-header {
+    border-bottom-color: transparent;
+}
+
+.store-header::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: -1px;
+    height: 1px;
+    pointer-events: none;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgb(var(--st-accent-rgb) / 0.55) 30%,
+        rgb(var(--st-accent-2-rgb) / 0.45) 70%,
+        transparent 100%
+    );
+    opacity: 0.7;
+}
+
+.store-wordmark-glyph {
+    text-shadow: 0 0 12px rgb(var(--st-accent-rgb) / 0.7);
+}
+
+/* Slabs (hero, sale banner): a cold rim and a glow underneath. */
+.store-slab {
+    border: 1px solid rgb(var(--st-accent-rgb) / 0.16);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.05),
+        0 40px 80px -50px rgb(var(--st-accent-rgb) / 0.45);
+}
+
+/* Section titles: the underline becomes a lit cyan → violet trace. */
+.store-section-title::after,
+[dir='rtl'] .store-section-title::after {
+    width: 3rem;
+    height: 2px;
+    background: linear-gradient(90deg, var(--st-accent), var(--st-accent-2));
+    box-shadow: 0 0 10px rgb(var(--st-accent-rgb) / 0.6);
+}
+
+[dir='rtl'] .store-section-title::after {
+    background: linear-gradient(-90deg, var(--st-accent), var(--st-accent-2));
+}
+
+/* Trust strip: the icon sits in a small lit well, like a status LED. */
+.store-trust-item svg {
+    box-sizing: content-box;
+    padding: 0.4rem;
+    border-radius: 8px;
+    background: rgb(var(--st-accent-rgb) / 0.1);
+    box-shadow: inset 0 0 0 1px rgb(var(--st-accent-rgb) / 0.22);
+}
+
+/* Product card: a cool surface whose edge lights cyan → violet on hover —
+   a gradient border drawn with the padding-box / border-box pair, so it costs
+   no extra element and keeps AntD's own border width. */
+html:has(.store-shell) .store-product-card.ant-card {
+    background: var(--st-surface);
+    border-color: var(--st-line);
+}
+
+html:has(.store-shell) .store-product-card.ant-card:hover {
+    border-color: transparent;
+    background:
+        linear-gradient(var(--st-surface), var(--st-surface)) padding-box,
+        linear-gradient(135deg, var(--st-accent), var(--st-accent-2)) border-box;
+    box-shadow:
+        var(--st-lift),
+        0 18px 40px -24px rgb(var(--st-accent-rgb) / 0.55);
+}
+
+/* The photo stands on a faint lit floor instead of a flat panel. */
+html.dark .store-product-media {
+    background: radial-gradient(60% 55% at 50% 55%, rgb(var(--st-accent-rgb) / 0.07), transparent 75%);
+}
+
+.store-product-brand {
+    color: var(--st-accent-text);
+    opacity: 0.85;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+}
+
+/* The sale flag is a promotion, not a success state — it takes the accent
+   (AntD's `success` preset would leave a lone green chip on a cyan page). */
+html:has(.store-shell) .store-product-flag.ant-tag {
+    border-color: rgb(var(--st-accent-rgb) / 0.45);
+    background: rgb(var(--st-accent-rgb) / 0.14);
+    color: var(--st-accent-text);
+    backdrop-filter: blur(6px);
+}
+
+/* Category tiles: dark framed tiles in dark mode (the white frames were the
+   reference site's), the photo inset like a screen in a bezel. */
+.store-category-card {
+    background: var(--st-surface);
+    border: 1px solid var(--st-line);
+    padding: 0.375rem;
+    box-shadow: var(--st-lift);
+}
+
+.store-category-card img {
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.group:hover .store-category-card {
+    border-color: rgb(var(--st-accent-rgb) / 0.7);
+}
+
+/* Header pill and the mobile tab bar: same glow language as primary buttons. */
+html.dark:has(.store-shell) .store-cats-btn.ant-btn {
+    box-shadow:
+        0 0 0 1px rgb(var(--st-accent-rgb) / 0.4),
+        0 0 20px -4px rgb(var(--st-accent-rgb) / 0.6);
+}
+
+html.dark .store-tabbar-item-on {
+    box-shadow: 0 0 18px -4px rgb(var(--st-accent-rgb) / 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .store-header::after {
+        opacity: 0.5;
+    }
+}
+
+/*
+ * Header, rebuilt (2026-10-10): five items on desktop — wordmark, All
+ * categories, search, cart chip, account chip (which holds everything else).
+ * Markup in layouts/StoreLayout.vue.
+ */
+
+/* The "/" hint inside the search box. */
+.store-kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.375rem;
+    height: 1.375rem;
+    padding-inline: 0.375rem;
+    border: 1px solid var(--st-line);
+    border-bottom-width: 2px;
+    border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    line-height: 1;
+    color: var(--st-ink-faint);
+}
+
+/* Cart chip: labelled, with the count as a lit pill once something is in it. */
+.store-cart-chip {
+    align-items: center;
+    gap: 0.5rem;
+    height: 40px;
+    padding-inline: 0.875rem;
+    border: 1px solid var(--st-line);
+    border-radius: 9999px;
+    color: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        color 0.2s ease;
+}
+
+.store-cart-chip:hover,
+.store-cart-chip:focus-visible {
+    color: inherit;
+    border-color: rgb(var(--st-accent-rgb) / 0.6);
+    box-shadow: 0 0 16px -6px rgb(var(--st-accent-rgb) / 0.7);
+}
+
+.store-cart-chip-full {
+    border-color: rgb(var(--st-accent-rgb) / 0.4);
+}
+
+.store-cart-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding-inline: 0.375rem;
+    border-radius: 9999px;
+    background: var(--st-accent);
+    color: var(--st-on-accent);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 10px rgb(var(--st-accent-rgb) / 0.55);
+}
+
+/* Account chip: initial avatar + greeting. */
+.store-account-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 40px;
+    padding-inline: 0.25rem 0.625rem;
+    border: 1px solid var(--st-line);
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: inherit;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.store-account-chip:hover,
+.store-account-chip:focus-visible,
+.store-account-chip.ant-dropdown-open {
+    border-color: rgb(var(--st-accent-rgb) / 0.6);
+    box-shadow: 0 0 16px -6px rgb(var(--st-accent-rgb) / 0.7);
+    outline: none;
+}
+
+.store-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, var(--st-accent), var(--st-accent-2));
+    color: var(--st-on-accent);
+    font-size: 0.8125rem;
+    font-weight: 800;
+}
+
+/* Account panel: identity → destinations → preferences. A panel rather than
+   an AntD Menu because it mixes a pitch, two CTAs, links and two segmented
+   controls, which Menu's item model cannot express. */
+.store-account-caret {
+    transition: transform 0.2s ease;
+}
+
+.store-account-chip[aria-expanded='true'] .store-account-caret {
+    transform: rotate(180deg);
+}
+
+.store-account-chip[aria-expanded='true'] {
+    border-color: rgb(var(--st-accent-rgb) / 0.6);
+    box-shadow: 0 0 16px -6px rgb(var(--st-accent-rgb) / 0.7);
+}
+
+.store-account-panel {
+    width: 18.5rem;
+    overflow: hidden;
+    border: 1px solid var(--st-line);
+    border-radius: 16px;
+    background: var(--st-surface);
+    color: var(--st-ink);
+    box-shadow:
+        0 24px 48px -16px rgb(0 0 0 / 0.45),
+        0 0 0 1px rgb(var(--st-accent-rgb) / 0.06);
+}
+
+html.dark .store-account-panel {
+    background: radial-gradient(120% 60% at 100% 0%, rgb(var(--st-accent-rgb) / 0.09), transparent 60%), var(--st-surface);
+}
+
+.store-account-head {
+    padding: 1rem 1rem 0.875rem;
+}
+
+/* The secondary CTA ("Register") needs an edge that reads on the panel; the
+   theme's default border sits one step off the surface and vanished. */
+html:has(.store-shell) .store-account-panel .ant-btn-default {
+    border-color: rgb(var(--st-accent-rgb) / 0.35);
+    background: transparent;
+    color: var(--st-ink);
+}
+
+html:has(.store-shell) .store-account-panel .ant-btn-default:hover {
+    border-color: var(--st-accent);
+    color: var(--st-accent-text);
+}
+
+.store-avatar-lg {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+.store-account-section {
+    border-top: 1px solid var(--st-line);
+    padding: 0.375rem;
+}
+
+.store-account-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 40px;
+    padding-inline: 0.75rem;
+    border-radius: 10px;
+    color: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.store-account-row svg {
+    flex-shrink: 0;
+    color: var(--st-ink-faint);
+    transition: color 0.15s ease;
+}
+
+.store-account-row:hover,
+.store-account-row:focus-visible {
+    color: inherit;
+    background: rgb(var(--st-accent-rgb) / 0.08);
+    outline: none;
+}
+
+.store-account-row:hover svg,
+.store-account-row:focus-visible svg,
+.store-account-row-on svg {
+    color: var(--st-accent-text);
+}
+
+.store-account-row-on {
+    color: var(--st-accent-text);
+    font-weight: 600;
+}
+
+.store-account-count {
+    min-width: 1.25rem;
+    padding: 0.0625rem 0.375rem;
+    border-radius: 9999px;
+    background: rgb(var(--st-accent-rgb) / 0.15);
+    color: var(--st-accent-text);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.store-account-prefs {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.75rem;
+}
+
+.store-pref {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.store-pref-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--st-ink-soft);
+}
+
+/* Segmented control: shows the current setting, one tap to the other. */
+.store-seg {
+    /* Both controls share one width and split it into equal halves, so the
+       language and appearance rows line up as a pair whatever the labels. */
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 10rem;
+    flex-shrink: 0;
+    padding: 3px;
+    border-radius: 10px;
+    background: var(--st-ground);
+    box-shadow: inset 0 0 0 1px var(--st-line);
+}
+
+.store-seg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    gap: 0.3rem;
+    height: 28px;
+    padding-inline: 0.625rem;
+    border-radius: 7px;
+    color: var(--st-ink-soft);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.store-seg-btn:hover {
+    color: var(--st-ink);
+}
+
+.store-seg-btn:focus-visible {
+    outline: 2px solid var(--st-accent);
+    outline-offset: 1px;
+}
+
+.store-seg-btn-on,
+.store-seg-btn-on:hover {
+    background: var(--st-surface);
+    color: var(--st-accent-text);
+    box-shadow:
+        0 1px 2px rgb(0 0 0 / 0.2),
+        inset 0 0 0 1px rgb(var(--st-accent-rgb) / 0.35);
+}
+
+.store-account-logout {
+    border-top: 1px solid var(--st-line);
+    border-radius: 0;
+    min-height: 44px;
+    padding-inline: 1.125rem;
+    color: var(--st-ink-soft);
+}
+
+.store-account-logout:hover,
+.store-account-logout:focus-visible {
+    color: #f87171;
+    background: rgb(248 113 113 / 0.08);
+}
+
+.store-account-logout:hover svg,
+.store-account-logout:focus-visible svg {
+    color: #f87171;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .store-account-caret {
+        transition: none;
+    }
+}
+
+/*
+ * Homepage hero (components/store/HeroCarousel.vue), rebuilt 2026-10-10.
+ * One product per slide: photo on a lit floor, brand/discount chips, name,
+ * price + saving, rating/stock, one CTA. Controls live in a bottom bar.
+ */
+.store-hero {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgb(var(--st-accent-rgb) / 0.16);
+    border-radius: 1rem;
+    background: var(--st-slab);
+    color: var(--st-slab-ink);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.05),
+        0 40px 80px -50px rgb(var(--st-accent-rgb) / 0.45);
+}
+
+.store-hero:focus-visible {
+    outline: 2px solid var(--st-accent);
+    outline-offset: 2px;
+}
+
+/* Every slide sits in the same cell: the frame takes the tallest one's
+   height, so changing slides never moves the page below it. */
+.store-hero-stack {
+    display: grid;
+    flex: 1;
+    touch-action: pan-y;
+}
+
+.store-hero-slide {
+    grid-area: 1 / 1;
+    display: grid;
+    gap: 1.25rem;
+    align-items: center;
+    padding: 1.25rem 1.25rem 0.5rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition:
+        opacity 0.45s ease,
+        transform 0.45s ease,
+        visibility 0s linear 0.45s;
+}
+
+.store-hero-slide-on {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition:
+        opacity 0.45s ease,
+        transform 0.45s ease,
+        visibility 0s;
+}
+
+@media (min-width: 640px) {
+    .store-hero-slide {
+        padding: 1.75rem 2rem 0.75rem;
+    }
+}
+
+/* Desktop: copy first (start side), photo trailing. */
+@media (min-width: 1024px) {
+    .store-hero-slide {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+        gap: 2rem;
+        padding: 2.5rem 2.75rem 1rem;
+    }
+
+    .store-hero-media {
+        order: 2;
+    }
+}
+
+.store-hero-media {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 13rem;
+}
+
+@media (min-width: 640px) {
+    .store-hero-media {
+        height: 16rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .store-hero-media {
+        height: 20rem;
+    }
+}
+
+/* The lit floor the product stands on. */
+.store-hero-spot {
+    position: absolute;
+    inset: 8% 12%;
+    border-radius: 9999px;
+    background: radial-gradient(closest-side, rgb(var(--st-accent-rgb) / 0.28), rgb(var(--st-accent-2-rgb) / 0.1) 55%, transparent 75%);
+    filter: blur(6px);
+}
+
+.store-hero-img {
+    position: relative;
+    max-height: 100%;
+    width: auto;
+    max-width: 100%;
+    border-radius: 1rem;
+    object-fit: contain;
+    filter: drop-shadow(0 24px 30px rgb(0 0 0 / 0.45));
+    transition: transform 0.6s ease;
+}
+
+.store-hero-slide-on .store-hero-img {
+    animation: store-hero-float 7s ease-in-out infinite;
+}
+
+@keyframes store-hero-float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+.store-hero-copy {
+    min-width: 0;
+}
+
+.store-hero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    height: 1.625rem;
+    padding-inline: 0.625rem;
+    border-radius: 9999px;
+    background: rgb(var(--st-accent-rgb) / 0.12);
+    box-shadow: inset 0 0 0 1px rgb(var(--st-accent-rgb) / 0.35);
+    color: var(--st-accent-text);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.store-hero-brand {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--st-slab-ink-soft);
+}
+
+.store-hero-off {
+    display: inline-flex;
+    align-items: center;
+    height: 1.625rem;
+    padding-inline: 0.625rem;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, var(--st-accent), var(--st-accent-2));
+    color: var(--st-on-accent);
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.store-hero-title {
+    margin-top: 0.875rem;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 1.75rem;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--st-slab-ink);
+}
+
+@media (min-width: 640px) {
+    .store-hero-title {
+        font-size: 2.25rem;
+    }
+}
+
+@media (min-width: 1280px) {
+    .store-hero-title {
+        font-size: 2.75rem;
+    }
+}
+
+.store-hero-price {
+    font-size: 1.75rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--st-slab-ink);
+}
+
+.store-hero-was {
+    font-size: 1rem;
+    text-decoration: line-through;
+    color: var(--st-slab-ink-soft);
+    font-variant-numeric: tabular-nums;
+}
+
+.store-hero-stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--st-slab-ink-soft);
+}
+
+.store-hero-stock::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: #34d399;
+    box-shadow: 0 0 8px rgb(52 211 153 / 0.8);
+}
+
+html:has(.store-shell) .store-hero-cta.ant-btn {
+    height: 48px;
+    padding-inline: 1.5rem;
+    border-radius: 12px;
+    font-size: 0.9375rem;
+}
+
+.store-hero-secondary {
+    display: inline-flex;
+    align-items: center;
+    height: 48px;
+    padding-inline: 1rem;
+    border-radius: 12px;
+    color: var(--st-slab-ink);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px var(--st-slab-line);
+    transition:
+        box-shadow 0.15s ease,
+        color 0.15s ease;
+}
+
+.store-hero-secondary:hover,
+.store-hero-secondary:focus-visible {
+    color: var(--st-accent-text);
+    box-shadow: inset 0 0 0 1px rgb(var(--st-accent-rgb) / 0.6);
+    outline: none;
+}
+
+/* Controls bar: one progress bar per slide, a counter, pause and arrows. */
+.store-hero-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem 1.125rem;
+}
+
+@media (min-width: 1024px) {
+    .store-hero-controls {
+        padding: 0.75rem 2.75rem 1.5rem;
+    }
+}
+
+.store-hero-bar {
+    position: relative;
+    flex: 1;
+    max-width: 3.5rem;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 9999px;
+    background: var(--st-slab-line);
+    /* A 4px bar is too small to hit; the padding box makes a 20px target. */
+    background-clip: content-box;
+    padding-block: 8px;
+    box-sizing: content-box;
+    cursor: pointer;
+}
+
+.store-hero-bar:focus-visible {
+    outline: 2px solid var(--st-accent);
+    outline-offset: 2px;
+}
+
+.store-hero-bar-done::after,
+.store-hero-bar-fill {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block: 8px;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, var(--st-accent), var(--st-accent-2));
+}
+
+[dir='rtl'] .store-hero-bar-done::after,
+[dir='rtl'] .store-hero-bar-fill {
+    background: linear-gradient(-90deg, var(--st-accent), var(--st-accent-2));
+}
+
+.store-hero-bar-done::after {
+    inset-inline-end: 0;
+    opacity: 0.45;
+}
+
+/* Paused: the current bar shows full; playing, it fills over the slide's time. */
+.store-hero-bar-fill {
+    inset-inline-end: 0;
+    box-shadow: 0 0 8px rgb(var(--st-accent-rgb) / 0.7);
+}
+
+.store-hero-bar-fill-run {
+    inset-inline-end: auto;
+    width: 0;
+    animation-name: store-hero-fill;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+
+@keyframes store-hero-fill {
+    to {
+        width: 100%;
+    }
+}
+
+.store-hero-counter {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--st-slab-ink-soft);
+    font-variant-numeric: tabular-nums;
+}
+
+.store-hero-btn {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: var(--st-slab-well);
+    color: var(--st-slab-ink);
+    box-shadow: inset 0 0 0 1px var(--st-slab-line);
+    transition:
+        box-shadow 0.15s ease,
+        color 0.15s ease;
+}
+
+.store-hero-btn:hover,
+.store-hero-btn:focus-visible {
+    color: var(--st-accent-text);
+    box-shadow: inset 0 0 0 1px rgb(var(--st-accent-rgb) / 0.6);
+    outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .store-hero-slide,
+    .store-hero-slide-on {
+        transform: none;
+        transition: none;
+    }
+
+    .store-hero-slide-on .store-hero-img {
+        animation: none;
+    }
 }
 
 /* AntD styles `.ant-btn > span { display: inline-block }` at higher specificity
@@ -3438,27 +4046,27 @@ html:has(.store-shell) .store-cats-btn.ant-btn {
     padding-inline: 1.125rem;
     border: 0;
     border-radius: 9999px;
-    background: #0f9d58;
-    color: #ffffff;
+    background: var(--st-accent);
+    color: var(--st-on-accent);
     font-weight: 600;
-    box-shadow: 0 0 16px rgb(15 157 88 / 0.35);
+    box-shadow: 0 0 16px rgb(var(--st-accent-rgb) / 0.35);
     transition:
         background-color 0.2s ease,
         box-shadow 0.2s ease;
 }
 
 html:has(.store-shell) .store-cats-btn.ant-btn:hover {
-    background: #12b465;
-    color: #ffffff;
-    box-shadow: 0 0 22px rgb(18 180 101 / 0.5);
+    background: var(--st-accent-hover);
+    color: var(--st-on-accent);
+    box-shadow: 0 0 22px rgb(var(--st-accent-rgb) / 0.5);
 }
 
 /* Mobile tab bar. Kept as bespoke chrome rather than an AntD component — AntD
    has no floating pill nav — but it takes the storefront accent so the active
    destination matches every other selected state in the shop. */
 .store-tabbar-item-on {
-    background: #0f9d58;
-    color: #ffffff;
+    background: var(--st-accent);
+    color: var(--st-on-accent);
 }
 
 .store-tabbar-item-off {

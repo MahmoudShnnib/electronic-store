@@ -29,7 +29,7 @@ const { Title, Paragraph } = Typography;
                 <a v-if="contactInfo.email" :href="`mailto:${contactInfo.email}`" class="block">
                     <Card size="small" hoverable :body-style="{ padding: '1rem' }">
                         <div class="flex items-center gap-3">
-                            <Mail class="h-5 w-5 text-[#0F9D58]" />
+                            <Mail class="h-5 w-5 text-st-accent-text" />
                             <span class="font-medium">{{ contactInfo.email }}</span>
                         </div>
                     </Card>
@@ -37,7 +37,7 @@ const { Title, Paragraph } = Typography;
                 <a v-if="contactInfo.phone" :href="`tel:${contactInfo.phone}`" class="block">
                     <Card size="small" hoverable :body-style="{ padding: '1rem' }">
                         <div class="flex items-center gap-3">
-                            <Phone class="h-5 w-5 text-[#0F9D58]" />
+                            <Phone class="h-5 w-5 text-st-accent-text" />
                             <span class="font-medium" dir="ltr">{{ contactInfo.phone }}</span>
                         </div>
                     </Card>

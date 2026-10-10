@@ -94,7 +94,7 @@ function remove(address: AddressData) {
                 <div class="flex h-full flex-col">
                     <div class="flex items-start justify-between gap-2">
                         <div class="flex items-center gap-2">
-                            <MapPin class="h-4 w-4 text-[#0F9D58]" />
+                            <MapPin class="h-4 w-4 text-st-accent-text" />
                             <h2 class="font-semibold">{{ address.label ?? address.city }}</h2>
                         </div>
                         <div class="-me-1 flex gap-1">
