@@ -24,6 +24,8 @@ interface VariantOption {
     price: number;
     price_formatted: string;
     available: number;
+    /** Admins only: the highest price paid for the units in this warehouse. */
+    max_cost_formatted?: string;
     image: string | null;
 }
 
@@ -37,6 +39,7 @@ interface ProductOption {
     price: number;
     price_formatted: string;
     available: number;
+    max_cost_formatted?: string;
     image: string | null;
     category_id: number | null;
     brand_id: number | null;
@@ -71,6 +74,8 @@ interface Unit {
     stock: number;
     /** What can still be tapped: `stock` minus whatever the basket already holds. */
     available: number;
+    /** Admins only (absent for cashiers): the highest price paid for the units held. */
+    maxCost?: string;
     image: string | null;
 }
 
@@ -92,6 +97,8 @@ interface Tile {
     /** One for a plain product, one per active variant otherwise. */
     units: Unit[];
     available: number;
+    /** Admins only (absent for cashiers): the highest price paid for any of its units held. */
+    maxCost?: string;
 }
 
 const props = defineProps<{
@@ -278,6 +285,7 @@ const units = computed<Omit<Unit, 'available'>[]>(() =>
                   price: variant.price,
                   priceFormatted: variant.price_formatted,
                   stock: variant.available,
+                  maxCost: variant.max_cost_formatted,
                   image: variant.image,
               }))
             : [
@@ -290,6 +298,7 @@ const units = computed<Omit<Unit, 'available'>[]>(() =>
                       price: product.price,
                       priceFormatted: product.price_formatted,
                       stock: product.available,
+                      maxCost: product.max_cost_formatted,
                       image: product.image,
                   },
               ],
@@ -353,6 +362,7 @@ const tiles = computed<Tile[]>(() =>
                 image: product.image ?? cheapest.image,
                 units: own,
                 available: own.reduce((sum, unit) => sum + Math.max(0, unit.available), 0),
+                maxCost: product.max_cost_formatted,
             },
         ];
     }),
@@ -891,6 +901,9 @@ watch(
                                     {{ t('admin.pos.in_stock_n', { count: tile.available }) }}
                                 </span>
                             </span>
+                            <span v-if="tile.maxCost" class="text-[0.6875rem] tabular-nums text-ad-muted">
+                                {{ t('admin.pos.max_cost', { amount: tile.maxCost }) }}
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -1063,6 +1076,9 @@ watch(
                         </span>
                         <span v-else class="block text-[0.6875rem] tabular-nums text-ad-label">
                             {{ t('admin.pos.in_stock_n', { count: unit.available }) }}
+                        </span>
+                        <span v-if="unit.maxCost" class="block text-[0.6875rem] tabular-nums text-ad-muted">
+                            {{ t('admin.pos.max_cost', { amount: unit.maxCost }) }}
                         </span>
                     </span>
                 </button>

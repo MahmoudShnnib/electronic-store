@@ -30,6 +30,8 @@ const AUDIT_RULES = [
     'S7' => 'Order stock legs (sold / cancelled) match the order lines',
     'S8' => 'No unit returned twice; returns only on completed/refunded orders',
     'S9' => 'damaged = Σ ledger damaged_change (every damaged unit in/out is recorded)',
+    'S10' => 'FIFO batches = shelf (Σ stock_batches.quantity_remaining = max(0, quantity))',
+    'S11' => 'Order line cost slices add up to its quantity and its cost',
     'O1' => 'Line arithmetic (unit × qty − discount = line total, sane values)',
     'O2' => 'Order arithmetic (subtotal, discount, total)',
     'O4' => 'Status history and timestamps match the status',
@@ -64,6 +66,15 @@ function auditInvariants(): array
     if (! $hasDamagedChange) {
         $v['S9'][] = 'SKIPPED: inventory_movements.damaged_change missing — run php artisan migrate';
     }
+    // Added by migration 2026_10_10_110000 (FIFO costing); skipped until it has run.
+    $hasBatches = Schema::hasTable('stock_batches');
+    if (! $hasBatches) {
+        $v['S10'][] = 'SKIPPED: stock_batches missing — run php artisan migrate';
+        $v['S11'][] = 'SKIPPED: order_items.cost_layers missing — run php artisan migrate';
+    }
+    $batchUnits = $hasBatches
+        ? DB::table('stock_batches')->groupBy('stock_level_id')->selectRaw('stock_level_id, SUM(quantity_remaining) AS q')->pluck('q', 'stock_level_id')
+        : collect();
 
     $openUnits = DB::table('order_items')
         ->join('orders', 'orders.id', '=', 'order_items.order_id')
@@ -104,6 +115,10 @@ function auditInvariants(): array
         if ($hasDamagedChange && (int) $movs->sum('damaged_change') !== (int) $s->damaged) {
             $v['S9'][] = "$k: damaged={$s->damaged}, ledger damaged_change sums to ".(int) $movs->sum('damaged_change');
         }
+        $inBatches = (int) ($batchUnits[$s->id] ?? 0);
+        if ($hasBatches && $inBatches !== max(0, (int) $s->quantity)) {
+            $v['S10'][] = "$k: quantity={$s->quantity}, FIFO batches hold $inBatches";
+        }
         $expR = (int) ($openUnits->get($k)->q ?? 0);
         if ((int) $s->reserved !== $expR) {
             $v['S4'][] = "$k: reserved={$s->reserved}, open orders hold $expR";
@@ -119,9 +134,9 @@ function auditInvariants(): array
         }
     }
 
-    $out = ['customer_order', 'damaged', 'manual_decrease', 'supplier_return', 'transfer_out'];
+    $out = ['customer_order', 'damaged', 'lost', 'manual_decrease', 'supplier_return', 'transfer_out'];
     $in = ['initial', 'purchase_receipt', 'order_cancellation', 'customer_return', 'manual_increase', 'transfer_in'];
-    $zeroOk = ['purchase_incoming', 'purchase_cancelled', 'correction', 'supplier_return'];
+    $zeroOk = ['purchase_incoming', 'purchase_cancelled', 'correction', 'variant_split', 'supplier_return'];
     foreach ($movements as $m) {
         $c = (int) $m->quantity_change;
         if ((in_array($m->type, $out, true) && $c > 0) || (in_array($m->type, $in, true) && $c < 0)
@@ -185,6 +200,14 @@ function auditInvariants(): array
             if ((int) $i->quantity < 1 || (int) $i->unit_price_cents < 0 || (int) $i->line_total_cents < 0
                 || (int) $i->unit_price_cents * (int) $i->quantity - (int) $i->discount_cents !== (int) $i->line_total_cents) {
                 $v['O1'][] = "$n: line #{$i->id} {$i->unit_price_cents} × {$i->quantity} − {$i->discount_cents} != {$i->line_total_cents}";
+            }
+            if ($hasBatches) {
+                $layers = json_decode((string) $i->cost_layers, true) ?: [];
+                $units = array_sum(array_column($layers, 'qty'));
+                $cost = array_sum(array_map(fn ($l) => $l['cost'] * $l['qty'], $layers));
+                if ($units !== (int) $i->quantity || $cost !== (int) $i->cost_cents) {
+                    $v['S11'][] = "$n: line #{$i->id} slices hold $units units costing $cost, line has {$i->quantity} costing {$i->cost_cents}";
+                }
             }
         }
         $sub = (int) $items->sum(fn ($i) => $i->unit_price_cents * $i->quantity);
@@ -342,7 +365,7 @@ function auditInvariants(): array
     }
 
     // ── Audit trail on stock, write-offs ─────────────────────────────────────
-    $manual = ['initial', 'manual_increase', 'manual_decrease', 'damaged', 'correction', 'supplier_return'];
+    $manual = ['initial', 'manual_increase', 'manual_decrease', 'damaged', 'lost', 'correction', 'variant_split', 'supplier_return'];
     $refMorphs = [$orderMorph, (new PurchaseOrder)->getMorphClass(), (new StockTransfer)->getMorphClass()];
     foreach ($movements as $m) {
         if (in_array($m->type, $manual, true)) {
@@ -352,7 +375,7 @@ function auditInvariants(): array
         } elseif (! in_array($m->reference_type, $refMorphs, true) || $m->reference_id === null) {
             $v['A1'][] = "movement #{$m->id} ({$m->type}): no order/PO/transfer reference";
         }
-        if (in_array($m->type, ['damaged', 'manual_decrease', 'supplier_return'], true) && $m->reference_type === $orderMorph) {
+        if (in_array($m->type, ['damaged', 'lost', 'manual_decrease', 'supplier_return'], true) && $m->reference_type === $orderMorph) {
             $v['W1'][] = "write-off movement #{$m->id} references order #{$m->reference_id}";
         }
     }
@@ -363,7 +386,9 @@ function auditInvariants(): array
 
     // ── Coupons ──────────────────────────────────────────────────────────────
     foreach (DB::table('coupons')->get() as $c) {
-        $red = DB::table('coupon_redemptions')->where('coupon_id', $c->id)->count();
+        $red = DB::table('coupon_redemptions')->where('coupon_id', $c->id)
+            ->when(Schema::hasColumn('coupon_redemptions', 'released_at'), fn ($q) => $q->whereNull('released_at'))
+            ->count();
         if ($red !== (int) $c->used_count) {
             $v['C1'][] = "coupon {$c->code}: used_count {$c->used_count}, $red redemptions";
         }
@@ -372,7 +397,9 @@ function auditInvariants(): array
         }
     }
     foreach (DB::table('coupon_redemptions')->join('orders', 'orders.id', '=', 'coupon_redemptions.order_id')
-        ->where('orders.status', 'cancelled')->pluck('orders.number') as $num) {
+        ->where('orders.status', 'cancelled')
+        ->when(Schema::hasColumn('coupon_redemptions', 'released_at'), fn ($q) => $q->whereNull('coupon_redemptions.released_at'))
+        ->pluck('orders.number') as $num) {
         $v['C1'][] = "redemption still held by cancelled order $num";
     }
 

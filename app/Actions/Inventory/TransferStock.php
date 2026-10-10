@@ -60,7 +60,7 @@ final class TransferStock
                 $product = $transferItem->product;
                 $variant = $transferItem->variant;
 
-                $this->recordMovement->handle(
+                $out = $this->recordMovement->handle(
                     type: MovementType::TransferOut,
                     warehouse: $from,
                     product: $product,
@@ -78,6 +78,8 @@ final class TransferStock
                     quantityChange: $item['quantity'],
                     reference: $transfer,
                     userId: $userId,
+                    // The units keep the cost and age they had in the warehouse they left.
+                    costLayers: $out->costLayers,
                 );
             }
 

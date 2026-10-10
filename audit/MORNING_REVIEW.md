@@ -1,3 +1,43 @@
+# Update 2026-10-10 — owner decisions applied (branch `feat/finance-decisions`)
+
+| Decision | What changed | Commit |
+|---|---|---|
+| BD3 | New `lost` (lost / stolen) stock write-off type | `005d3b7` |
+| BD8 | A product with any stock (shelf, reserved, damaged, incoming) can't be deleted; bulk delete skips and names them | `662fd40` |
+| BD7 | Cancelling keeps the coupon use as history, marked released (migration `2026_10_10_100000`) | `6759c62` |
+| BD4 | Zero price allowed, with a warning on the product form | `d87950f` |
+| (follows "they only pay in full") | A payment must be exactly the amount owed; order page has one "Record full payment" button | `e486b91` |
+| BD1 / BD6 | Whole returns only: every unit back + everything paid refunded, or nothing; a delivered order is refunded only through the return form | `2abccfc` |
+| BD5 | Revenue = money received, on the day it arrives (payments in, refunds out) — reports + dashboard | `3f57e4f` |
+| BD2 | FIFO costing: every purchase keeps its unit cost, sales use the oldest units first, profit uses what they cost; stock dialog asks the unit cost; POS shows admins the highest cost of the units in that warehouse (branch `feat/fifo-costing`, migration `2026_10_10_110000`) | `53818d5`, `6a79e1a`, `31fe2b7`, `31bc0cd`, `539404b`, `91c9959` |
+
+Also on `feat/fifo-costing`: `32e0af1` (separate session) — two requests creating the same new
+stock row at once no longer abort the Postgres transaction. Checks on the branch tip: 536 tests
+pass (543 after the owner-call commits), Concurrency suite 5 pass, `php audit/check_invariants.php` ALL RULES PASS (dev DB), pint clean.
+
+Rules M3/M4: the case that broke them (deposit refunded, then paid in full) can no longer
+happen now that payments and refunds are always whole.
+
+Needs on deploy: `php artisan down`, `php artisan migrate` (2026_10_05_100000, 2026_10_10_100000,
+2026_10_10_110000, 2026_10_11_100000, 2026_10_11_110000), reload PHP-FPM, `php audit/check_invariants.php` (S10/S11 must pass), `php artisan up`.
+The FIFO migration seeds one batch per stock row at today's cost; stock moved by old code between
+the migration and the code switch would have no batch, hence the maintenance window.
+
+Owner calls on the FIFO gaps (2026-10-10), all built on `feat/fifo-costing`:
+- PO shipping and discount are spread over the received units (`d3a2b0f`).
+- Free (0-total) orders book their goods' cost the day they're completed (`6e626c4`).
+- Sales report shows what written-off stock cost, by kind (`15929f9`, `321a54c`; migrations
+  `2026_10_11_100000`, `2026_10_11_110000`). Moving stock onto new variants has its own type
+  (`variant_split`) and is not a write-off; old write-offs are costed at the cost price of the time.
+- Supplier returns keep using the oldest stock: the owner only cancels POs, never ships received
+  stock back (no screen for it today).
+- Still open: cashiers can see product cost prices on the products page (owner: later).
+- Mahmoud's PR #5 (POS one card per product) merges cleanly but hides the admin "highest cost" line;
+  integration fix ready on local branch `compat/pr-check` (`c05d0b4`) — apply after #5 lands on main.
+  PR #4 (storefront restyle) is compatible as is.
+
+---
+
 # Morning review — overnight finance & inventory audit (2026-10-05)
 
 Branch `audit/finance` (forked from `fix/db-consistency-qa` @ d46c4ee). 18 commits, nothing

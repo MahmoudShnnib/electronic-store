@@ -69,7 +69,8 @@ final class Coupon extends Model
 
     public function usesByUser(int $userId): int
     {
-        return $this->redemptions()->where('user_id', $userId)->count();
+        // A use released by a cancelled order no longer counts.
+        return $this->redemptions()->where('user_id', $userId)->whereNull('released_at')->count();
     }
 
     public function scopeActive(Builder $query): Builder

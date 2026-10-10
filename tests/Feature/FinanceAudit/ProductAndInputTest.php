@@ -8,6 +8,7 @@ declare(strict_types=1);
  */
 
 use App\Actions\Catalog\SaveProduct;
+use App\Models\Cart;
 
 require_once __DIR__.'/FinanceAuditSetup.php';
 
@@ -16,7 +17,8 @@ beforeEach(fn () => finSetUp($this));
 it('F8: deleting a product with past orders keeps orders, money and reports intact', function (): void {
     $done = finBuy($this, $this->buyer, [[$this->phone, 1]]);
     finComplete($this, $done);
-    $open = finBuy($this, customer(), [[$this->phone, 2]]);
+    // BD8: a product can only be deleted once no unit is left, so the rest is written off first.
+    finAdjust($this, $this->phone, 9, 'lost', 'Discontinued, units unaccounted for')->assertSessionHasNoErrors();
     $before = finSnapshot($this, $this->admin);
 
     $this->actingAs($this->admin)->delete("/admin/products/{$this->phone->id}")->assertSessionHasNoErrors();
@@ -25,15 +27,13 @@ it('F8: deleting a product with past orders keeps orders, money and reports inta
         'product.PHONE.deleted' => true,
         'dash.products_total' => 2,
         'dash.products_active' => 2,
+        'dash.out_of_stock' => 0, // a deleted product is no longer "on sale but out of stock"
     ]);
 
-    // The open order of the deleted product can still be cancelled — its stock comes back —
-    // and the finished one can still be returned.
-    $this->actingAs($this->admin)->post("/admin/orders/{$open->id}/status", ['status' => 'cancelled'])->assertSessionHasNoErrors();
+    // The finished order of the deleted product can still be returned and its pages render.
     finReturn($this, $done, 100_000, ['PHONE' => 1]);
     $after = finSnapshot($this, $this->admin);
-    expect($after['stock.PHONE@MAIN.quantity'])->toBe(10)
-        ->and($after['stock.PHONE@MAIN.reserved'])->toBe(0)
+    expect($after['stock.PHONE@MAIN.quantity'])->toBe(1)
         ->and($after['report.summary.revenue_formatted'])->toBe(finFmt(0))
         ->and($after['treasury.cash'])->toBe(0)
         ->and(auditFailures())->toBe([]);
@@ -44,7 +44,7 @@ it('F8: deleting a product with past orders keeps orders, money and reports inta
 it('F9: nonsense quantities are refused everywhere and change nothing', function (): void {
     $order = finBuy($this, $this->buyer, [[$this->cable, 1]]);
     $this->actingAs($this->buyer)->post('/cart/items', ['product_id' => $this->cable->id, 'quantity' => 1]);
-    $item = \App\Models\Cart::query()->where('user_id', $this->buyer->id)->firstOrFail()->items()->firstOrFail();
+    $item = Cart::query()->where('user_id', $this->buyer->id)->firstOrFail()->items()->firstOrFail();
     $this->actingAs($this->admin)->post('/admin/pos/shifts', ['warehouse_id' => $this->main->id, 'opening_float' => 0])->assertSessionHasNoErrors();
     $before = finSnapshot($this, $this->admin);
 

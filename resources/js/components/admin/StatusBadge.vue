@@ -45,6 +45,7 @@ const palette: Record<string, string> = {
     rejected: 'error',
     failed: 'error',
     damaged: 'error',
+    lost: 'error',
     // purples
     returned: 'purple',
     refunded: 'purple',

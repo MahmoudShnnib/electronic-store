@@ -10,6 +10,7 @@ use App\Enums\MovementType;
 use App\Enums\OrderStatus;
 use App\Enums\RefundMethod;
 use App\Models\Order;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -56,6 +57,10 @@ final class ResolveOrderIssue
                 ]);
             }
 
+            // Returns are whole (owner decision 2026-10-10): either everything comes back
+            // with every dinar paid, or nothing moves and the reason is just logged.
+            $this->assertWholeReturn($order, $refundCents, $restock, $restockQuantities);
+
             // The reason is the point of the action, so it is logged even when no
             // money moves — a problem worth recording is not always worth a refund.
             $order->statusHistories()->create([
@@ -77,12 +82,47 @@ final class ResolveOrderIssue
                     reference: $reference,
                     reason: $reason,
                     createdBy: $userId,
+                    goodsReturned: true,
                 );
             }
 
             // CreateRefund moves the order to refunded itself.
             return $order->refresh();
         });
+    }
+
+    /**
+     * A return takes back every unit still out and refunds everything still held;
+     * anything less is refused before a single row is written.
+     *
+     * @param  array<int, int>|null  $quantities
+     */
+    private function assertWholeReturn(Order $order, int $refundCents, bool $restock, ?array $quantities): void
+    {
+        $held = $order->netPaidCents();
+
+        if (! $restock) {
+            if ($refundCents > 0) {
+                throw ValidationException::withMessages([
+                    'amount' => __('A refund needs the goods back: tick "put items back" and take every item.'),
+                ]);
+            }
+
+            return;
+        }
+
+        $left = $order->returnableQuantities();
+        $partial = $quantities !== null && collect($left)->contains(fn (int $units, int $itemId) => (int) ($quantities[$itemId] ?? 0) !== $units);
+        if ($partial || array_sum($left) === 0) {
+            throw ValidationException::withMessages([
+                'items' => __('Every item must come back. Part returns are not accepted.'),
+            ]);
+        }
+        if ($held <= 0 || $refundCents !== $held) {
+            throw ValidationException::withMessages([
+                'amount' => __('Refund the full amount held (:held). Part refunds are not accepted.', ['held' => Money::format(max(0, $held), $order->currency)]),
+            ]);
+        }
     }
 
     /**
@@ -115,6 +155,8 @@ final class ResolveOrderIssue
                 quantityChange: $quantity,
                 reservedChange: 0,
                 reference: $order,
+                // Back at the costs the line took, in their old place in the FIFO queue.
+                costLayers: $item->cost_layers,
                 reason: $reason,
                 userId: $userId,
             );

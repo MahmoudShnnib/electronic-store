@@ -11,7 +11,7 @@ import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { Button, Checkbox, Input, InputNumber, Tooltip, TypographyText } from 'ant-design-vue';
 import { ArrowLeftRight, PencilRuler } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
@@ -31,6 +31,7 @@ interface StockRow extends Record<string, unknown> {
     damaged: number;
     incoming: number;
     low_stock: boolean;
+    unit_cost?: number;
 }
 
 defineProps<{
@@ -62,8 +63,13 @@ const adjustForm = useForm({
     type: 'manual_increase',
     reason: '',
     from_damaged: false,
+    unit_cost: null as number | null,
     label: '',
 });
+
+// Adding stock asks what one unit cost this time: each delivery keeps its own price,
+// and sales use up the oldest units first.
+const addsStock = computed(() => adjustForm.quantity_change > 0 && ['initial', 'manual_increase', 'correction'].includes(adjustForm.type));
 
 function openAdjust(row: StockRow): void {
     adjustForm.reset();
@@ -71,13 +77,14 @@ function openAdjust(row: StockRow): void {
     adjustForm.warehouse_id = row.warehouse_id;
     adjustForm.product_id = row.product_id;
     adjustForm.product_variant_id = row.variant_id;
+    adjustForm.unit_cost = row.unit_cost ?? null;
     adjustForm.label = `${row.name} @ ${row.warehouse}`;
     adjustOpen.value = true;
 }
 
 function submitAdjust(): void {
     adjustForm
-        .transform(({ label: _label, ...data }) => data)
+        .transform(({ label: _label, unit_cost, ...data }) => (addsStock.value ? { ...data, unit_cost } : data))
         .post(route('admin.inventory.adjust'), {
             preserveScroll: true,
             onSuccess: () => (adjustOpen.value = false),
@@ -200,6 +207,15 @@ function submitTransfer(): void {
                     <AdminSelect v-model="adjustForm.type" :options="movementTypes" />
                 </Field>
             </div>
+            <Field
+                v-if="addsStock"
+                :label="t('admin.common.unit_cost')"
+                required
+                :hint="t('admin.inventory.unit_cost_hint')"
+                :error="adjustForm.errors.unit_cost"
+            >
+                <InputNumber v-model:value="adjustForm.unit_cost" :min="0" :step="0.01" class="w-full" />
+            </Field>
             <Checkbox v-if="adjustForm.type === 'supplier_return'" v-model:checked="adjustForm.from_damaged">
                 {{ t('admin.inventory.return_damaged') }}
             </Checkbox>
@@ -208,7 +224,9 @@ function submitTransfer(): void {
             </Field>
             <div class="flex justify-end gap-3">
                 <Button @click="adjustOpen = false">{{ t('admin.common.cancel') }}</Button>
-                <Button type="primary" html-type="submit" :loading="adjustForm.processing">{{ t('admin.inventory.apply_adjustment') }}</Button>
+                <Button type="primary" html-type="submit" :loading="adjustForm.processing" :disabled="addsStock && adjustForm.unit_cost === null">{{
+                    t('admin.inventory.apply_adjustment')
+                }}</Button>
             </div>
         </form>
     </FormModal>

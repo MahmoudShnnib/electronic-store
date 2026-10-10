@@ -36,6 +36,7 @@ function qaHarmony(): array
         ->get()->keyBy($key);
 
     $levels = DB::table('stock_levels')->get();
+    $batchUnits = DB::table('stock_batches')->groupBy('stock_level_id')->selectRaw('stock_level_id, SUM(quantity_remaining) AS q')->pluck('q', 'stock_level_id');
     $levelKeys = [];
     foreach ($levels as $s) {
         $k = $key($s);
@@ -57,6 +58,9 @@ function qaHarmony(): array
         }
         if ((int) $s->quantity < 0) {
             $v[] = "STOCK $k: negative quantity {$s->quantity}";
+        }
+        if ((int) ($batchUnits[$s->id] ?? 0) !== max(0, (int) $s->quantity)) {
+            $v[] = "BATCHES $k: stock_levels.quantity={$s->quantity} but FIFO batches hold ".(int) ($batchUnits[$s->id] ?? 0);
         }
         $expR = (int) ($reserved->get($k)->q ?? 0);
         if ((int) $s->reserved !== $expR) {
@@ -229,7 +233,8 @@ function qaHarmony(): array
 
     // ── Coupons: used_count matches redemptions; no redemption on a cancelled order
     foreach (DB::table('coupons')->get() as $c) {
-        $red = DB::table('coupon_redemptions')->where('coupon_id', $c->id)->count();
+        // Released uses (cancelled orders) stay as history but don't count (BD7).
+        $red = DB::table('coupon_redemptions')->where('coupon_id', $c->id)->whereNull('released_at')->count();
         if ($red !== (int) $c->used_count) {
             $v[] = "COUPON {$c->code}: used_count {$c->used_count} != $red redemptions";
         }
@@ -237,7 +242,7 @@ function qaHarmony(): array
             $v[] = "COUPON {$c->code}: used {$c->used_count} times, limit {$c->usage_limit}";
         }
     }
-    foreach (DB::table('coupon_redemptions')->join('orders', 'orders.id', '=', 'coupon_redemptions.order_id')->where('orders.status', 'cancelled')->pluck('orders.number') as $num) {
+    foreach (DB::table('coupon_redemptions')->join('orders', 'orders.id', '=', 'coupon_redemptions.order_id')->where('orders.status', 'cancelled')->whereNull('coupon_redemptions.released_at')->pluck('orders.number') as $num) {
         $v[] = "COUPON: redemption still held by cancelled order $num";
     }
 

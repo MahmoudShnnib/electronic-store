@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\Notification;
 require_once __DIR__.'/../../Qa/Harmony.php';
 
 const QA_TABLES = ['orders', 'order_items', 'payments', 'refunds', 'treasury_transactions', 'inventory_movements',
-    'stock_levels', 'coupon_redemptions', 'purchase_orders', 'purchase_order_items', 'stock_transfers', 'cashier_shifts', 'order_status_histories'];
+    'stock_levels', 'stock_batches', 'coupon_redemptions', 'purchase_orders', 'purchase_order_items', 'stock_transfers', 'cashier_shifts', 'order_status_histories'];
 
 function qaReport(string $kind, string $step, string $detail): void
 {
@@ -164,13 +164,18 @@ it('keeps everything in step through web checkout, completion, partial return an
     $phoneLine = $order->items()->where('product_id', $t->phone->id)->firstOrFail();
     qaSend($t, $t->admin, 'admin: cancel completed order', 'post', "/admin/orders/{$order->id}/status", ['status' => 'cancelled'], 'reject');
     qaSend($t, $t->admin, 'admin: refund more than paid', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => $order->total_cents / 100 + 1, 'method' => 'cash'], 'reject');
+    // Whole returns only (owner decision 2026-10-10): part of the order back is refused.
     qaSend($t, $t->admin, 'admin: return 1 phone + partial refund', 'post', "/admin/orders/{$order->id}/issue", [
         'reason' => 'Screen cracked', 'amount' => 900, 'method' => 'cash', 'restock' => true, 'items' => [$phoneLine->id => 1],
+    ], 'reject');
+    qaSend($t, $t->admin, 'admin: full return, full refund', 'post', "/admin/orders/{$order->id}/issue", [
+        'reason' => 'Screen cracked', 'amount' => $order->total_cents / 100, 'method' => 'cash', 'restock' => true,
+        'items' => $order->items()->pluck('quantity', 'id')->all(),
     ]);
-    expect(qaQty($t->phone, null, $t->main))->toBe(9);
+    expect(qaQty($t->phone, null, $t->main))->toBe(10);
 
     qaSend($t, $t->admin, 'admin: second return on refunded order', 'post', "/admin/orders/{$order->id}/issue", ['reason' => 'again', 'amount' => 0, 'method' => 'cash', 'restock' => true], 'reject');
-    qaSend($t, $t->admin, 'admin: top-up refund on refunded order', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 50, 'method' => 'cash']);
+    qaSend($t, $t->admin, 'admin: top-up refund on refunded order', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 50, 'method' => 'cash'], 'reject');
 });
 
 it('keeps everything in step when a refund is issued straight on a completed order', function (): void {
@@ -179,8 +184,11 @@ it('keeps everything in step when a refund is issued straight on a completed ord
     qaSend($t, $t->buyer, 'checkout', 'post', '/checkout', qaCheckout());
     $order = Order::query()->latest('id')->firstOrFail();
     qaSend($t, $t->admin, 'complete', 'post', "/admin/orders/{$order->id}/status", ['status' => 'completed']);
-    // The refund screen on the order page, not the return button.
-    qaSend($t, $t->admin, 'direct full refund on completed order', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 100, 'method' => 'cash']);
+    // The refund screen can't refund a delivered order (2026-10-10): the goods must come back.
+    qaSend($t, $t->admin, 'direct full refund on completed order', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 1000, 'method' => 'cash'], 'reject');
+    qaSend($t, $t->admin, 'full return through the return form', 'post', "/admin/orders/{$order->id}/issue", [
+        'reason' => 'Changed mind', 'amount' => 1000, 'method' => 'cash', 'restock' => true,
+    ]);
 });
 
 it('keeps everything in step for bank-transfer manual orders: deposit, refund, cancel', function (): void {
@@ -193,11 +201,12 @@ it('keeps everything in step for bank-transfer manual orders: deposit, refund, c
     expect($order->user_id)->toBe($t->buyer->id);
 
     qaSend($t, $t->admin, 'complete before transfer confirmed', 'post', "/admin/orders/{$order->id}/status", ['status' => 'completed'], 'reject');
-    qaSend($t, $t->admin, 'record 100 deposit', 'post', "/admin/orders/{$order->id}/payments", ['amount' => 100, 'reference' => 'TRX-1']);
+    // Customers pay in full (2026-10-10): a deposit is refused, the whole transfer is recorded.
+    qaSend($t, $t->admin, 'record 100 deposit', 'post', "/admin/orders/{$order->id}/payments", ['amount' => 100, 'reference' => 'TRX-1'], 'reject');
+    qaSend($t, $t->admin, 'record the full transfer', 'post', "/admin/orders/{$order->id}/payments", ['amount' => $order->total_cents / 100, 'reference' => 'TRX-1']);
     qaSend($t, $t->admin, 'cancel with deposit held', 'post', "/admin/orders/{$order->id}/status", ['status' => 'cancelled'], 'reject');
     qaSend($t, $t->buyer, 'customer cancels with deposit held', 'post', "/account/orders/{$order->id}/cancel", [], 'reject');
-    qaSend($t, $t->admin, 'refund 40 of deposit', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 40, 'method' => 'bank_transfer']);
-    qaSend($t, $t->admin, 'refund remaining 60', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 60, 'method' => 'bank_transfer']);
+    qaSend($t, $t->admin, 'refund the transfer', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => $order->total_cents / 100, 'method' => 'bank_transfer']);
     qaSend($t, $t->admin, 'cancel after full refund', 'post', "/admin/orders/{$order->id}/status", ['status' => 'cancelled', 'comment' => 'Customer changed mind']);
     expect(qaQty($t->laptop, $t->lap32))->toBe(2);
     qaSend($t, $t->admin, 'payment on cancelled order', 'post', "/admin/orders/{$order->id}/payments", ['amount' => 10], 'reject');
@@ -299,11 +308,12 @@ it('keeps the till, treasury and refunds in step through a POS shift', function 
     qaSend($t, $t->admin, 'discount above total', 'post', '/admin/pos/sales', ['items' => [['product_id' => $t->cable->id, 'quantity' => 1]], 'payment_method' => 'cash', 'discount' => 999], 'reject');
 
     $sale = Order::query()->where('placed_via', 'pos')->latest('id')->firstOrFail();
-    qaSend($t, $t->admin, 'return phone sold at till, cash back', 'post', "/admin/orders/{$sale->id}/issue", ['reason' => 'Changed mind', 'amount' => 100, 'method' => 'cash', 'restock' => true]);
+    // Returns are whole and refunded in full (2026-10-10).
+    qaSend($t, $t->admin, 'return phone sold at till, cash back', 'post', "/admin/orders/{$sale->id}/issue", ['reason' => 'Changed mind', 'amount' => 1000, 'method' => 'cash', 'restock' => true]);
 
     $shift = CashierShift::query()->latest('id')->firstOrFail();
     $expected = $shift->expectedCashCents();
-    expect($expected)->toBe(10_000 + 9_900 + 100_000 - 10_000);
+    expect($expected)->toBe(10_000 + 9_900 + 100_000 - 100_000);
     qaSend($t, $t->admin, 'close shift 2 LYD short', 'post', '/admin/pos/shifts/close', ['counted_cash' => ($expected - 200) / 100]);
     qaSend($t, $t->admin, 'close shift twice', 'post', '/admin/pos/shifts/close', ['counted_cash' => 0], 'reject');
 });
@@ -316,9 +326,10 @@ it('refuses treasury withdrawals the account cannot cover, and refunds too', fun
     // A bank-transfer order paid in, then the bank is emptied by hand, then refunded.
     qaSend($t, $t->admin, 'manual bank order', 'post', '/admin/orders', [...qaCheckout(['payment_method' => 'bank_transfer']), 'items' => [['product_id' => $t->cable->id, 'quantity' => 1]]]);
     $order = Order::query()->latest('id')->firstOrFail();
-    qaSend($t, $t->admin, 'confirm transfer 5', 'post', "/admin/orders/{$order->id}/payments", ['amount' => 5]);
-    qaSend($t, $t->admin, 'withdraw whole bank balance', 'post', '/admin/treasury', ['direction' => 'out', 'account' => 'bank', 'amount' => 5, 'note' => 'QA']);
-    qaSend($t, $t->admin, 'refund from empty bank account', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 5, 'method' => 'bank_transfer'], 'reject');
+    $paid = $order->total_cents / 100;
+    qaSend($t, $t->admin, 'confirm the full transfer', 'post', "/admin/orders/{$order->id}/payments", ['amount' => $paid]);
+    qaSend($t, $t->admin, 'withdraw whole bank balance', 'post', '/admin/treasury', ['direction' => 'out', 'account' => 'bank', 'amount' => $paid, 'note' => 'QA']);
+    qaSend($t, $t->admin, 'refund from empty bank account', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => $paid, 'method' => 'bank_transfer'], 'reject');
 });
 
 it('validates money inputs instead of crashing', function (): void {
@@ -340,7 +351,8 @@ it('does not lose work when deleting things other records point at', function ()
     $t = $this;
     qaSend($t, $t->buyer, 'cart: add cable', 'post', '/cart/items', ['product_id' => $t->cable->id, 'quantity' => 1]);
     qaSend($t, $t->buyer, 'checkout', 'post', '/checkout', qaCheckout());
-    qaSend($t, $t->admin, 'delete product with an open order', 'delete', "/admin/products/{$t->cable->id}");
+    // BD8 (2026-10-10): a product whose units are still reserved for an open order can't be deleted.
+    qaSend($t, $t->admin, 'delete product with an open order', 'delete', "/admin/products/{$t->cable->id}", [], 'reject');
     qaSend($t, $t->admin, 'delete warehouse holding stock', 'delete', "/admin/warehouses/{$t->branch->id}", [], 'reject');
     qaSend($t, $t->admin, 'delete default warehouse', 'delete', "/admin/warehouses/{$t->main->id}", [], 'reject');
     qaSend($t, $t->admin, 'delete used coupon', 'delete', "/admin/coupons/{$t->coupon->id}");
@@ -375,10 +387,12 @@ it('refuses LYD amounts it cannot store exactly, instead of rounding them', func
         qaSend($t, $t->admin, "payment amount '$typed'", 'post', "/admin/orders/{$order->id}/payments", ['amount' => $typed], 'reject');
         qaSend($t, $t->admin, "treasury deposit '$typed'", 'post', '/admin/treasury', ['direction' => 'in', 'account' => 'cash', 'amount' => $typed, 'note' => 'QA'], 'reject');
     }
-    qaSend($t, $t->admin, "payment amount '12.34'", 'post', "/admin/orders/{$order->id}/payments", ['amount' => '12.34']);
+    // A two-decimal amount is accepted (payments are the full total since 2026-10-10).
+    $typed = number_format($order->total_cents / 100, 2, '.', '');
+    qaSend($t, $t->admin, "payment amount '$typed'", 'post', "/admin/orders/{$order->id}/payments", ['amount' => $typed]);
 });
 
-it('agrees on revenue and cost across dashboard and reports after a partial return', function (): void {
+it('agrees on revenue and cost across dashboard and reports after a return', function (): void {
     $t = $this;
     qaSend($t, $t->buyer, 'cart: add phone', 'post', '/cart/items', ['product_id' => $t->phone->id, 'quantity' => 1]);
     qaSend($t, $t->buyer, 'cart: add cable', 'post', '/cart/items', ['product_id' => $t->cable->id, 'quantity' => 1]);
@@ -386,15 +400,19 @@ it('agrees on revenue and cost across dashboard and reports after a partial retu
     $order = Order::query()->latest('id')->firstOrFail();
     qaSend($t, $t->admin, 'complete', 'post', "/admin/orders/{$order->id}/status", ['status' => 'completed']);
     $cableLine = $order->items()->where('product_id', $t->cable->id)->firstOrFail();
+    // Only the cable back is a part return: refused since 2026-10-10. Everything back is taken.
     qaSend($t, $t->admin, 'return the cable, refund 50', 'post', "/admin/orders/{$order->id}/issue", [
         'reason' => 'Cable faulty', 'amount' => 50, 'method' => 'cash', 'restock' => true, 'items' => [$cableLine->id => 1],
+    ], 'reject');
+    qaSend($t, $t->admin, 'return everything, refund 1,050', 'post', "/admin/orders/{$order->id}/issue", [
+        'reason' => 'Cable faulty', 'amount' => 1050, 'method' => 'cash', 'restock' => true,
     ]);
 
-    // Kept: 1,050 paid - 50 back = 1,000 revenue; cost of the phone only.
+    // Nothing kept: no revenue, no cost.
     $summary = app(ReportService::class)->salesSummary(now()->subDay()->toImmutable(), now()->addDay()->toImmutable());
-    expect($summary['revenue_formatted'])->toContain('1,000.000')
-        ->and($summary['estimated_cost_formatted'])->toContain('700.000');
+    expect($summary['revenue_formatted'])->toBe(Money::format(0))
+        ->and($summary['estimated_cost_formatted'])->toBe(Money::format(0));
 
     $t->actingAs($t->admin)->get('/admin')->assertInertia(fn ($page) => $page
-        ->where('kpis.revenue_today', Money::format(100_000)));
+        ->where('kpis.revenue_today', Money::format(0)));
 });

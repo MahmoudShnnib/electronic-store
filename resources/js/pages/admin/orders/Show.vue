@@ -8,20 +8,7 @@ import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option } from '@/components/admin/types';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import {
-    Button,
-    Card,
-    Checkbox,
-    Descriptions,
-    DescriptionsItem,
-    Divider,
-    Input,
-    InputNumber,
-    Textarea,
-    Timeline,
-    TimelineItem,
-    Typography,
-} from 'ant-design-vue';
+import { Button, Card, Checkbox, Descriptions, DescriptionsItem, Divider, Input, Textarea, Timeline, TimelineItem, Typography } from 'ant-design-vue';
 import { Printer } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -66,6 +53,7 @@ const props = defineProps<{
         refunded_cents: number;
         paid_formatted: string;
         outstanding_formatted: string;
+        outstanding_cents: number;
         refunded_formatted: string;
         customer_note: string | null;
         can_resolve_issue: boolean;
@@ -153,7 +141,9 @@ function submitStatus(status: string): void {
 
 const paymentForm = useForm({ amount: null as number | null, reference: '' });
 
+/** Customers pay the whole order at once: the only payment is the full amount owed. */
 function submitPayment(): void {
+    paymentForm.amount = props.order.outstanding_cents / 100;
     paymentForm.post(route('admin.orders.payments.store', props.order.id), {
         preserveScroll: true,
         onSuccess: () => paymentForm.reset(),
@@ -162,7 +152,11 @@ function submitPayment(): void {
 
 const refundForm = useForm({ amount: null as number | null, method: 'cash', reference: '', reason: '' });
 
+/** No part refunds: what goes back is always everything still held. */
+const heldCents = computed(() => Math.max(0, props.order.paid_cents - props.order.refunded_cents));
+
 function submitRefund(): void {
+    refundForm.amount = heldCents.value / 100;
     refundForm.post(route('admin.refunds.store', props.order.id), {
         preserveScroll: true,
         onSuccess: () => refundForm.reset(),
@@ -170,17 +164,16 @@ function submitRefund(): void {
 }
 
 /**
- * The single post-completion action: always records a reason, and refunds only
- * when an amount is entered. Defaults to giving back everything collected.
+ * The single post-completion action: always records a reason. Returns are whole:
+ * ticking "full return" takes every unit back and refunds everything held; left
+ * unticked, the reason is only logged and no money or stock moves.
  */
 const issueForm = useForm({
     reason: '',
-    // What is still held after earlier refunds — the most that can go back.
-    amount: Math.max(0, props.order.paid_cents - props.order.refunded_cents) / 100,
-    // How many of each line came back; only these go back on the shelf.
-    items: Object.fromEntries(props.order.items.map((item) => [item.id, item.returnable])) as Record<number, number>,
+    amount: 0,
+    items: {} as Record<number, number>,
     method: props.order.default_refund_method,
-    restock: true,
+    restock: false,
     reference: '',
 });
 
@@ -188,12 +181,13 @@ const issueOpen = ref(false);
 
 /** Opens the return form starting from the order as it is now (a payment may have landed since the page loaded). */
 function openIssue(): void {
-    issueForm.amount = Math.max(0, props.order.paid_cents - props.order.refunded_cents) / 100;
-    issueForm.items = Object.fromEntries(props.order.items.map((item) => [item.id, item.returnable]));
+    issueForm.restock = false;
     issueOpen.value = true;
 }
 
 function submitIssue(): void {
+    issueForm.amount = issueForm.restock ? heldCents.value / 100 : 0;
+    issueForm.items = issueForm.restock ? Object.fromEntries(props.order.items.map((item) => [item.id, item.returnable])) : {};
     issueForm.post(route('admin.orders.issue', props.order.id), {
         preserveScroll: true,
         onSuccess: () => {
@@ -400,19 +394,12 @@ function addressRows(address: Address): { label: string; value: string }[] {
                 <!-- Every payment and refund posts to the treasury, so what is
                      recorded here is what the accounts will show. -->
                 <Text type="secondary" class="mb-3 block !text-xs">{{ t('admin.orders.treasury_hint') }}</Text>
-                <form v-if="order.can.manage" @submit.prevent="submitPayment">
+                <form v-if="order.can.manage && order.outstanding_cents > 0" @submit.prevent="submitPayment">
                     <Field :label="t('admin.orders.record_payment')" :error="paymentForm.errors.amount">
-                        <InputNumber
-                            v-model:value="paymentForm.amount"
-                            :min="0.01"
-                            :step="0.01"
-                            :placeholder="t('admin.common.amount')"
-                            class="w-full"
-                        />
+                        <Input v-model:value="paymentForm.reference" :placeholder="t('admin.common.reference_optional')" dir="ltr" />
                     </Field>
-                    <Input v-model:value="paymentForm.reference" :placeholder="t('admin.common.reference_optional')" dir="ltr" class="mb-4" />
                     <Button html-type="submit" block :loading="paymentForm.processing">
-                        {{ t('admin.orders.record_payment') }}
+                        {{ t('admin.orders.record_full_payment', { amount: order.outstanding_formatted }) }}
                     </Button>
                 </form>
             </Card>
@@ -435,20 +422,20 @@ function addressRows(address: Address): { label: string; value: string }[] {
                         <Field :label="t('admin.orders.issue_reason')" :error="issueForm.errors.reason">
                             <Textarea v-model:value="issueForm.reason" :rows="2" />
                         </Field>
-                        <Field :label="t('admin.orders.refund_amount')" :hint="t('admin.orders.refund_amount_hint')" :error="issueForm.errors.amount">
-                            <InputNumber v-model:value="issueForm.amount" :min="0" :step="0.01" class="w-full" />
-                        </Field>
-                        <Field :label="t('admin.common.method')" :error="issueForm.errors.method">
-                            <AdminSelect v-model="issueForm.method" :options="refundMethods" />
-                        </Field>
-                        <Input v-model:value="issueForm.reference" :placeholder="t('admin.common.reference_optional')" dir="ltr" class="mb-3" />
-                        <Checkbox v-model:checked="issueForm.restock" class="mb-2">{{ t('admin.orders.restock_items') }}</Checkbox>
-                        <div v-if="issueForm.restock" class="mb-4 space-y-2">
-                            <Text type="secondary" class="block !text-xs">{{ t('admin.orders.items_back') }}</Text>
+                        <Checkbox v-model:checked="issueForm.restock" class="mb-2">{{ t('admin.orders.full_return') }}</Checkbox>
+                        <Text v-if="!issueForm.restock" type="secondary" class="mb-3 block !text-xs">{{ t('admin.orders.log_only_hint') }}</Text>
+                        <div v-else class="mb-4 space-y-2">
+                            <Text type="secondary" class="block !text-xs">{{ t('admin.orders.items_back_all') }}</Text>
                             <div v-for="item in order.items" :key="item.id" class="flex items-center justify-between gap-2">
                                 <Text class="!text-sm">{{ item.name }}</Text>
-                                <InputNumber v-model:value="issueForm.items[item.id]" :min="0" :max="item.returnable" :precision="0" class="!w-20" />
+                                <Text class="!text-sm">× {{ item.returnable }}</Text>
                             </div>
+                            <Text v-if="issueForm.errors.items" type="danger" class="block !text-xs">{{ issueForm.errors.items }}</Text>
+                            <Text v-if="issueForm.errors.amount" type="danger" class="block !text-xs">{{ issueForm.errors.amount }}</Text>
+                            <Field :label="t('admin.common.method')" :error="issueForm.errors.method">
+                                <AdminSelect v-model="issueForm.method" :options="refundMethods" />
+                            </Field>
+                            <Input v-model:value="issueForm.reference" :placeholder="t('admin.common.reference_optional')" dir="ltr" />
                         </div>
                         <div class="flex gap-2">
                             <Button
@@ -466,17 +453,15 @@ function addressRows(address: Address): { label: string; value: string }[] {
                 </template>
 
                 <!-- An order already sent back can still need money returned. -->
-                <form v-else-if="order.can.refund" @submit.prevent="submitRefund">
-                    <Field :label="t('admin.common.amount')" :error="refundForm.errors.amount">
-                        <InputNumber v-model:value="refundForm.amount" :min="0.01" :step="0.01" class="w-full" />
-                    </Field>
+                <form v-else-if="order.can.refund && heldCents > 0" @submit.prevent="submitRefund">
+                    <Text v-if="refundForm.errors.amount" type="danger" class="mb-2 block !text-xs">{{ refundForm.errors.amount }}</Text>
                     <Field :label="t('admin.common.method')" :error="refundForm.errors.method">
                         <AdminSelect v-model="refundForm.method" :options="refundMethods" />
                     </Field>
                     <Input v-model:value="refundForm.reference" :placeholder="t('admin.common.reference_optional')" dir="ltr" class="mb-3" />
                     <Input v-model:value="refundForm.reason" :placeholder="t('admin.common.reason_optional')" class="mb-4" />
                     <Button html-type="submit" block :loading="refundForm.processing">
-                        {{ t('admin.orders.issue_refund') }}
+                        {{ t('admin.orders.refund_everything') }}
                     </Button>
                 </form>
             </Card>

@@ -132,8 +132,10 @@ it('A6: logging a problem twice on the same order does not restock twice', funct
     $order = auditOrder(customer(), $product, 2);
     $order = app(UpdateOrderStatus::class)->handle($order, OrderStatus::Completed);
 
-    app(ResolveOrderIssue::class)->handle($order, 'scratched', refundCents: 0, method: RefundMethod::Cash, restock: true);
-    app(ResolveOrderIssue::class)->handle($order->refresh(), 'scratched again', refundCents: 0, method: RefundMethod::Cash, restock: true);
+    // A return is whole and refunded in full (2026-10-10); a second one finds nothing left to take back.
+    app(ResolveOrderIssue::class)->handle($order, 'scratched', refundCents: $order->total_cents, method: RefundMethod::Cash, restock: true);
+    expect(fn () => app(ResolveOrderIssue::class)->handle($order->refresh(), 'scratched again', refundCents: $order->total_cents, method: RefundMethod::Cash, restock: true))
+        ->toThrow(ValidationException::class);
 
     // 2 units sold, at most 2 can ever come back.
     expect(StockLevel::query()->sole()->quantity)->toBeLessThanOrEqual(10);

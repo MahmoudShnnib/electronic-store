@@ -58,16 +58,19 @@ final class CancelOrder
                     quantityChange: $item->quantity,
                     reservedChange: -$item->quantity,
                     reference: $order,
+                    // Back at the costs the line took, in their old place in the FIFO queue.
+                    costLayers: $item->cost_layers,
                     reason: $reason,
                     userId: $userId,
                 );
             }
 
-            $redemption = CouponRedemption::query()->where('order_id', $order->id)->first();
+            // Kept as history, marked released: it no longer counts against the coupon's limits.
+            $redemption = CouponRedemption::query()->where('order_id', $order->id)->whereNull('released_at')->first();
 
             if ($redemption !== null) {
                 Coupon::whereKey($redemption->coupon_id)->where('used_count', '>', 0)->decrement('used_count');
-                $redemption->delete();
+                $redemption->update(['released_at' => now()]);
             }
 
             $order->update([

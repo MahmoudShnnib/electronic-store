@@ -10,7 +10,6 @@ use App\Actions\Orders\ResolveOrderIssue;
 use App\Actions\Pos\CloseShift;
 use App\Actions\Pos\CompleteSale;
 use App\Actions\Pos\OpenShift;
-use App\Actions\Refunds\CreateRefund;
 use App\Enums\CouponType;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
@@ -165,16 +164,17 @@ it('POS-8: bank-transfer sales never enter the drawer and bank to the bank accou
         ->and(TreasuryTransaction::query()->where('account', TreasuryAccount::Bank)->sum('amount_cents'))->toEqual(9_000);
 });
 
-it('POS-9: a partial cash refund during the shift lowers the expected drawer exactly once', function (): void {
+it('POS-9: a cash refund during the shift lowers the expected drawer exactly once', function (): void {
     $product = Product::factory()->create(['price_cents' => 10_000]);
     giveStock($product, 3);
     $shift = pgaShift(staff('cashier'), 5_000);
     $order = pgaSale($shift, [['product_id' => $product->id, 'quantity' => 2]]);
 
-    app(CreateRefund::class)->handle($order, 3_000, RefundMethod::Cash);
+    // Returns are whole since 2026-10-10: both units back, all 200 handed out of the drawer.
+    app(ResolveOrderIssue::class)->handle($order, 'returned', 20_000, RefundMethod::Cash);
 
-    $closed = app(CloseShift::class)->handle($shift, 22_000);
-    expect($closed->expected_cash_cents)->toBe(22_000)->and($closed->difference_cents)->toBe(0);
+    $closed = app(CloseShift::class)->handle($shift, 5_000);
+    expect($closed->expected_cash_cents)->toBe(5_000)->and($closed->difference_cents)->toBe(0);
 });
 
 it('POS-10: a counter return restocks the shift warehouse, not the default one', function (): void {
@@ -183,7 +183,8 @@ it('POS-10: a counter return restocks the shift warehouse, not the default one',
     giveStock($product, 1, null, $branch);
     $order = pgaSale(pgaShift(staff('cashier'), 0, $branch), [['product_id' => $product->id, 'quantity' => 1]]);
 
-    app(ResolveOrderIssue::class)->handle($order->refresh(), 'Wrong item', 0, RefundMethod::Cash, true);
+    // A return always refunds in full (2026-10-10).
+    app(ResolveOrderIssue::class)->handle($order->refresh(), 'Wrong item', $order->total_cents, RefundMethod::Cash, true);
 
     expect(StockLevel::query()->where('warehouse_id', $branch->id)->where('product_id', $product->id)->value('quantity'))->toBe(1);
 });

@@ -25,6 +25,8 @@ it('passes on a consistent shop and flags each kind of drift', function (string 
     'shelf off the ledger' => ['S1', fn () => DB::table('stock_levels')->increment('quantity')],
     'negative stock' => ['S3', fn () => DB::table('stock_levels')->update(['damaged' => -1])],
     'damaged off the ledger' => ['S9', fn () => DB::table('stock_levels')->increment('damaged')],
+    'shelf off its cost batches' => ['S10', fn () => DB::table('stock_batches')->where('quantity_remaining', '>', 0)->limit(1)->decrement('quantity_remaining')],
+    'line cost off its slices' => ['S11', fn (Order $o) => DB::table('order_items')->where('order_id', $o->id)->increment('cost_cents')],
     'reservation drift' => ['S4', fn () => DB::table('stock_levels')->increment('reserved')],
     'line total wrong' => ['O1', fn (Order $o) => DB::table('order_items')->where('order_id', $o->id)->increment('line_total_cents')],
     'order total wrong' => ['O2', fn (Order $o) => DB::table('orders')->where('id', $o->id)->increment('total_cents')],

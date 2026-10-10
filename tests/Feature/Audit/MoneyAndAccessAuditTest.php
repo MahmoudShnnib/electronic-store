@@ -8,12 +8,12 @@
 use App\Actions\Cart\AddToCart;
 use App\Actions\Checkout\PlaceOrder;
 use App\Actions\Orders\CancelOrder;
+use App\Actions\Orders\ResolveOrderIssue;
 use App\Actions\Orders\UpdateOrderStatus;
 use App\Actions\Payments\ConfirmPayment;
 use App\Actions\Pos\CloseShift;
 use App\Actions\Pos\CompleteSale;
 use App\Actions\Pos\OpenShift;
-use App\Actions\Refunds\CreateRefund;
 use App\DTOs\CheckoutData;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
@@ -45,7 +45,8 @@ it('M1: a cash refund of a sale from an earlier (closed) shift leaves the treasu
 
     $shiftB = app(OpenShift::class)->handle($cashier, defaultWarehouse(), 0);
     // Customer brings it back during shift B; cashier hands 100 LYD out of the drawer.
-    app(CreateRefund::class)->handle($order, 10_000, RefundMethod::Cash, null, 'faulty', $cashier->id);
+    // A delivered sale is refunded with its goods (whole returns, 2026-10-10).
+    app(ResolveOrderIssue::class)->handle($order, 'faulty', 10_000, RefundMethod::Cash, userId: $cashier->id);
     // Drawer B opened with a 100 float and paid the refund out of it, so it now holds 0.
     $shiftB->update(['opening_float_cents' => 10_000]);
     app(CloseShift::class)->handle($shiftB->refresh(), 0);

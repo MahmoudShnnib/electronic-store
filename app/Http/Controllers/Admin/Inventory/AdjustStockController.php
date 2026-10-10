@@ -12,6 +12,7 @@ use App\Http\Requests\Admin\Inventory\AdjustStockRequest;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Warehouse;
+use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controllers\HasMiddleware;
 
@@ -37,6 +38,7 @@ final class AdjustStockController extends Controller implements HasMiddleware
                 $validated['reason'],
                 $request->user()->id,
                 (bool) ($validated['from_damaged'] ?? false),
+                isset($validated['unit_cost']) ? Money::fromDecimal($validated['unit_cost']) : null,
             );
         } catch (InsufficientStockException $e) {
             return back()->withErrors(['quantity_change' => $e->getMessage()]);

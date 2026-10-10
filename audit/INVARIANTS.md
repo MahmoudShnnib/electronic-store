@@ -15,7 +15,7 @@ dashboard and sales report already use). Money is integer hundredths.
   `quantity_before` = previous row's `quantity_after`, and `before + change = after`.
   (This is "on hand = received − sold + returned − written off ± adjustments": every one of
   those is a ledger type.)
-- **S2 Movement signs.** A movement's sign matches its type: `customer_order`,
+- **S2 Movement signs.** A movement's sign matches its type: `customer_order`, `lost`,
   `damaged`, `manual_decrease`, `supplier_return`, `transfer_out` ≤ 0;
   `initial`, `purchase_receipt`, `order_cancellation`, `customer_return`,
   `manual_increase`, `transfer_in` ≥ 0; `correction` either way. No row has change 0
@@ -34,6 +34,13 @@ dashboard and sales report already use). Money is integer hundredths.
   `inventory_movements.damaged_change` (added during the audit, BUG 2). Rows written before
   that migration only carry the delta for `damaged` write-offs; older supplier returns from
   damaged can't be reconstructed.
+
+- **S10 FIFO batches = shelf.** For every stock row, Σ `stock_batches.quantity_remaining` =
+  max(0, `quantity`). Every unit on the shelf has a known purchase cost (BD2, 2026-10-10).
+  Reserved units already left their batches (their cost is on the order line), and so did
+  damaged ones when written off.
+- **S11 Order line cost slices.** Every order line's `cost_layers` add up to its `quantity`
+  and to its `cost_cents` (what the units taken from stock cost, oldest first).
 
 ## Orders & prices
 
@@ -88,8 +95,8 @@ dashboard and sales report already use). Money is integer hundredths.
 
 ## Coupons
 
-- **C1** `coupons.used_count` = number of redemptions, ≤ `usage_limit`; no redemption is
-  held by a cancelled order.
+- **C1** `coupons.used_count` = number of active (not released) redemptions, ≤ `usage_limit`;
+  no active redemption is held by a cancelled order (cancelling releases it — kept as history, BD7).
 
 ## 🔴 Unclear — Business Decision Required (not enforced, see MORNING_REVIEW.md)
 

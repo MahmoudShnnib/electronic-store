@@ -31,7 +31,8 @@ final class ResolveOrderIssueController extends Controller implements HasMiddlew
             reason: $validated['reason'],
             refundCents: $refundCents,
             method: RefundMethod::from($validated['method']),
-            restock: (bool) ($validated['restock'] ?? true),
+            // Off unless asked: a full return is an explicit choice, a reason alone is just logged.
+            restock: (bool) ($validated['restock'] ?? false),
             reference: $validated['reference'] ?? null,
             userId: $request->user()->id,
             restockQuantities: isset($validated['items']) ? array_map('intval', $validated['items']) : null,

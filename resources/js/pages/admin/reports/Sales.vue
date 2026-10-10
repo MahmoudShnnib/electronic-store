@@ -31,6 +31,7 @@ const props = defineProps<{
         refunded_formatted: string;
         new_customers: number;
     };
+    writeOffs: { total_formatted: string; rows: { type: string; label: string; units: number; cost_formatted: string }[] };
     daily: { day: string; orders: number; revenue: number }[];
     byProduct: { product_id: number | null; name: string; sku: string; units: number; revenue_formatted: string }[];
     byCategory: { name: string; units: number; revenue_formatted: string; revenue: number }[];
@@ -187,6 +188,13 @@ function exportUrl(report: string): string {
             :hint="t('admin.reports.cost', { amount: summary.estimated_cost_formatted })"
         />
         <StatCard :label="t('admin.common.refunded')" :value="summary.refunded_formatted" tone="warning" />
+        <StatCard
+            :label="t('admin.reports.written_off')"
+            :value="writeOffs.total_formatted"
+            :help="t('admin.help.written_off')"
+            tone="warning"
+            :hint="writeOffs.rows.map((r) => `${r.label}: ${r.units} · ${r.cost_formatted}`).join(' — ')"
+        />
         <StatCard :label="t('admin.reports.new_customers')" :value="summary.new_customers" />
     </div>
 

@@ -57,55 +57,18 @@ it('H4: a full refund gives the money back, restocks, and nets the sale out ever
     ]);
 });
 
-it('H5: a partial refund of one item of several only nets out that item', function (): void {
+it('H5: a partial refund of one item of several is refused and nothing moves', function (): void {
     $order = finBuy($this, $this->buyer, [[$this->phone, 1], [$this->cable, 2]]);
     finComplete($this, $order);
     $before = finSnapshot($this, $this->admin);
 
-    finReturn($this, $order, 5_000, ['CABLE' => 1]);
+    // Owner decision 2026-10-10 (BD1/BD6): only whole returns — everything back, everything refunded.
+    $items = $order->items()->get()->mapWithKeys(fn ($i) => [$i->id => $i->sku === 'CABLE' ? 1 : 0])->all();
+    $this->actingAs($this->admin)->post("/admin/orders/{$order->id}/issue", [
+        'reason' => 'Customer returned goods', 'amount' => 50, 'method' => 'cash', 'restock' => true, 'items' => $items,
+    ])->assertSessionHasErrors();
 
-    finExpectChanges($before, finSnapshot($this, $this->admin), [
-        'stock.CABLE@MAIN.quantity' => 49,
-        'store.CABLE.available' => 49,
-        // 9 phones + 49 cables + 1 mug on hand.
-        'report.valuation.units' => 59,
-        'report.valuation.cost_value_formatted' => finFmt(9 * 70_000 + 49 * 2_000 + 500),
-        'report.valuation.retail_value_formatted' => finFmt(9 * 100_000 + 49 * 5_000 + 2_000),
-        'ledger.customer_return.rows' => 1,
-        'ledger.customer_return.units' => 1,
-        "order.{$order->number}.status" => 'refunded',
-        "order.{$order->number}.payment_status" => 'partially_refunded',
-        "adminorder.{$order->number}.refunded" => finFmt(5_000),
-        'money.refunds.rows' => 1,
-        'money.refunds.sum' => 5_000,
-        'treasury.cash' => 105_000,
-        'treasury.rows' => 2,
-        'report.summary.revenue_formatted' => finFmt(105_000),
-        'report.summary.avg_order_formatted' => finFmt(105_000),
-        'report.summary.estimated_cost_formatted' => finFmt(72_000),
-        'report.summary.estimated_profit_formatted' => finFmt(33_000),
-        'report.summary.refunded_formatted' => finFmt(5_000),
-        // 🔴 Business decision (MORNING_REVIEW): the per-product breakdown drops the whole
-        // order once any refund lands, so the phone and the kept cable vanish from it.
-        'report.product.PHONE.units' => null,
-        'report.product.PHONE.revenue' => null,
-        'report.product.CABLE.units' => null,
-        'report.product.CABLE.revenue' => null,
-        'report.status.completed.orders' => null,
-        'report.status.completed.revenue' => null,
-        'report.status.refunded.orders' => 1,
-        'report.status.refunded.revenue' => finFmt(105_000),
-        'report.method.cod.revenue' => finFmt(105_000),
-        'dash.revenue_today' => finFmt(105_000),
-        'dash.revenue_month' => finFmt(105_000),
-        'dash.orders_completed' => 0,
-        'dash.orders_refunded' => 1,
-        // Same rule as the report's product breakdown.
-        'dash.best.Fin Phone.sold' => null,
-        'dash.best.Fin Phone.revenue' => null,
-        'dash.best.Fin Cable.sold' => null,
-        'dash.best.Fin Cable.revenue' => null,
-    ]);
+    finExpectChanges($before, finSnapshot($this, $this->admin), []);
 });
 
 it('H6: a refunded unit can be bought again and the refunded order stays as it was', function (): void {
@@ -123,29 +86,16 @@ it('H6: a refunded unit can be bought again and the refunded order stays as it w
         'store.MUG.available' => 0,
         'ledger.customer_order.rows' => 2,
         'ledger.customer_order.units' => -2,
-        'report.summary.orders' => 2,
-        'report.summary.revenue_formatted' => finFmt(2_000),
-        'report.summary.avg_order_formatted' => finFmt(1_000),
-        'report.summary.estimated_cost_formatted' => finFmt(500),
-        'report.summary.estimated_profit_formatted' => finFmt(1_500),
         'report.summary.new_customers' => 2,
         'report.invoices.invoices' => 2,
         'report.invoices.invoiced_formatted' => finFmt(4_000),
         'report.invoices.outstanding_formatted' => finFmt(2_000),
-        'report.product.MUG.units' => 1,
-        'report.product.MUG.revenue' => finFmt(2_000),
         'report.status.in_progress.orders' => 1,
         'report.status.in_progress.revenue' => finFmt(2_000),
-        'report.method.cod.orders' => 2,
-        'report.method.cod.revenue' => finFmt(2_000),
-        'dash.revenue_today' => finFmt(2_000),
-        'dash.revenue_month' => finFmt(2_000),
         'dash.orders_total' => 2,
         'dash.orders_in_progress' => 1,
         'dash.customers_total' => 2,
         'dash.out_of_stock' => 1,
         'dash.low_stock' => 0,
-        'dash.best.Fin Mug.sold' => 1,
-        'dash.best.Fin Mug.revenue' => finFmt(2_000),
     ]);
 });

@@ -38,7 +38,8 @@ final class RegisterController extends Controller implements HasMiddleware
         }
 
         return Inertia::render('admin/pos/Register', [
-            ...$this->query->registerProps($shift),
+            // Owner rule (2026-10-10): admins see what the stock cost them; cashiers never get it.
+            ...$this->query->registerProps($shift, withCost: $request->user()->hasAnyRole(['admin', 'super_admin'])),
             // Present for exactly one render, straight after a sale: the slip to
             // print and the figures to confirm. Null on every other visit.
             'justSold' => $request->session()->get('justSold'),

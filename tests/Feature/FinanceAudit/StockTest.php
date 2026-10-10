@@ -52,10 +52,10 @@ it('H8: receiving stock while orders are pending leaves their reservations alone
         'store.PHONE.available' => 13,
         'ledger.purchase_receipt.rows' => 1,
         'ledger.purchase_receipt.units' => 5,
-        // 13 on the shelf + 2 reserved = 15 phones on hand. Valued at the product's cost
-        // price (700), not the 650 paid on this PO — see BD2 in MORNING_REVIEW.
+        // 13 on the shelf + 2 reserved = 15 phones on hand: the 10 older ones at 700, the
+        // 5 just received at the 650 paid on this PO (FIFO batches, BD2).
         'report.valuation.units' => 66,
-        'report.valuation.cost_value_formatted' => finFmt(15 * 70_000 + 50 * 2_000 + 500),
+        'report.valuation.cost_value_formatted' => finFmt(10 * 70_000 + 5 * 65_000 + 50 * 2_000 + 500),
         'report.valuation.retail_value_formatted' => finFmt(15 * 100_000 + 50 * 5_000 + 2_000),
     ]);
 
@@ -79,6 +79,7 @@ it('H13: a damaged write-off removes sellable stock and value, but is not a sale
         'store.PHONE.available' => 8,
         'ledger.damaged.rows' => 1,
         'ledger.damaged.units' => -2,
+        'report.writeoffs.total' => finFmt(2 * 70_000), // what the damaged phones cost (FIFO)
         'report.valuation.units' => 59,
         'report.valuation.cost_value_formatted' => finFmt(8 * 70_000 + 50 * 2_000 + 500),
         'report.valuation.retail_value_formatted' => finFmt(8 * 100_000 + 50 * 5_000 + 2_000),
@@ -95,6 +96,7 @@ it('H13: a stolen unit is written off as a manual decrease with its reason', fun
         'store.PHONE.available' => 9,
         'ledger.manual_decrease.rows' => 1,
         'ledger.manual_decrease.units' => -1,
+        'report.writeoffs.total' => finFmt(70_000),
         'report.valuation.units' => 60,
         'report.valuation.cost_value_formatted' => finFmt(9 * 70_000 + 50 * 2_000 + 500),
         'report.valuation.retail_value_formatted' => finFmt(9 * 100_000 + 50 * 5_000 + 2_000),
@@ -115,6 +117,7 @@ it('H13: writing off the unit sitting in a cart makes that checkout fail cleanly
         'store.MUG.available' => 0,
         'ledger.damaged.rows' => 1,
         'ledger.damaged.units' => -1,
+        'report.writeoffs.total' => finFmt(500),
         'report.valuation.units' => 60,
         'report.valuation.cost_value_formatted' => finFmt(10 * 70_000 + 50 * 2_000),
         'report.valuation.retail_value_formatted' => finFmt(10 * 100_000 + 50 * 5_000),
