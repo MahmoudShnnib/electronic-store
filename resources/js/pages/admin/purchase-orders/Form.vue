@@ -134,7 +134,9 @@ function applySelection(item: ItemRow, encoded: string): void {
 
     if (product) {
         const variant = product.variants.find((v) => v.id === item.product_variant_id);
-        item.unit_cost = variant?.cost_price ?? product.cost_price;
+        // A variant saved without its own cost (0) uses the product's, like everywhere else:
+        // the PO line price becomes the cost of the received units.
+        item.unit_cost = variant?.cost_price || product.cost_price;
     }
 }
 
