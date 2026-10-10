@@ -146,12 +146,14 @@ it('F6: refunds beyond what was paid, twice, on unpaid or cancelled orders are r
     $this->actingAs($this->admin)->post("/admin/orders/{$paid->id}/refunds", ['amount' => 10, 'method' => 'store_credit'])->assertSessionHasErrors('method');
     finExpectChanges($before, finSnapshot($this, $this->admin), []);
 
-    // Refund twice: the second can only take what is left.
-    $refund($paid, 600)->assertSessionHasNoErrors();
+    // Refund twice: a delivered order comes back whole once (return form); nothing is left after.
+    $refund($paid, 1000)->assertSessionHasErrors('amount'); // refund form: goods must come back
+    finReturn($this, $paid, 100_000, ['PHONE' => 1]);
     $afterFirst = finSnapshot($this, $this->admin);
-    $refund($paid, 600)->assertSessionHasErrors('amount');
+    $refund($paid, 1000)->assertSessionHasErrors('amount');
+    $this->actingAs($this->admin)->post("/admin/orders/{$paid->id}/issue", ['reason' => 'again', 'amount' => 1000, 'method' => 'cash', 'restock' => true])
+        ->assertSessionHasErrors();
     finExpectChanges($afterFirst, finSnapshot($this, $this->admin), []);
-    $refund($paid, 400)->assertSessionHasNoErrors();
     expect($paid->refresh()->payment_status->value)->toBe('refunded')
         ->and(auditFailures())->toBe([]);
 });

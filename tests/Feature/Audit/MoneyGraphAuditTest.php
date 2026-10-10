@@ -179,10 +179,11 @@ it('MON-7b: refunding the same order again and again never gives back more than 
     $order = mgOrder(customer(), [[$p, 1]]);
     app(UpdateOrderStatus::class)->handle($order, OrderStatus::Completed); // 100 collected
 
-    app(CreateRefund::class)->handle($order->refresh(), 6_000, RefundMethod::Cash);
-    expect(fn () => app(CreateRefund::class)->handle($order->refresh(), 6_000, RefundMethod::Cash))->toThrow(ValidationException::class);
-    expect(fn () => app(ResolveOrderIssue::class)->handle($order->refresh(), 'again', 6_000, RefundMethod::Cash))->toThrow(ValidationException::class);
-    app(CreateRefund::class)->handle($order->refresh(), 4_000, RefundMethod::Cash);
+    // Whole returns only since 2026-10-10: a part refund is refused, the full return goes through once.
+    expect(fn () => app(ResolveOrderIssue::class)->handle($order->refresh(), 'part', 6_000, RefundMethod::Cash))->toThrow(ValidationException::class);
+    expect(fn () => app(CreateRefund::class)->handle($order->refresh(), 10_000, RefundMethod::Cash))->toThrow(ValidationException::class); // delivered: goods must come back
+    app(ResolveOrderIssue::class)->handle($order->refresh(), 'returned', 10_000, RefundMethod::Cash);
+    expect(fn () => app(ResolveOrderIssue::class)->handle($order->refresh(), 'again', 10_000, RefundMethod::Cash))->toThrow(ValidationException::class);
     expect(fn () => app(CreateRefund::class)->handle($order->refresh(), 1, RefundMethod::Cash))->toThrow(ValidationException::class);
 
     expect(mgNetCollected($order->refresh()))->toBe(0)->and(mgLedgerForOrder($order))->toBe(0);
@@ -213,12 +214,12 @@ it('MON-10 (check): every payment and refund posts exactly once to the right acc
     $bank = mgOrder(customer(), [[$p, 1]], PaymentMethod::BankTransfer);
     app(ConfirmPayment::class)->handle($cod, 10_000);
     app(ConfirmPayment::class)->handle($bank, 10_000, 'T');
-    app(CreateRefund::class)->handle($cod->refresh(), 2_000, RefundMethod::Cash);
-    app(CreateRefund::class)->handle($bank->refresh(), 3_000, RefundMethod::BankTransfer);
+    // Refunds are whole since 2026-10-10: the cash one is given back, the bank one kept.
+    app(CreateRefund::class)->handle($cod->refresh(), 10_000, RefundMethod::Cash);
 
     $b = app(TreasuryQueryService::class)->balances();
-    expect($b['cash'])->toBe(8_000)->and($b['bank'])->toBe(7_000)
-        ->and(TreasuryTransaction::count())->toBe(4);
+    expect($b['cash'])->toBe(0)->and($b['bank'])->toBe(10_000)
+        ->and(TreasuryTransaction::count())->toBe(3);
 });
 
 // ------------------------------------------------------------- manual orders
@@ -272,7 +273,7 @@ it('MON-14: a fully refunded (still completed) order does not show as profit in 
     $p = mgProduct(10_000, cost: 0);
     $order = mgOrder(customer(), [[$p, 1]]);
     app(UpdateOrderStatus::class)->handle($order, OrderStatus::Completed);
-    app(CreateRefund::class)->handle($order->refresh(), 10_000, RefundMethod::Cash); // refund page path
+    app(ResolveOrderIssue::class)->handle($order->refresh(), 'returned', 10_000, RefundMethod::Cash); // the only path since 2026-10-10
 
     [$from, $to] = mgWholeRange();
     $s = app(ReportService::class)->salesSummary($from, $to);
@@ -281,17 +282,18 @@ it('MON-14: a fully refunded (still completed) order does not show as profit in 
         ->and($s['estimated_profit_formatted'])->toBe(Money::format(0), 'profit='.$s['estimated_profit_formatted'].' revenue='.$s['revenue_formatted']);
 });
 
-it('MON-15: a small partial refund via "resolve issue" does not wipe the whole order out of revenue', function (): void {
+it('MON-15: a small partial refund via "resolve issue" is refused and leaves the sale in revenue', function (): void {
     $p = mgProduct(100_000);
     $order = mgOrder(customer(), [[$p, 1]]);
     app(UpdateOrderStatus::class)->handle($order, OrderStatus::Completed); // 1000 collected
-    app(ResolveOrderIssue::class)->handle($order->refresh(), 'scratched box', 1_000, RefundMethod::Cash, restock: false);
+    // Part refunds are refused since 2026-10-10 (owner decision): goodwill money isn't given back.
+    expect(fn () => app(ResolveOrderIssue::class)->handle($order->refresh(), 'scratched box', 1_000, RefundMethod::Cash, restock: false))
+        ->toThrow(ValidationException::class);
 
     [$from, $to] = mgWholeRange();
     $revenue = app(ReportService::class)->salesSummary($from, $to)['revenue_formatted'];
 
-    // Either gross (1000, with the 10 refund shown separately) or net (990) — never 0.
-    expect($revenue)->toBeIn([Money::format(100_000), Money::format(99_000)]);
+    expect($revenue)->toBe(Money::format(100_000));
 });
 
 it('MON-16: invoice report "outstanding" does not bill cancelled orders', function (): void {

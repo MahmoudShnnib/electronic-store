@@ -164,13 +164,18 @@ it('keeps everything in step through web checkout, completion, partial return an
     $phoneLine = $order->items()->where('product_id', $t->phone->id)->firstOrFail();
     qaSend($t, $t->admin, 'admin: cancel completed order', 'post', "/admin/orders/{$order->id}/status", ['status' => 'cancelled'], 'reject');
     qaSend($t, $t->admin, 'admin: refund more than paid', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => $order->total_cents / 100 + 1, 'method' => 'cash'], 'reject');
+    // Whole returns only (owner decision 2026-10-10): part of the order back is refused.
     qaSend($t, $t->admin, 'admin: return 1 phone + partial refund', 'post', "/admin/orders/{$order->id}/issue", [
         'reason' => 'Screen cracked', 'amount' => 900, 'method' => 'cash', 'restock' => true, 'items' => [$phoneLine->id => 1],
+    ], 'reject');
+    qaSend($t, $t->admin, 'admin: full return, full refund', 'post', "/admin/orders/{$order->id}/issue", [
+        'reason' => 'Screen cracked', 'amount' => $order->total_cents / 100, 'method' => 'cash', 'restock' => true,
+        'items' => $order->items()->pluck('quantity', 'id')->all(),
     ]);
-    expect(qaQty($t->phone, null, $t->main))->toBe(9);
+    expect(qaQty($t->phone, null, $t->main))->toBe(10);
 
     qaSend($t, $t->admin, 'admin: second return on refunded order', 'post', "/admin/orders/{$order->id}/issue", ['reason' => 'again', 'amount' => 0, 'method' => 'cash', 'restock' => true], 'reject');
-    qaSend($t, $t->admin, 'admin: top-up refund on refunded order', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 50, 'method' => 'cash']);
+    qaSend($t, $t->admin, 'admin: top-up refund on refunded order', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 50, 'method' => 'cash'], 'reject');
 });
 
 it('keeps everything in step when a refund is issued straight on a completed order', function (): void {
@@ -179,8 +184,11 @@ it('keeps everything in step when a refund is issued straight on a completed ord
     qaSend($t, $t->buyer, 'checkout', 'post', '/checkout', qaCheckout());
     $order = Order::query()->latest('id')->firstOrFail();
     qaSend($t, $t->admin, 'complete', 'post', "/admin/orders/{$order->id}/status", ['status' => 'completed']);
-    // The refund screen on the order page, not the return button.
-    qaSend($t, $t->admin, 'direct full refund on completed order', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 100, 'method' => 'cash']);
+    // The refund screen can't refund a delivered order (2026-10-10): the goods must come back.
+    qaSend($t, $t->admin, 'direct full refund on completed order', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 1000, 'method' => 'cash'], 'reject');
+    qaSend($t, $t->admin, 'full return through the return form', 'post', "/admin/orders/{$order->id}/issue", [
+        'reason' => 'Changed mind', 'amount' => 1000, 'method' => 'cash', 'restock' => true,
+    ]);
 });
 
 it('keeps everything in step for bank-transfer manual orders: deposit, refund, cancel', function (): void {
@@ -300,11 +308,12 @@ it('keeps the till, treasury and refunds in step through a POS shift', function 
     qaSend($t, $t->admin, 'discount above total', 'post', '/admin/pos/sales', ['items' => [['product_id' => $t->cable->id, 'quantity' => 1]], 'payment_method' => 'cash', 'discount' => 999], 'reject');
 
     $sale = Order::query()->where('placed_via', 'pos')->latest('id')->firstOrFail();
-    qaSend($t, $t->admin, 'return phone sold at till, cash back', 'post', "/admin/orders/{$sale->id}/issue", ['reason' => 'Changed mind', 'amount' => 100, 'method' => 'cash', 'restock' => true]);
+    // Returns are whole and refunded in full (2026-10-10).
+    qaSend($t, $t->admin, 'return phone sold at till, cash back', 'post', "/admin/orders/{$sale->id}/issue", ['reason' => 'Changed mind', 'amount' => 1000, 'method' => 'cash', 'restock' => true]);
 
     $shift = CashierShift::query()->latest('id')->firstOrFail();
     $expected = $shift->expectedCashCents();
-    expect($expected)->toBe(10_000 + 9_900 + 100_000 - 10_000);
+    expect($expected)->toBe(10_000 + 9_900 + 100_000 - 100_000);
     qaSend($t, $t->admin, 'close shift 2 LYD short', 'post', '/admin/pos/shifts/close', ['counted_cash' => ($expected - 200) / 100]);
     qaSend($t, $t->admin, 'close shift twice', 'post', '/admin/pos/shifts/close', ['counted_cash' => 0], 'reject');
 });
@@ -383,7 +392,7 @@ it('refuses LYD amounts it cannot store exactly, instead of rounding them', func
     qaSend($t, $t->admin, "payment amount '$typed'", 'post', "/admin/orders/{$order->id}/payments", ['amount' => $typed]);
 });
 
-it('agrees on revenue and cost across dashboard and reports after a partial return', function (): void {
+it('agrees on revenue and cost across dashboard and reports after a return', function (): void {
     $t = $this;
     qaSend($t, $t->buyer, 'cart: add phone', 'post', '/cart/items', ['product_id' => $t->phone->id, 'quantity' => 1]);
     qaSend($t, $t->buyer, 'cart: add cable', 'post', '/cart/items', ['product_id' => $t->cable->id, 'quantity' => 1]);
@@ -391,15 +400,19 @@ it('agrees on revenue and cost across dashboard and reports after a partial retu
     $order = Order::query()->latest('id')->firstOrFail();
     qaSend($t, $t->admin, 'complete', 'post', "/admin/orders/{$order->id}/status", ['status' => 'completed']);
     $cableLine = $order->items()->where('product_id', $t->cable->id)->firstOrFail();
+    // Only the cable back is a part return: refused since 2026-10-10. Everything back is taken.
     qaSend($t, $t->admin, 'return the cable, refund 50', 'post', "/admin/orders/{$order->id}/issue", [
         'reason' => 'Cable faulty', 'amount' => 50, 'method' => 'cash', 'restock' => true, 'items' => [$cableLine->id => 1],
+    ], 'reject');
+    qaSend($t, $t->admin, 'return everything, refund 1,050', 'post', "/admin/orders/{$order->id}/issue", [
+        'reason' => 'Cable faulty', 'amount' => 1050, 'method' => 'cash', 'restock' => true,
     ]);
 
-    // Kept: 1,050 paid - 50 back = 1,000 revenue; cost of the phone only.
+    // Nothing kept: no revenue, no cost.
     $summary = app(ReportService::class)->salesSummary(now()->subDay()->toImmutable(), now()->addDay()->toImmutable());
-    expect($summary['revenue_formatted'])->toContain('1,000.000')
-        ->and($summary['estimated_cost_formatted'])->toContain('700.000');
+    expect($summary['revenue_formatted'])->toBe(Money::format(0))
+        ->and($summary['estimated_cost_formatted'])->toBe(Money::format(0));
 
     $t->actingAs($t->admin)->get('/admin')->assertInertia(fn ($page) => $page
-        ->where('kpis.revenue_today', Money::format(100_000)));
+        ->where('kpis.revenue_today', Money::format(0)));
 });

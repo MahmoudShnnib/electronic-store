@@ -155,7 +155,7 @@ it('#6 the dashboard warns about cash-on-delivery orders waiting 3+ days, and ne
     expect($old->fresh()->status)->toBe(OrderStatus::InProgress);
 });
 
-it('#7 a partial return restocks only the items that came back (no ghost stock)', function (): void {
+it('#7 a partial return is refused; a full return restocks exactly what was sold (no ghost stock)', function (): void {
     $a = Product::factory()->create(['price_cents' => 1_000]);
     $b = Product::factory()->create(['price_cents' => 1_000]);
     giveStock($a, 10);
@@ -165,20 +165,27 @@ it('#7 a partial return restocks only the items that came back (no ghost stock)'
     $lineA = $order->items()->where('product_id', $a->id)->sole();
     $lineB = $order->items()->where('product_id', $b->id)->sole();
 
-    app(ResolveOrderIssue::class)->handle($order, 'one cracked', 1_000, RefundMethod::Cash, restockQuantities: [$lineA->id => 1, $lineB->id => 0]);
+    // Part returns are refused since 2026-10-10 (owner decision): nothing moves.
+    expect(fn () => app(ResolveOrderIssue::class)->handle($order, 'one cracked', 1_000, RefundMethod::Cash, restockQuantities: [$lineA->id => 1, $lineB->id => 0]))
+        ->toThrow(ValidationException::class);
+    expect((int) StockLevel::where('product_id', $a->id)->sum('quantity'))->toBe(7)
+        ->and((int) StockLevel::where('product_id', $b->id)->sum('quantity'))->toBe(8);
 
-    expect((int) StockLevel::where('product_id', $a->id)->sum('quantity'))->toBe(8)   // 10 − 3 + 1
-        ->and((int) StockLevel::where('product_id', $b->id)->sum('quantity'))->toBe(8); // 10 − 2, nothing back
+    app(ResolveOrderIssue::class)->handle($order->refresh(), 'all back', $order->total_cents, RefundMethod::Cash, restockQuantities: [$lineA->id => 3, $lineB->id => 2]);
+
+    expect((int) StockLevel::where('product_id', $a->id)->sum('quantity'))->toBe(10)
+        ->and((int) StockLevel::where('product_id', $b->id)->sum('quantity'))->toBe(10);
 });
 
-it('#8 the return form starts from what is still held after earlier refunds', function (): void {
+it('#8 the return form starts from what is held and what is still out', function (): void {
     $product = Product::factory()->create(['price_cents' => 10_000]);
     giveStock($product, 5);
     $order = app(UpdateOrderStatus::class)->handle(rfOrder(customer(), [[$product, 1]]), OrderStatus::Completed);
-    app(CreateRefund::class)->handle($order, 3_000, RefundMethod::Cash);
+    // No part refunds since 2026-10-10: the refund page can't take part of a delivered order back.
+    expect(fn () => app(CreateRefund::class)->handle($order, 3_000, RefundMethod::Cash))->toThrow(ValidationException::class);
 
     $this->actingAs(staff('admin'))->get(route('admin.orders.show', $order))
-        ->assertInertia(fn (AssertableInertia $page) => $page->where('order.paid_cents', 10_000)->where('order.refunded_cents', 3_000)
+        ->assertInertia(fn (AssertableInertia $page) => $page->where('order.paid_cents', 10_000)->where('order.refunded_cents', 0)
             ->where('order.items.0.returnable', 1));
 });
 
@@ -206,7 +213,8 @@ it('#11 the close-shift screen shows cash refunded from the drawer', function ()
     giveStock($product, 5);
     $shift = app(OpenShift::class)->handle($cashier, defaultWarehouse(), 0);
     $sale = app(CompleteSale::class)->handle($shift, [['product_id' => $product->id, 'quantity' => 1]]);
-    app(CreateRefund::class)->handle($sale, 2_000, RefundMethod::Cash, null, 'scratch', $cashier->id);
+    // A counter sale comes back whole and is refunded in full (2026-10-10).
+    app(ResolveOrderIssue::class)->handle($sale, 'scratch', $sale->total_cents, RefundMethod::Cash, userId: $cashier->id);
 
     $this->actingAs($cashier)->get(route('admin.pos.shifts.close'))
         ->assertInertia(fn (AssertableInertia $page) => $page->where('shift.has_cash_refunds', true));

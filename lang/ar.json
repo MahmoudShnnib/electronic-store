@@ -149,5 +149,9 @@
     "This product still has stock. Write it off, return it or sell it before deleting the product.": "لا يزال لهذا المنتج مخزون. اشطبه أو أرجعه للمورّد أو بِعه قبل حذف المنتج.",
     "Not deleted because they still have stock: :names": "لم تُحذف لأن لها مخزونًا: :names",
     "Order :number is already paid.": "الطلب :number مدفوع بالكامل.",
-    "Record the full amount owed (:owed). Part payments are not accepted.": "سجّل المبلغ المستحق كاملًا (:owed). لا يُقبل الدفع الجزئي."
+    "Record the full amount owed (:owed). Part payments are not accepted.": "سجّل المبلغ المستحق كاملًا (:owed). لا يُقبل الدفع الجزئي.",
+    "Refund the full amount held (:held). Part refunds are not accepted.": "أرجع المبلغ المحتجز كاملًا (:held). لا يُقبل الاسترجاع الجزئي.",
+    "Order :number was delivered: use the return form, which takes every item back with the refund.": "الطلب :number تم تسليمه: استخدم نموذج الإرجاع الذي يستعيد كل الأصناف مع المبلغ.",
+    "A refund needs the goods back: tick \"put items back\" and take every item.": "الاسترجاع يتطلب إعادة البضاعة: فعّل \"إعادة الأصناف للمخزون\" واستلم كل الأصناف.",
+    "Every item must come back. Part returns are not accepted.": "يجب إرجاع كل الأصناف. لا يُقبل الإرجاع الجزئي."
 }

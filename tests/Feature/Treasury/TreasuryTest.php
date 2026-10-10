@@ -109,7 +109,8 @@ it('takes the refund back out of the treasury', function (): void {
         reason: 'Screen arrived cracked',
         refundCents: 200_00,
         // No method given: it resolves to the channel the order was paid on.
-        restock: false,
+        // A refund comes with the goods (whole returns, 2026-10-10).
+        restock: true,
     );
 
     $out = TreasuryTransaction::query()->where('direction', TreasuryDirection::Out)->sole();

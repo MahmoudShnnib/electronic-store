@@ -38,6 +38,7 @@ final class CreateRefund
         ?string $reference = null,
         ?string $reason = null,
         ?int $createdBy = null,
+        bool $goodsReturned = false,
     ): Refund {
         if ($amountCents <= 0) {
             throw ValidationException::withMessages(['amount' => __('Refund amount must be positive.')]);
@@ -48,7 +49,7 @@ final class CreateRefund
             throw ValidationException::withMessages(['method' => __('Store credit is not available. Refund in cash or by bank transfer.')]);
         }
 
-        return DB::transaction(function () use ($order, $amountCents, $method, $reference, $reason, $createdBy): Refund {
+        return DB::transaction(function () use ($order, $amountCents, $method, $reference, $reason, $createdBy, $goodsReturned): Refund {
             /** @var Order $order */
             $order = Order::query()->lockForUpdate()->findOrFail($order->id);
 
@@ -69,6 +70,20 @@ final class CreateRefund
                     'amount' => __('Refund would exceed the amount actually paid (:paid).', [
                         'paid' => Money::format($paid, $order->currency),
                     ]),
+                ]);
+            }
+            // No part refunds (owner decision 2026-10-10): whatever is still held goes back at once.
+            if ($alreadyRefunded + $amountCents !== $paid) {
+                throw ValidationException::withMessages([
+                    'amount' => __('Refund the full amount held (:held). Part refunds are not accepted.', [
+                        'held' => Money::format($paid - $alreadyRefunded, $order->currency),
+                    ]),
+                ]);
+            }
+            // A delivered order is refunded only together with its goods (the return form).
+            if ($order->status === OrderStatus::Completed && ! $goodsReturned) {
+                throw ValidationException::withMessages([
+                    'amount' => __('Order :number was delivered: use the return form, which takes every item back with the refund.', ['number' => $order->number]),
                 ]);
             }
 
