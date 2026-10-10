@@ -33,6 +33,10 @@ it('H12: a prepaid order given back before delivery owes its full total again, t
         'treasury.cash' => 0,
         'treasury.rows' => 2,
         'report.summary.refunded_formatted' => finFmt(100_000),
+        // Paid, the phone counted as sold; refunded, it is the shop's stock again (FIFO cost).
+        'report.valuation.units' => 61,
+        'report.valuation.cost_value_formatted' => finFmt(10 * 70_000 + 50 * 2_000 + 500),
+        'report.valuation.retail_value_formatted' => finFmt(10 * 100_000 + 50 * 5_000 + 2_000),
         // Revenue is money received: the prepayment booked the sale, the refund takes it out.
         'report.summary.revenue_formatted' => finFmt(0),
         'report.summary.avg_order_formatted' => finFmt(0),

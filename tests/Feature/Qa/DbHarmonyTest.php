@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\Notification;
 require_once __DIR__.'/../../Qa/Harmony.php';
 
 const QA_TABLES = ['orders', 'order_items', 'payments', 'refunds', 'treasury_transactions', 'inventory_movements',
-    'stock_levels', 'coupon_redemptions', 'purchase_orders', 'purchase_order_items', 'stock_transfers', 'cashier_shifts', 'order_status_histories'];
+    'stock_levels', 'stock_batches', 'coupon_redemptions', 'purchase_orders', 'purchase_order_items', 'stock_transfers', 'cashier_shifts', 'order_status_histories'];
 
 function qaReport(string $kind, string $step, string $detail): void
 {

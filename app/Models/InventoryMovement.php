@@ -19,6 +19,14 @@ final class InventoryMovement extends Model
 
     public const UPDATED_AT = null;
 
+    /**
+     * Cost slices this movement took from or added to the FIFO batches. Set by
+     * RecordMovement for the caller; not stored.
+     *
+     * @var list<array{cost: int, qty: int, received_at: string}>
+     */
+    public array $costLayers = [];
+
     protected $fillable = [
         'warehouse_id', 'product_id', 'product_variant_id', 'type',
         'quantity_before', 'quantity_change', 'quantity_after', 'damaged_change',

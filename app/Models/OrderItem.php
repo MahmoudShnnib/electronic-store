@@ -14,7 +14,7 @@ final class OrderItem extends Model
 
     protected $fillable = [
         'order_id', 'product_id', 'product_variant_id', 'warehouse_id',
-        'product_name', 'variant_name', 'sku', 'unit_price_cents', 'unit_cost_cents', 'quantity',
+        'product_name', 'variant_name', 'sku', 'unit_price_cents', 'unit_cost_cents', 'cost_cents', 'cost_layers', 'quantity',
         'discount_cents', 'line_total_cents',
     ];
 
@@ -22,6 +22,9 @@ final class OrderItem extends Model
     {
         return [
             'unit_price_cents' => 'integer',
+            'unit_cost_cents' => 'integer',
+            'cost_cents' => 'integer',
+            'cost_layers' => 'array',
             'quantity' => 'integer',
             'discount_cents' => 'integer',
             'line_total_cents' => 'integer',

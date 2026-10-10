@@ -155,6 +155,8 @@ final class ResolveOrderIssue
                 quantityChange: $quantity,
                 reservedChange: 0,
                 reference: $order,
+                // Back at the costs the line took, in their old place in the FIFO queue.
+                costLayers: $item->cost_layers,
                 reason: $reason,
                 userId: $userId,
             );

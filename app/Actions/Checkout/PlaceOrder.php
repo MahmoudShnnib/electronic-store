@@ -20,6 +20,7 @@ use App\Models\StockLevel;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Notifications\OrderPlacedNotification;
+use App\Support\CostLayers;
 use App\Support\ReferenceNumber;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -137,7 +138,7 @@ final class PlaceOrder
 
                     // Throws InsufficientStockException when quantity would go
                     // negative — which aborts and rolls back the whole order.
-                    $this->recordMovement->handle(
+                    $movement = $this->recordMovement->handle(
                         type: MovementType::CustomerOrder,
                         warehouse: $lineWarehouse,
                         product: $line->product,
@@ -156,8 +157,12 @@ final class PlaceOrder
                         'variant_name' => $line->variant?->name,
                         'sku' => $line->sku(),
                         'unit_price_cents' => $line->unitPriceCents,
-                        // Cost at the moment of sale, for profit reports (a variant without its own cost uses the product's).
-                        'unit_cost_cents' => (int) ($line->variant?->cost_price_cents ?: $line->product->cost_price_cents),
+                        // What the units taken cost, oldest stock first (FIFO). The slices are
+                        // kept so a cancel or return puts the units back at those costs;
+                        // unit_cost_cents is a display average — profit uses cost_cents.
+                        'unit_cost_cents' => intdiv(CostLayers::total($movement->costLayers), $line->quantity),
+                        'cost_cents' => CostLayers::total($movement->costLayers),
+                        'cost_layers' => $movement->costLayers,
                         'quantity' => $line->quantity,
                         'discount_cents' => $line->lineDiscountCents + $manualShares[$index],
                         'line_total_cents' => $line->lineTotalCents - $manualShares[$index],

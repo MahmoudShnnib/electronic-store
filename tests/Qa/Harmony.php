@@ -36,6 +36,7 @@ function qaHarmony(): array
         ->get()->keyBy($key);
 
     $levels = DB::table('stock_levels')->get();
+    $batchUnits = DB::table('stock_batches')->groupBy('stock_level_id')->selectRaw('stock_level_id, SUM(quantity_remaining) AS q')->pluck('q', 'stock_level_id');
     $levelKeys = [];
     foreach ($levels as $s) {
         $k = $key($s);
@@ -57,6 +58,9 @@ function qaHarmony(): array
         }
         if ((int) $s->quantity < 0) {
             $v[] = "STOCK $k: negative quantity {$s->quantity}";
+        }
+        if ((int) ($batchUnits[$s->id] ?? 0) !== max(0, (int) $s->quantity)) {
+            $v[] = "BATCHES $k: stock_levels.quantity={$s->quantity} but FIFO batches hold ".(int) ($batchUnits[$s->id] ?? 0);
         }
         $expR = (int) ($reserved->get($k)->q ?? 0);
         if ((int) $s->reserved !== $expR) {

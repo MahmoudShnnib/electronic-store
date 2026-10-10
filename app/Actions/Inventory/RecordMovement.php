@@ -9,8 +9,10 @@ use App\Enums\ProductStatus;
 use App\Models\InventoryMovement;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\StockBatch;
 use App\Models\StockLevel;
 use App\Models\Warehouse;
+use App\Support\CostLayers;
 use App\Support\HomeCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -29,6 +31,9 @@ final class RecordMovement
      * @param  int  $reservedChange  signed change to `reserved`
      * @param  int  $damagedChange  signed change to `damaged`
      * @param  int  $incomingChange  signed change to `incoming`
+     * @param  int|null  $unitCostCents  what each added unit cost (default: the variant's, else the product's cost)
+     * @param  list<array{cost: int, qty: int, received_at: string}>|null  $costLayers  slices to add back at
+     *                                                                                  their old cost and age (a give-back, a transfer in)
      */
     public function handle(
         MovementType $type,
@@ -43,6 +48,8 @@ final class RecordMovement
         ?string $reason = null,
         ?int $userId = null,
         bool $allowNegative = false,
+        ?int $unitCostCents = null,
+        ?array $costLayers = null,
     ): InventoryMovement {
         if (DB::transactionLevel() === 0) {
             throw new RuntimeException('RecordMovement must run inside a database transaction.');
@@ -80,6 +87,20 @@ final class RecordMovement
         $stock->incoming = max(0, $stock->incoming + $incomingChange);
         $stock->save();
 
+        // FIFO cost batches follow the shelf (`quantity`) only: reserved units left
+        // their batches when an order took them, damaged ones when written off.
+        $defaultCost = (int) ($variant?->cost_price_cents ?: $product->cost_price_cents);
+        $layers = match (true) {
+            $quantityChange < 0 => $this->takeOldest($stock, -$quantityChange, max(0, $before), $defaultCost),
+            $quantityChange > 0 => $this->addBatches(
+                $stock,
+                max(0, $after) - max(0, $before),
+                $costLayers ?? [['cost' => $unitCostCents ?? $defaultCost, 'qty' => $quantityChange, 'received_at' => CostLayers::stamp(now())]],
+                $defaultCost,
+            ),
+            default => [],
+        };
+
         // The cached home page shows "in stock" badges; refresh it when a shelf
         // empties or gets its first units back.
         if (($before > 0) !== ($after > 0)) {
@@ -91,7 +112,7 @@ final class RecordMovement
             $product->update(['status' => ProductStatus::Active]);
         }
 
-        return InventoryMovement::create([
+        $movement = InventoryMovement::create([
             'warehouse_id' => $warehouse->id,
             'product_id' => $product->id,
             'product_variant_id' => $variant?->id,
@@ -106,6 +127,76 @@ final class RecordMovement
             'reason' => $reason,
             'user_id' => $userId ?? auth()->id(),
         ]);
+        $movement->costLayers = $layers;
+
+        return $movement;
+    }
+
+    /**
+     * Uses up the oldest batches first. Units no batch covers (only after the
+     * shelf drifted from its batches, which S10 reports) are costed at the default.
+     *
+     * @return list<array{cost: int, qty: int, received_at: string}>
+     */
+    private function takeOldest(StockLevel $stock, int $units, int $onShelf, int $defaultCost): array
+    {
+        $need = min($units, $onShelf);
+        $layers = [];
+
+        $batches = $need === 0 ? [] : StockBatch::query()
+            ->where('stock_level_id', $stock->id)
+            ->where('quantity_remaining', '>', 0)
+            ->orderBy('received_at')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($batches as $batch) {
+            if ($need === 0) {
+                break;
+            }
+
+            $take = min($need, $batch->quantity_remaining);
+            $batch->update(['quantity_remaining' => $batch->quantity_remaining - $take]);
+            $layers[] = ['cost' => $batch->unit_cost_cents, 'qty' => $take, 'received_at' => CostLayers::stamp($batch->received_at)];
+            $need -= $take;
+        }
+
+        $short = $units - CostLayers::units($layers);
+
+        if ($short > 0) {
+            $layers[] = ['cost' => $defaultCost, 'qty' => $short, 'received_at' => CostLayers::stamp(now())];
+        }
+
+        return $layers;
+    }
+
+    /**
+     * New batches on this stock row for $units units, at the given slices' costs
+     * and ages — a give-back keeps its old place in the FIFO queue.
+     *
+     * @param  list<array{cost: int, qty: int, received_at: string}>  $layers
+     * @return list<array{cost: int, qty: int, received_at: string}>
+     */
+    private function addBatches(StockLevel $stock, int $units, array $layers, int $defaultCost): array
+    {
+        [$layers] = CostLayers::split($layers, $units);
+        $short = $units - CostLayers::units($layers);
+
+        if ($short > 0) {
+            $layers[] = ['cost' => $defaultCost, 'qty' => $short, 'received_at' => CostLayers::stamp(now())];
+        }
+
+        foreach ($layers as $layer) {
+            StockBatch::create([
+                'stock_level_id' => $stock->id,
+                'unit_cost_cents' => $layer['cost'],
+                'quantity_received' => $layer['qty'],
+                'quantity_remaining' => $layer['qty'],
+                'received_at' => $layer['received_at'],
+            ]);
+        }
+
+        return $layers;
     }
 
     private function lockedStockRow(Warehouse $warehouse, Product $product, ?ProductVariant $variant): StockLevel

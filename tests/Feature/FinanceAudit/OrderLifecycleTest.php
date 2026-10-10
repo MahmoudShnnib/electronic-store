@@ -25,8 +25,8 @@ it('H9: changing a price leaves past orders, revenue and profit exactly as sold'
     finExpectChanges($before, finSnapshot($this, $this->admin), [
         'product.PHONE.price' => 120_000,
         'product.PHONE.cost' => 80_000,
-        // 9 phones on hand (8 on the shelf + 1 reserved) are valued at today's prices; sales keep their snapshots.
-        'report.valuation.cost_value_formatted' => finFmt(9 * 80_000 + 50 * 2_000 + 500),
+        // Stock already bought keeps what it cost (FIFO batches); only the retail value follows
+        // today's price. Sales keep their snapshots.
         'report.valuation.retail_value_formatted' => finFmt(9 * 120_000 + 50 * 5_000 + 2_000),
     ]);
     expect(PriceHistory::query()->where('product_id', $this->phone->id)->count())->toBe(2); // regular + cost
@@ -94,6 +94,10 @@ it('H12: a paid order cannot be cancelled until the money is refunded, then canc
         'money.refunds.sum' => 100_000,
         'treasury.cash' => 0,
         'treasury.rows' => 2,
+        // Paid, the phone counted as sold; refunded, it is the shop's stock again (FIFO cost).
+        'report.valuation.units' => 61,
+        'report.valuation.cost_value_formatted' => finFmt(10 * 70_000 + 50 * 2_000 + 500),
+        'report.valuation.retail_value_formatted' => finFmt(10 * 100_000 + 50 * 5_000 + 2_000),
         'report.summary.revenue_formatted' => finFmt(0),
         'report.summary.avg_order_formatted' => finFmt(0),
         'report.summary.estimated_cost_formatted' => finFmt(0),

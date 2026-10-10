@@ -17,6 +17,7 @@ use App\Models\StockCountItem;
 use App\Models\StockLevel;
 use App\Models\StockTransferItem;
 use App\Models\Warehouse;
+use App\Support\CostLayers;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -241,7 +242,7 @@ final class SaveProduct
         $recordMovement = app(RecordMovement::class);
 
         foreach ($levels as $level) {
-            $recordMovement->handle(
+            $drained = $recordMovement->handle(
                 type: MovementType::Correction,
                 warehouse: $level->warehouse,
                 product: $product,
@@ -253,6 +254,8 @@ final class SaveProduct
                 userId: $userId,
                 allowNegative: true,
             );
+            // The units keep their costs and ages, handed out in variant order.
+            $layers = $drained->costLayers;
 
             foreach ($variants as $variant) {
                 $isMain = $variant->is($main);
@@ -261,6 +264,8 @@ final class SaveProduct
                 if (! $isMain && $quantity === 0) {
                     continue;
                 }
+
+                [$share, $layers] = CostLayers::split($layers, $quantity);
 
                 $recordMovement->handle(
                     type: MovementType::Correction,
@@ -274,6 +279,7 @@ final class SaveProduct
                     reason: 'Moved from product-level stock when variants were added',
                     userId: $userId,
                     allowNegative: true,
+                    costLayers: $share,
                 );
             }
         }

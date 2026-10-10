@@ -29,6 +29,7 @@ final class AdjustStock
         string $reason,
         ?int $userId = null,
         bool $fromDamaged = false,
+        ?int $unitCostCents = null,
     ): InventoryMovement {
         if ($quantityChange === 0) {
             throw new InvalidArgumentException('Adjustment quantity cannot be zero.');
@@ -60,7 +61,7 @@ final class AdjustStock
             $quantityChange = abs($quantityChange);
         }
 
-        return DB::transaction(function () use ($warehouse, $product, $variant, $quantityChange, $type, $reason, $userId, $fromDamaged): InventoryMovement {
+        return DB::transaction(function () use ($warehouse, $product, $variant, $quantityChange, $type, $reason, $userId, $fromDamaged, $unitCostCents): InventoryMovement {
             $damagedChange = $type === MovementType::Damaged ? abs($quantityChange) : 0;
 
             // Damaged units already left sellable stock when they were written off, so
@@ -87,6 +88,8 @@ final class AdjustStock
                 damagedChange: $damagedChange,
                 reason: $reason,
                 userId: $userId,
+                // What added units cost; null = the variant's, else the product's cost.
+                unitCostCents: $unitCostCents,
             );
         });
     }

@@ -35,6 +35,13 @@ dashboard and sales report already use). Money is integer hundredths.
   that migration only carry the delta for `damaged` write-offs; older supplier returns from
   damaged can't be reconstructed.
 
+- **S10 FIFO batches = shelf.** For every stock row, Σ `stock_batches.quantity_remaining` =
+  max(0, `quantity`). Every unit on the shelf has a known purchase cost (BD2, 2026-10-10).
+  Reserved units already left their batches (their cost is on the order line), and so did
+  damaged ones when written off.
+- **S11 Order line cost slices.** Every order line's `cost_layers` add up to its `quantity`
+  and to its `cost_cents` (what the units taken from stock cost, oldest first).
+
 ## Orders & prices
 
 - **O1 Line arithmetic.** `line_total = unit_price × quantity − discount` on every line;

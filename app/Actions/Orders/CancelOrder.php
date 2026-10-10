@@ -58,6 +58,8 @@ final class CancelOrder
                     quantityChange: $item->quantity,
                     reservedChange: -$item->quantity,
                     reference: $order,
+                    // Back at the costs the line took, in their old place in the FIFO queue.
+                    costLayers: $item->cost_layers,
                     reason: $reason,
                     userId: $userId,
                 );

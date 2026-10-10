@@ -98,13 +98,11 @@ final class ReportService
             ->selectRaw('COALESCE(SUM(ev.amount),0) as revenue, '.self::PAID_ORDERS.' as orders, COALESCE(SUM(ev.sign * orders.discount_cents),0) as discounts')
             ->first();
 
-        // Cost follows the money: the goods of an order paid in the range cost what
-        // they cost at sale time; a refund (always with every unit back) takes it out.
+        // Cost follows the money: the goods of an order paid in the range cost what the
+        // units taken from stock cost (FIFO, oldest first); a refund (always with every
+        // unit back) takes it out.
         $cost = (int) $this->revenueItems($from, $to)
-            ->leftJoin('product_variants', 'product_variants.id', '=', 'order_items.product_variant_id')
-            ->leftJoin('products', 'products.id', '=', 'order_items.product_id')
-            // The cost recorded at sale time; older lines without one use today's cost.
-            ->selectRaw('COALESCE(SUM(ev.sign * order_items.quantity * COALESCE(order_items.unit_cost_cents, NULLIF(product_variants.cost_price_cents, 0), products.cost_price_cents, 0)),0) as cost')
+            ->selectRaw('COALESCE(SUM(ev.sign * order_items.cost_cents),0) as cost')
             ->value('cost');
 
         $refunded = (int) DB::table('refunds')->where('status', 'completed')->whereBetween('created_at', [$from, $to])->sum('amount_cents');
@@ -329,17 +327,33 @@ final class ReportService
 
     public function inventoryValuation(): array
     {
-        // A variant saved without its own cost stores 0 and falls back to the product's
-        // cost — the same rule the sale-time cost snapshot and the profit report use.
-        $rows = DB::table('stock_levels')
-            ->leftJoin('product_variants', 'product_variants.id', '=', 'stock_levels.product_variant_id')
-            ->join('products', 'products.id', '=', 'stock_levels.product_id')
-            ->selectRaw('
-                SUM((stock_levels.quantity + stock_levels.reserved) * COALESCE(NULLIF(product_variants.cost_price_cents, 0), products.cost_price_cents, 0)) as cost_value,
-                SUM((stock_levels.quantity + stock_levels.reserved) * COALESCE(product_variants.price_cents, products.price_cents, 0)) as retail_value,
-                SUM(stock_levels.quantity + stock_levels.reserved) as units
-            ')
-            ->first();
+        // The goods the shop owns, at what they cost (FIFO batches): units on the
+        // shelf, plus units held for open orders not paid yet. Once an order is paid
+        // its goods count as sold (their cost is in the sales report), so they leave
+        // here even before delivery. One statement, so a checkout landing mid-read
+        // can't count the same units twice or not at all.
+        $rows = DB::selectOne("
+            SELECT SUM(units) AS units, SUM(cost) AS cost_value, SUM(units * price) AS retail_value FROM (
+                SELECT stock_batches.quantity_remaining AS units,
+                       stock_batches.quantity_remaining * stock_batches.unit_cost_cents AS cost,
+                       COALESCE(product_variants.price_cents, products.price_cents, 0) AS price
+                FROM stock_batches
+                JOIN stock_levels ON stock_levels.id = stock_batches.stock_level_id
+                JOIN products ON products.id = stock_levels.product_id
+                LEFT JOIN product_variants ON product_variants.id = stock_levels.product_variant_id
+                WHERE stock_batches.quantity_remaining > 0
+                UNION ALL
+                SELECT order_items.quantity, order_items.cost_cents,
+                       COALESCE(product_variants.price_cents, products.price_cents, 0)
+                FROM order_items
+                JOIN orders ON orders.id = order_items.order_id
+                LEFT JOIN products ON products.id = order_items.product_id
+                LEFT JOIN product_variants ON product_variants.id = order_items.product_variant_id
+                WHERE orders.status = 'in_progress' AND orders.deleted_at IS NULL
+                  AND COALESCE((SELECT SUM(amount_cents) FROM payments WHERE payments.order_id = orders.id AND payments.status = 'confirmed'), 0)
+                    <= COALESCE((SELECT SUM(amount_cents) FROM refunds WHERE refunds.order_id = orders.id AND refunds.status = 'completed'), 0)
+            ) owned
+        ");
 
         return [
             'units' => (int) ($rows->units ?? 0),

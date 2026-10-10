@@ -52,10 +52,10 @@ it('H8: receiving stock while orders are pending leaves their reservations alone
         'store.PHONE.available' => 13,
         'ledger.purchase_receipt.rows' => 1,
         'ledger.purchase_receipt.units' => 5,
-        // 13 on the shelf + 2 reserved = 15 phones on hand. Valued at the product's cost
-        // price (700), not the 650 paid on this PO — see BD2 in MORNING_REVIEW.
+        // 13 on the shelf + 2 reserved = 15 phones on hand: the 10 older ones at 700, the
+        // 5 just received at the 650 paid on this PO (FIFO batches, BD2).
         'report.valuation.units' => 66,
-        'report.valuation.cost_value_formatted' => finFmt(15 * 70_000 + 50 * 2_000 + 500),
+        'report.valuation.cost_value_formatted' => finFmt(10 * 70_000 + 5 * 65_000 + 50 * 2_000 + 500),
         'report.valuation.retail_value_formatted' => finFmt(15 * 100_000 + 50 * 5_000 + 2_000),
     ]);
 

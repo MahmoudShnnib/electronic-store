@@ -71,7 +71,8 @@ function finBuy($test, User $user, array $lines, array $over = []): Order
 
 /**
  * Places that appear when a new unpaid order is placed (order row, its lines, the admin
- * order page and its invoice-report row). Lines: [sku, unit price, qty, unit cost].
+ * order page and its invoice-report row). Lines: [sku, unit price, qty, unit cost] — every
+ * unit from one cost batch, so the line cost is unit cost × qty.
  *
  * @param  list<array{0: string, 1: int, 2: int, 3: int}>  $lines
  */
@@ -81,7 +82,7 @@ function finNewOrderPlaces(Order $order, array $lines, string $status = 'in_prog
     $places = [];
     foreach ($lines as [$sku, $price, $qty, $cost]) {
         $k = "line.{$order->number}.$sku";
-        $places += ["$k.unit_price" => $price, "$k.qty" => $qty, "$k.discount" => 0, "$k.line_total" => $price * $qty, "$k.unit_cost" => $cost];
+        $places += ["$k.unit_price" => $price, "$k.qty" => $qty, "$k.discount" => 0, "$k.line_total" => $price * $qty, "$k.unit_cost" => $cost, "$k.cost" => $cost * $qty];
         $total += $price * $qty;
     }
 

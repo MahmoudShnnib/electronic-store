@@ -86,6 +86,8 @@ final class ReceivePurchaseOrder
                     incomingChange: -$quantity,
                     reference: $po,
                     userId: $userId,
+                    // The price on the PO line is what these units cost (FIFO batch).
+                    unitCostCents: $item->unit_cost_cents,
                 );
             }
 

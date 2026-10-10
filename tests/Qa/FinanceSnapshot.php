@@ -81,6 +81,7 @@ function finSnapshot($test, User $admin): array
             $s["$lk.discount"] = $i->discount_cents;
             $s["$lk.line_total"] = $i->line_total_cents;
             $s["$lk.unit_cost"] = (int) $i->unit_cost_cents;
+            $s["$lk.cost"] = (int) $i->cost_cents;
         }
         $props = $test->actingAs($admin)->get("/admin/orders/{$o->id}")->viewData('page')['props']['order'];
         $s["adminorder.{$o->number}.paid"] = $props['paid_formatted'];
