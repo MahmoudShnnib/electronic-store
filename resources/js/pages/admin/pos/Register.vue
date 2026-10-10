@@ -24,6 +24,8 @@ interface VariantOption {
     price: number;
     price_formatted: string;
     available: number;
+    /** Admins only: the highest price paid for the units in this warehouse. */
+    max_cost_formatted?: string;
     image: string | null;
 }
 
@@ -37,6 +39,7 @@ interface ProductOption {
     price: number;
     price_formatted: string;
     available: number;
+    max_cost_formatted?: string;
     image: string | null;
     category_id: number | null;
     variants: VariantOption[];
@@ -61,6 +64,8 @@ interface Tile {
     stock: number;
     /** What can still be tapped: `stock` minus whatever the basket already holds. */
     available: number;
+    /** Admins only (absent for cashiers): the highest price paid for the units held. */
+    maxCost?: string;
     image: string | null;
 }
 
@@ -212,6 +217,7 @@ const catalogue = computed<Omit<Tile, 'available'>[]>(() =>
                   subtitle: variant.name,
                   priceFormatted: variant.price_formatted,
                   stock: variant.available,
+                  maxCost: variant.max_cost_formatted,
                   image: variant.image,
               }))
             : [
@@ -223,6 +229,7 @@ const catalogue = computed<Omit<Tile, 'available'>[]>(() =>
                       subtitle: product.sku,
                       priceFormatted: product.price_formatted,
                       stock: product.available,
+                      maxCost: product.max_cost_formatted,
                       image: product.image,
                   },
               ],
@@ -701,6 +708,9 @@ watch(
                                 >
                                     {{ t('admin.pos.in_stock_n', { count: tile.available }) }}
                                 </span>
+                            </span>
+                            <span v-if="tile.maxCost" class="text-[0.6875rem] tabular-nums text-ad-muted">
+                                {{ t('admin.pos.max_cost', { amount: tile.maxCost }) }}
                             </span>
                         </button>
                     </div>

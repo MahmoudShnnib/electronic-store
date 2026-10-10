@@ -986,6 +986,7 @@
             "scan_placeholder": "امسح باركود أو ابحث — F2 للعودة للحقل",
             "no_products": "لا يوجد ما يطابق البحث.",
             "in_stock_n": "متبقٍ {count}",
+            "max_cost": "أعلى تكلفة {amount}",
             "basket_n": "السلة ({count})",
             "basket_empty": "امسح أو اضغط على منتج للبدء.",
             "clear_basket": "تفريغ السلة",

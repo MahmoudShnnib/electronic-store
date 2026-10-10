@@ -11,6 +11,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Setting;
+use App\Models\StockBatch;
 use App\Models\StockLevel;
 use App\Models\Warehouse;
 use App\Services\Pos\PrinterConfig;
@@ -33,11 +34,11 @@ final class PosQueryService
      *
      * @return array<string, mixed>
      */
-    public function registerProps(CashierShift $shift): array
+    public function registerProps(CashierShift $shift, bool $withCost = false): array
     {
         $shift->loadMissing('warehouse');
 
-        $products = $this->sellableProducts($shift->warehouse_id);
+        $products = $this->sellableProducts($shift->warehouse_id, $withCost);
 
         return [
             'shift' => $this->shiftSummary($shift),
@@ -244,8 +245,11 @@ final class PosQueryService
      * The catalogue as the register sees it: active, purchasable, with the
      * on-hand quantity for this cashier's warehouse so they can tell a customer
      * "we have two left" without leaving the screen.
+     *
+     * With $withCost, each item also carries the highest price paid for the units
+     * still in this warehouse (its FIFO batches) — never sent otherwise.
      */
-    private function sellableProducts(int $warehouseId): Collection
+    private function sellableProducts(int $warehouseId, bool $withCost = false): Collection
     {
         $stock = StockLevel::query()
             ->where('warehouse_id', $warehouseId)
@@ -254,6 +258,16 @@ final class PosQueryService
         $available = $stock->mapWithKeys(fn (StockLevel $level) => [
             $level->product_id.':'.($level->product_variant_id ?? 0) => (int) $level->quantity,
         ]);
+
+        $maxCost = ! $withCost ? collect() : StockBatch::query()
+            ->join('stock_levels', 'stock_levels.id', '=', 'stock_batches.stock_level_id')
+            ->where('stock_levels.warehouse_id', $warehouseId)
+            ->where('stock_batches.quantity_remaining', '>', 0)
+            ->groupBy('stock_levels.product_id', 'stock_levels.product_variant_id')
+            ->selectRaw('stock_levels.product_id, stock_levels.product_variant_id, MAX(stock_batches.unit_cost_cents) AS cost')
+            ->get()
+            ->mapWithKeys(fn ($row) => [$row->product_id.':'.($row->product_variant_id ?? 0) => (int) $row->cost]);
+        $cost = fn (string $key): array => isset($maxCost[$key]) ? ['max_cost_formatted' => Money::format($maxCost[$key])] : [];
 
         return Product::query()
             ->where('status', ProductStatus::Active)
@@ -280,6 +294,7 @@ final class PosQueryService
                 'price' => Money::toDecimal($p->currentPriceCents()),
                 'price_formatted' => Money::format($p->currentPriceCents()),
                 'available' => $available[$p->id.':0'] ?? 0,
+                ...$cost($p->id.':0'),
                 'image' => $this->url($p->images->first()?->path),
                 'variants' => $p->variants
                     ->where('is_active', true)
@@ -291,6 +306,7 @@ final class PosQueryService
                         'price' => Money::toDecimal($v->setRelation('product', $p)->currentPriceCents()),
                         'price_formatted' => Money::format($v->currentPriceCents()),
                         'available' => $available[$p->id.':'.$v->id] ?? 0,
+                        ...$cost($p->id.':'.$v->id),
                         // A variant without its own shot falls back to the
                         // product's: a tile with no picture is worse than one
                         // showing the right product in the wrong colour.

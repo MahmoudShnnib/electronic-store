@@ -986,6 +986,7 @@
             "scan_placeholder": "Scan a barcode or search — F2 to refocus",
             "no_products": "Nothing matches that.",
             "in_stock_n": "{count} left",
+            "max_cost": "Highest cost {amount}",
             "basket_n": "Basket ({count})",
             "basket_empty": "Scan or tap a product to start.",
             "clear_basket": "Clear the basket",
