@@ -175,3 +175,25 @@ it('receives a PO line at its price, and a line priced 0 (no price set) at the c
         ->and(fifoBatches($this->mug))->toBe([[500 => 1], [500 => 2]])
         ->and(auditFailures())->toBe([]);
 });
+
+it('spreads a PO\'s shipping and discount over the units received, the same on every partial receipt', function (array $extra, int $unitCost): void {
+    $this->actingAs($this->admin)->post('/admin/purchase-orders', [
+        'supplier_id' => Supplier::factory()->create()->id, 'warehouse_id' => $this->main->id,
+        'items' => [['product_id' => $this->phone->id, 'quantity' => 10, 'unit_cost' => 700]],
+        ...$extra,
+    ])->assertSessionHasNoErrors();
+    $po = PurchaseOrder::query()->latest('id')->with('items')->firstOrFail();
+    $this->actingAs($this->admin)->post("/admin/purchase-orders/{$po->id}/send")->assertSessionHasNoErrors();
+    foreach ([4, 6] as $qty) {
+        $this->actingAs($this->admin)->post("/admin/purchase-orders/{$po->id}/receive", ['quantities' => [$po->items[0]->id => $qty]])
+            ->assertSessionHasNoErrors();
+    }
+
+    expect(fifoBatches($this->phone))->toBe([[70_000 => 10], [65_000 => 5], [$unitCost => 4], [$unitCost => 6]])
+        ->and(auditFailures())->toBe([]);
+})->with([
+    'shipping 100' => [['shipping' => 100], 71_000],
+    '200 off' => [['discount' => 200], 68_000],
+    'both' => [['shipping' => 100, 'discount' => 200], 69_000],
+    'neither' => [[], 70_000],
+]);

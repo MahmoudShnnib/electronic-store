@@ -86,11 +86,12 @@ final class ReceivePurchaseOrder
                     incomingChange: -$quantity,
                     reference: $po,
                     userId: $userId,
-                    // The price on the PO line is what these units cost (FIFO batch). A line
-                    // at 0 means no price was set — the old PO form prefilled 0 for variants
-                    // without their own cost — so, like a variant cost of 0 everywhere else,
-                    // it falls back to the variant's, else the product's, cost price.
-                    unitCostCents: $item->unit_cost_cents ?: null,
+                    // What these units really cost (FIFO batch): the line price with the PO's
+                    // shipping and discount spread over it. A line at 0 means no price was set
+                    // — the old PO form prefilled 0 for variants without their own cost — so,
+                    // like a variant cost of 0 everywhere else, it falls back to the variant's,
+                    // else the product's, cost price.
+                    unitCostCents: $item->unit_cost_cents > 0 ? $this->landedUnitCost($po, $item->unit_cost_cents) : null,
                 );
             }
 
@@ -111,5 +112,19 @@ final class ReceivePurchaseOrder
 
             return $po;
         });
+    }
+
+    /**
+     * A line price scaled by what the whole PO cost against its lines: 10 phones at
+     * 700 with 100 shipping cost 710 each; with 200 off, 680 each. Same factor for
+     * every partial receipt, since a sent PO's amounts no longer change.
+     */
+    private function landedUnitCost(PurchaseOrder $po, int $lineUnitCostCents): int
+    {
+        if ($po->subtotal_cents <= 0) {
+            return $lineUnitCostCents;
+        }
+
+        return (int) round($lineUnitCostCents * $po->total_cents / $po->subtotal_cents);
     }
 }
