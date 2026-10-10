@@ -11,8 +11,10 @@ declare(strict_types=1);
 use App\Actions\Inventory\AdjustStock;
 use App\Actions\Inventory\TransferStock;
 use App\Enums\MovementType;
+use App\Models\PurchaseOrder;
 use App\Models\StockBatch;
 use App\Models\StockLevel;
+use App\Models\Supplier;
 use App\Models\Warehouse;
 
 require_once __DIR__.'/../FinanceAudit/FinanceAuditSetup.php';
@@ -153,4 +155,23 @@ it('takes the unit cost typed in the stock dialog, and prefills it only for staf
         ->firstWhere('sku', 'PHONE');
     expect($row($this->admin)['unit_cost'])->toEqual(700)
         ->and($row(staff('cashier')))->not->toHaveKey('unit_cost');
+});
+
+it('receives a PO line at its price, and a line priced 0 (no price set) at the cost price', function (): void {
+    $this->actingAs($this->admin)->post('/admin/purchase-orders', [
+        'supplier_id' => Supplier::factory()->create()->id, 'warehouse_id' => $this->main->id,
+        'items' => [
+            ['product_id' => $this->cable->id, 'quantity' => 4, 'unit_cost' => 18],
+            ['product_id' => $this->mug->id, 'quantity' => 2, 'unit_cost' => 0],
+        ],
+    ])->assertSessionHasNoErrors();
+    $po = PurchaseOrder::query()->latest('id')->with('items')->firstOrFail();
+    $this->actingAs($this->admin)->post("/admin/purchase-orders/{$po->id}/send")->assertSessionHasNoErrors();
+    $this->actingAs($this->admin)->post("/admin/purchase-orders/{$po->id}/receive", [
+        'quantities' => $po->items->mapWithKeys(fn ($i) => [$i->id => $i->quantity_ordered])->all(),
+    ])->assertSessionHasNoErrors();
+
+    expect(fifoBatches($this->cable))->toBe([[2_000 => 50], [1_800 => 4]])
+        ->and(fifoBatches($this->mug))->toBe([[500 => 1], [500 => 2]])
+        ->and(auditFailures())->toBe([]);
 });

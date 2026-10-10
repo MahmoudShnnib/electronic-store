@@ -86,8 +86,11 @@ final class ReceivePurchaseOrder
                     incomingChange: -$quantity,
                     reference: $po,
                     userId: $userId,
-                    // The price on the PO line is what these units cost (FIFO batch).
-                    unitCostCents: $item->unit_cost_cents,
+                    // The price on the PO line is what these units cost (FIFO batch). A line
+                    // at 0 means no price was set — the old PO form prefilled 0 for variants
+                    // without their own cost — so, like a variant cost of 0 everywhere else,
+                    // it falls back to the variant's, else the product's, cost price.
+                    unitCostCents: $item->unit_cost_cents ?: null,
                 );
             }
 
