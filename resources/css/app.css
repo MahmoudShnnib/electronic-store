@@ -743,6 +743,20 @@ html:has(.admin-shell, .store-shell) .ant-select-selection-placeholder {
     unicode-bidi: plaintext;
 }
 
+/*
+ * …but not a number field.
+ *
+ * `plaintext` resolves a run of digits to left-to-right, and `text-align: start`
+ * then resolves against *that*, so under RTL the value is pushed to the left
+ * edge of the box — which is exactly where AntD parks the stepper buttons in
+ * RTL — and the figure sits underneath them. Digits carry no bidi ambiguity
+ * worth resolving, so a numeric field simply follows the page direction and
+ * stays on the side the buttons are not.
+ */
+html:has(.admin-shell, .store-shell) .ant-input-number-input {
+    unicode-bidi: normal;
+}
+
 /* The "no records" row is a single full-width cell; it stays centred. */
 html:has(.admin-shell, .store-shell) .ant-table-placeholder > td {
     padding-block: 40px;

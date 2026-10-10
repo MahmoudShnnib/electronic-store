@@ -1033,6 +1033,13 @@
             "increase": "زيادة الكمية",
             "decrease": "إنقاص الكمية",
             "all_categories": "الكل",
+            "all_brands": "كل العلامات",
+            "stock_any": "كل المخزون",
+            "stock_in": "متوفر",
+            "stock_out": "نفد",
+            "out_of_stock": "نفد المخزون",
+            "variants_n": "{count} خيارات",
+            "price_from": "من {price}",
             "sold_out": "{name} — لا يوجد منه مخزون.",
             "line_trimmed": "لم يتبقَّ من {name} سوى {count} — تم تعديل الكمية في السلة.",
             "line_gone": "نفد {name} من المخزون وتمت إزالته من السلة."

@@ -1033,6 +1033,13 @@
             "increase": "Increase quantity",
             "decrease": "Decrease quantity",
             "all_categories": "All",
+            "all_brands": "All brands",
+            "stock_any": "Any stock",
+            "stock_in": "In stock",
+            "stock_out": "Out of stock",
+            "out_of_stock": "Out of stock",
+            "variants_n": "{count} options",
+            "price_from": "From {price}",
             "sold_out": "{name} — nothing left to sell.",
             "line_trimmed": "Only {count} left of {name} — the basket was trimmed.",
             "line_gone": "{name} sold out elsewhere and was removed from the basket."

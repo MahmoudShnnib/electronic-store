@@ -43,6 +43,7 @@ final class PosQueryService
             'shift' => $this->shiftSummary($shift),
             'products' => $products,
             'categories' => $this->categoriesOf($products),
+            'brands' => $this->brandsOf($products),
             'paymentMethods' => array_map(
                 fn (PaymentMethod $m) => ['value' => $m->value, 'label' => $m->label()],
                 // The register takes money in the room: cash, or a transfer the
@@ -259,13 +260,14 @@ final class PosQueryService
             ->where('status', ProductStatus::Active)
             ->with([
                 'category:id,name,name_ar',
+                'brand:id,name,name_ar',
                 'variants:id,product_id,name,sku,barcode,price_cents,sale_price_cents,image_path,is_active',
                 // Primary first, then by position: the tile shows exactly one,
                 // and firstWhere() over an unordered set picked at random.
                 'images' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('position'),
             ])
             ->orderBy('name')
-            ->get(['id', 'category_id', 'name', 'name_ar', 'sku', 'barcode', 'price_cents', 'sale_price_cents', 'sale_starts_at', 'sale_ends_at', 'has_variants'])
+            ->get(['id', 'category_id', 'brand_id', 'name', 'name_ar', 'sku', 'barcode', 'price_cents', 'sale_price_cents', 'sale_starts_at', 'sale_ends_at', 'has_variants'])
             ->map(fn (Product $p) => [
                 'id' => $p->id,
                 'name' => $p->name,
@@ -277,6 +279,10 @@ final class PosQueryService
                 'category' => $p->category === null
                     ? null
                     : ['id' => $p->category->id, 'name' => $p->category->name, 'name_ar' => $p->category->name_ar],
+                'brand_id' => $p->brand_id,
+                'brand' => $p->brand === null
+                    ? null
+                    : ['id' => $p->brand->id, 'name' => $p->brand->name, 'name_ar' => $p->brand->name_ar],
                 'price' => Money::toDecimal($p->currentPriceCents()),
                 'price_formatted' => Money::format($p->currentPriceCents()),
                 'available' => $available[$p->id.':0'] ?? 0,
@@ -298,6 +304,26 @@ final class PosQueryService
                     ])
                     ->values(),
             ])
+            ->values();
+    }
+
+    /**
+     * The brands on the shelf, for the second filter. Derived from the grid for
+     * the same reason the categories are: a brand the cashier cannot sell from
+     * this warehouse has no business being offered as a filter.
+     *
+     * @param  Collection<int, array<string, mixed>>  $products
+     */
+    private function brandsOf(Collection $products): Collection
+    {
+        return $products
+            ->filter(fn (array $p) => $p['brand'] !== null)
+            ->groupBy(fn (array $p) => $p['brand']['id'])
+            ->map(fn (Collection $group) => [
+                ...$group->first()['brand'],
+                'products_count' => $group->count(),
+            ])
+            ->sortBy('name')
             ->values();
     }
 
