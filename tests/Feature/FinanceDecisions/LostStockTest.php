@@ -23,6 +23,7 @@ it('writes stolen units off as "lost" with who and why, and nothing financial mo
         'store.PHONE.available' => 8,
         'ledger.lost.rows' => 1,
         'ledger.lost.units' => -2,
+        'report.writeoffs.total' => finFmt(2 * 70_000), // what the stolen phones cost (FIFO)
         'report.valuation.units' => 59,
         'report.valuation.cost_value_formatted' => finFmt(8 * 70_000 + 50 * 2_000 + 500),
         'report.valuation.retail_value_formatted' => finFmt(8 * 100_000 + 50 * 5_000 + 2_000),

@@ -121,6 +121,8 @@ final class RecordMovement
             'quantity_after' => $after,
             // What actually moved in or out of the damaged count (after the clamp).
             'damaged_change' => $stock->damaged - $damagedBefore,
+            // What the units that left or joined the shelf cost (FIFO), for the write-off report.
+            'cost_cents' => CostLayers::total($layers),
             'reference_type' => $reference?->getMorphClass(),
             'reference_id' => $reference?->getKey(),
             'reason' => $reason,

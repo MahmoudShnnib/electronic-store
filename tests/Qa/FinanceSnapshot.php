@@ -109,6 +109,7 @@ function finSnapshot($test, User $admin): array
     foreach ($reports->salesSummary($from, $to) as $key => $value) {
         $s["report.summary.$key"] = $value;
     }
+    $s['report.writeoffs.total'] = $reports->writeOffs($from, $to)['total_formatted'];
     foreach ($reports->invoiceSummary($from, $to) as $key => $value) {
         $s["report.invoices.$key"] = $value;
     }

@@ -28,6 +28,7 @@ final class SalesReportController extends Controller implements HasMiddleware
 
         return Inertia::render('admin/reports/Sales', [
             'summary' => $this->reports->salesSummary($from, $to),
+            'writeOffs' => $this->reports->writeOffs($from, $to),
             'daily' => $this->reports->salesByDay($from, $to),
             'byProduct' => $this->reports->salesByProduct($from, $to),
             'byCategory' => $this->reports->salesByCategory($from, $to),

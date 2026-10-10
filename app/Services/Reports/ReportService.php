@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Reports;
 
+use App\Enums\MovementType;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
@@ -332,6 +333,35 @@ final class ReportService
                     'outstanding_formatted' => Money::format($outstanding),
                 ];
             });
+    }
+
+    /**
+     * Stock written off in the range — damaged, lost, decreased by hand, sent back to
+     * a supplier, or short at a count — at what it cost (FIFO). Not part of the
+     * estimated profit, which only covers goods sold.
+     *
+     * @return array{total_formatted: string, rows: list<array{type: string, label: string, units: int, cost_formatted: string}>}
+     */
+    public function writeOffs(CarbonImmutable $from, CarbonImmutable $to): array
+    {
+        $rows = DB::table('inventory_movements')
+            ->whereIn('type', ['damaged', 'lost', 'manual_decrease', 'supplier_return', 'correction'])
+            ->where('quantity_change', '<', 0)
+            ->whereBetween('created_at', [$from, $to])
+            ->groupBy('type')
+            ->orderBy('type')
+            ->selectRaw('type, -SUM(quantity_change) AS units, COALESCE(SUM(cost_cents), 0) AS cost')
+            ->get();
+
+        return [
+            'total_formatted' => Money::format((int) $rows->sum('cost')),
+            'rows' => $rows->map(fn ($row) => [
+                'type' => $row->type,
+                'label' => MovementType::from($row->type)->label(),
+                'units' => (int) $row->units,
+                'cost_formatted' => Money::format((int) $row->cost),
+            ])->all(),
+        ];
     }
 
     public function inventoryValuation(): array

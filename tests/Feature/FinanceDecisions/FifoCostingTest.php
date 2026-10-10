@@ -214,3 +214,19 @@ it('books the cost of goods given away (an order that came to 0) the day the ord
         ->and($done['report.valuation.cost_value_formatted'])->toBe(finFmt(10 * 70_000 + 5 * 65_000 + 50 * 2_000))
         ->and(auditFailures())->toBe([]);
 });
+
+it('reports what written-off stock cost, by kind, on the sales report', function (): void {
+    finAdjust($this, $this->phone, 3, 'lost', 'Stolen from the display')->assertSessionHasNoErrors();
+    finAdjust($this, $this->phone, 8, 'damaged', 'Water damage')->assertSessionHasNoErrors(); // 7 @ 700, then 1 @ 650
+    finAdjust($this, $this->phone, 2, 'supplier_return', 'Back to supplier', ['from_damaged' => true])->assertSessionHasNoErrors(); // already written off
+    finAdjust($this, $this->cable, -1, 'correction', 'Count came up short')->assertSessionHasNoErrors();
+    finComplete($this, finBuy($this, $this->buyer, [[$this->phone, 1]])); // a sale is not a write-off
+
+    $this->actingAs($this->admin)->get('/admin/reports')->assertInertia(fn ($page) => $page
+        ->where('writeOffs.total_formatted', finFmt(3 * 70_000 + 7 * 70_000 + 65_000 + 2_000))
+        ->where('writeOffs.rows', [
+            ['type' => 'correction', 'label' => 'Correction', 'units' => 1, 'cost_formatted' => finFmt(2_000)],
+            ['type' => 'damaged', 'label' => 'Damaged', 'units' => 8, 'cost_formatted' => finFmt(7 * 70_000 + 65_000)],
+            ['type' => 'lost', 'label' => 'Lost / stolen', 'units' => 3, 'cost_formatted' => finFmt(3 * 70_000)],
+        ]));
+});
