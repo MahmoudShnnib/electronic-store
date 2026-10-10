@@ -429,12 +429,12 @@
             "stock_damaged": "Written off as unsellable, and not part of the available count.",
             "stock_incoming": "Booked against purchase orders that have been sent to the supplier but not received yet.",
             "low_stock_threshold": "Once available stock drops to this number the product is flagged as low stock on the dashboard.",
-            "avg_order_value": "Revenue divided by the number of orders in this period.",
+            "avg_order_value": "Revenue divided by the number of orders paid in this period. Revenue is money received: an order counts the day it is paid, a refund subtracts the day it is given back.",
             "discounts_given": "Total coupon discount applied to orders in this period.",
-            "est_profit": "Revenue in this period minus what the items sold cost to buy. Shipping, refunds and overheads are not deducted.",
+            "est_profit": "Revenue in this period minus what the items paid for cost to buy. A refund takes back both the money and the cost. Shipping and overheads are not deducted.",
             "inventory_cost_value": "What the stock currently held — available plus reserved — cost to buy.",
             "inventory_retail_value": "What that same stock would bring in at current selling prices.",
-            "outstanding": "Order total minus the payments that have been confirmed. Refunds are shown separately."
+            "outstanding": "What completing the order would still collect: the total minus payments, net of refunds. Nothing for cancelled or refunded orders."
         },
         "dashboard": {
             "title": "Dashboard",

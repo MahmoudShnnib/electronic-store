@@ -33,6 +33,18 @@ it('H12: a prepaid order given back before delivery owes its full total again, t
         'treasury.cash' => 0,
         'treasury.rows' => 2,
         'report.summary.refunded_formatted' => finFmt(100_000),
+        // Revenue is money received: the prepayment booked the sale, the refund takes it out.
+        'report.summary.revenue_formatted' => finFmt(0),
+        'report.summary.avg_order_formatted' => finFmt(0),
+        'report.summary.estimated_cost_formatted' => finFmt(0),
+        'report.summary.estimated_profit_formatted' => finFmt(0),
+        'report.method.cod.revenue' => finFmt(0),
+        'report.product.PHONE.units' => null,
+        'report.product.PHONE.revenue' => null,
+        'dash.revenue_today' => finFmt(0),
+        'dash.revenue_month' => finFmt(0),
+        'dash.best.Fin Phone.sold' => null,
+        'dash.best.Fin Phone.revenue' => null,
     ]);
 
     // With the money back, the order can be cancelled: stock returns, nothing is owed.

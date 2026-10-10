@@ -244,7 +244,8 @@ it('#14 the by-product report lists every product, not just the top 25', functio
     $user = customer();
     $products = Product::factory()->count(27)->create(['price_cents' => 1_000]);
     $products->each(fn ($p) => giveStock($p, 1));
-    rfOrder($user, $products->map(fn ($p) => [$p, 1])->all());
+    // Paid, so it counts (revenue is money received since 2026-10-10).
+    app(UpdateOrderStatus::class)->handle(rfOrder($user, $products->map(fn ($p) => [$p, 1])->all()), OrderStatus::Completed);
 
     expect(app(ReportService::class)->salesByProduct(CarbonImmutable::now()->subDay(), CarbonImmutable::now()->addDay()))->toHaveCount(27);
 });

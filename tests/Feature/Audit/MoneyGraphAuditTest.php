@@ -306,10 +306,11 @@ it('MON-16: invoice report "outstanding" does not bill cancelled orders', functi
     expect($out)->toBe(Money::format(0), 'outstanding='.$out);
 });
 
-it('MON-17: an order placed at 00:30 Libya time (UTC+2) on Oct 2 is reported on Oct 2, not Oct 1', function (): void {
+it('MON-17: an order paid at 00:30 Libya time (UTC+2) on Oct 2 is reported on Oct 2, not Oct 1', function (): void {
     $p = mgProduct(10_000);
     $this->travelTo(CarbonImmutable::parse('2026-10-01 22:30:00', 'UTC')); // 2026-10-02 00:30 Africa/Tripoli
-    mgOrder(customer(), [[$p, 1]]);
+    // Revenue is money received (2026-10-10): delivered and paid then.
+    app(UpdateOrderStatus::class)->handle(mgOrder(customer(), [[$p, 1]]), OrderStatus::Completed);
     $this->travelBack();
 
     [$from, $to] = ReportDateRange::fromRequest(Request::create('/', 'GET', ['from' => '2026-10-02', 'to' => '2026-10-02']));
@@ -322,7 +323,8 @@ it('MON-18 (check): report revenue / discounts / payment split match a known mix
     Coupon::factory()->create(['code' => 'TEN', 'value_cents' => 1_000]);
     $paid = mgOrder(customer(), [[$p, 1]], coupon: 'TEN');                 // 90, cod, completed
     app(UpdateOrderStatus::class)->handle($paid, OrderStatus::Completed);
-    mgOrder(customer(), [[$p, 2]], PaymentMethod::BankTransfer);            // 200, open
+    $open = mgOrder(customer(), [[$p, 2]], PaymentMethod::BankTransfer);    // 200, open, transfer received
+    app(ConfirmPayment::class)->handle($open, 20_000, 'T');                  // revenue is money received (2026-10-10)
     $cancelled = mgOrder(customer(), [[$p, 1]]);
     app(CancelOrder::class)->handle($cancelled);                             // excluded
 

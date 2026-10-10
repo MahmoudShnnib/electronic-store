@@ -15,9 +15,10 @@ require_once __DIR__.'/FinanceAuditSetup.php';
 beforeEach(fn () => finSetUp($this));
 
 it('X2: the dashboard "today" and the sales report agree on which day an order belongs to', function (): void {
-    // 21:30 UTC on 5 Oct is 23:30 in Tripoli: still the 5th for the shop.
+    // 21:30 UTC on 5 Oct is 23:30 in Tripoli: still the 5th for the shop. Delivered and
+    // paid then (revenue is money received).
     $this->travelTo(CarbonImmutable::parse('2026-10-05 21:30:00', 'UTC'));
-    finBuy($this, $this->buyer, [[$this->phone, 1]]);
+    finComplete($this, finBuy($this, $this->buyer, [[$this->phone, 1]]));
 
     // 22:30 UTC on 5 Oct = 00:30 on 6 Oct in Tripoli: the shop's day has turned.
     $this->travelTo(CarbonImmutable::parse('2026-10-05 22:30:00', 'UTC'));
@@ -30,9 +31,9 @@ it('X2: the dashboard "today" and the sales report agree on which day an order b
 });
 
 it('X2: the dashboard chart files a sale under the same date as "sales by day"', function (): void {
-    // 22:30 UTC on 5 Oct = 00:30 on 6 Oct in Tripoli.
+    // 22:30 UTC on 5 Oct = 00:30 on 6 Oct in Tripoli: delivered and paid then.
     $this->travelTo(CarbonImmutable::parse('2026-10-05 22:30:00', 'UTC'));
-    finBuy($this, $this->buyer, [[$this->phone, 1]]);
+    finComplete($this, finBuy($this, $this->buyer, [[$this->phone, 1]]));
 
     $dash = $this->actingAs($this->admin)->get('/admin')->viewData('page')['props'];
     $byDay = app(ReportService::class)->salesByDay(now()->subDays(2)->toImmutable(), now()->addDays(2)->toImmutable());
