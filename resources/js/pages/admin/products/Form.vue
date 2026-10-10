@@ -376,6 +376,9 @@ function deleteImage(image: ProductImage): void {
                     </Field>
                     <Field :label="t('admin.products.regular_price')" required :error="form.errors.price">
                         <InputNumber v-model:value="form.price" :step="0.01" :min="0" class="w-full" />
+                        <Typography.Text v-if="form.price === 0" type="warning" class="mt-1 block text-xs">{{
+                            t('admin.products.zero_price_warning')
+                        }}</Typography.Text>
                     </Field>
                     <Field :label="t('admin.products.sale_price')" :error="form.errors.sale_price">
                         <InputNumber v-model:value="form.sale_price" :step="0.01" :min="0" class="w-full" />
@@ -429,6 +432,9 @@ function deleteImage(image: ProductImage): void {
                         </Field>
                         <Field :label="t('admin.common.price')" required :error="err(`variants.${index}.price`)">
                             <InputNumber v-model:value="variant.price" :step="0.01" :min="0" class="w-full" />
+                            <Typography.Text v-if="variant.price === 0" type="warning" class="mt-1 block text-xs">{{
+                                t('admin.products.zero_price_warning')
+                            }}</Typography.Text>
                         </Field>
                         <Field :label="t('admin.products.sale_price')" :error="err(`variants.${index}.sale_price`)">
                             <InputNumber v-model:value="variant.sale_price" :step="0.01" :min="0" class="w-full" />

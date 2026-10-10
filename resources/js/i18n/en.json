@@ -741,6 +741,7 @@
             "variants": "Variants",
             "add_variant": "Add variant",
             "split_stock": "Split existing stock",
+            "zero_price_warning": "A price of 0 means customers get this for free. Allowed, but double-check before saving.",
             "split_stock_hint": "This product already has stock. Say how many units on each shelf go to each variant — every row must leave 0. Units reserved for open orders, damaged units, incoming purchase orders and past orders go to the first variant.",
             "split_left": "Left",
             "no_variants": "No variants — the product is sold as a single item. Stock is tracked per variant once variants exist.",
