@@ -120,12 +120,12 @@ it('refuses to refund an order with no confirmed payment', function (): void {
 it('caps refunds at the amount actually paid, not the order total', function (): void {
     $order = unpaidOrder(customer(), 10_000);
     // Through the real action, so the money also lands in the treasury a refund draws on.
-    app(ConfirmPayment::class)->handle($order, 4_000);
+    app(ConfirmPayment::class)->handle($order, 10_000); // paid in full (2026-10-10)
 
-    expect(fn () => app(CreateRefund::class)->handle($order, 5_000, RefundMethod::Cash))
+    expect(fn () => app(CreateRefund::class)->handle($order, 10_001, RefundMethod::Cash))
         ->toThrow(ValidationException::class);
 
-    app(CreateRefund::class)->handle($order, 4_000, RefundMethod::Cash);
+    app(CreateRefund::class)->handle($order, 10_000, RefundMethod::Cash);
 
     expect($order->refresh()->payment_status)->toBe(PaymentStatus::Refunded);
 });

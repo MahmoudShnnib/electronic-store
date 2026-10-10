@@ -66,6 +66,7 @@ const props = defineProps<{
         refunded_cents: number;
         paid_formatted: string;
         outstanding_formatted: string;
+        outstanding_cents: number;
         refunded_formatted: string;
         customer_note: string | null;
         can_resolve_issue: boolean;
@@ -153,7 +154,9 @@ function submitStatus(status: string): void {
 
 const paymentForm = useForm({ amount: null as number | null, reference: '' });
 
+/** Customers pay the whole order at once: the only payment is the full amount owed. */
 function submitPayment(): void {
+    paymentForm.amount = props.order.outstanding_cents / 100;
     paymentForm.post(route('admin.orders.payments.store', props.order.id), {
         preserveScroll: true,
         onSuccess: () => paymentForm.reset(),
@@ -400,19 +403,12 @@ function addressRows(address: Address): { label: string; value: string }[] {
                 <!-- Every payment and refund posts to the treasury, so what is
                      recorded here is what the accounts will show. -->
                 <Text type="secondary" class="mb-3 block !text-xs">{{ t('admin.orders.treasury_hint') }}</Text>
-                <form v-if="order.can.manage" @submit.prevent="submitPayment">
+                <form v-if="order.can.manage && order.outstanding_cents > 0" @submit.prevent="submitPayment">
                     <Field :label="t('admin.orders.record_payment')" :error="paymentForm.errors.amount">
-                        <InputNumber
-                            v-model:value="paymentForm.amount"
-                            :min="0.01"
-                            :step="0.01"
-                            :placeholder="t('admin.common.amount')"
-                            class="w-full"
-                        />
+                        <Input v-model:value="paymentForm.reference" :placeholder="t('admin.common.reference_optional')" dir="ltr" />
                     </Field>
-                    <Input v-model:value="paymentForm.reference" :placeholder="t('admin.common.reference_optional')" dir="ltr" class="mb-4" />
                     <Button html-type="submit" block :loading="paymentForm.processing">
-                        {{ t('admin.orders.record_payment') }}
+                        {{ t('admin.orders.record_full_payment', { amount: order.outstanding_formatted }) }}
                     </Button>
                 </form>
             </Card>

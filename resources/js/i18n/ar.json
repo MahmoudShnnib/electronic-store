@@ -693,6 +693,7 @@
             "timeline": "التسلسل الزمني",
             "order_status": "حالة الطلب",
             "final_state": "هذا الطلب في حالة نهائية.",
+            "record_full_payment": "تسجيل الدفع كاملًا · {amount}",
             "record_payment": "تسجيل دفعة",
             "issue_refund": "إصدار استرداد",
             "admin_note": "ملاحظة إدارية",

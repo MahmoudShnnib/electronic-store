@@ -693,6 +693,7 @@
             "timeline": "Timeline",
             "order_status": "Order status",
             "final_state": "This order is in a final state.",
+            "record_full_payment": "Record full payment · {amount}",
             "record_payment": "Record payment",
             "issue_refund": "Issue refund",
             "admin_note": "Admin note",

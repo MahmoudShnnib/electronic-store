@@ -193,11 +193,12 @@ it('keeps everything in step for bank-transfer manual orders: deposit, refund, c
     expect($order->user_id)->toBe($t->buyer->id);
 
     qaSend($t, $t->admin, 'complete before transfer confirmed', 'post', "/admin/orders/{$order->id}/status", ['status' => 'completed'], 'reject');
-    qaSend($t, $t->admin, 'record 100 deposit', 'post', "/admin/orders/{$order->id}/payments", ['amount' => 100, 'reference' => 'TRX-1']);
+    // Customers pay in full (2026-10-10): a deposit is refused, the whole transfer is recorded.
+    qaSend($t, $t->admin, 'record 100 deposit', 'post', "/admin/orders/{$order->id}/payments", ['amount' => 100, 'reference' => 'TRX-1'], 'reject');
+    qaSend($t, $t->admin, 'record the full transfer', 'post', "/admin/orders/{$order->id}/payments", ['amount' => $order->total_cents / 100, 'reference' => 'TRX-1']);
     qaSend($t, $t->admin, 'cancel with deposit held', 'post', "/admin/orders/{$order->id}/status", ['status' => 'cancelled'], 'reject');
     qaSend($t, $t->buyer, 'customer cancels with deposit held', 'post', "/account/orders/{$order->id}/cancel", [], 'reject');
-    qaSend($t, $t->admin, 'refund 40 of deposit', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 40, 'method' => 'bank_transfer']);
-    qaSend($t, $t->admin, 'refund remaining 60', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 60, 'method' => 'bank_transfer']);
+    qaSend($t, $t->admin, 'refund the transfer', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => $order->total_cents / 100, 'method' => 'bank_transfer']);
     qaSend($t, $t->admin, 'cancel after full refund', 'post', "/admin/orders/{$order->id}/status", ['status' => 'cancelled', 'comment' => 'Customer changed mind']);
     expect(qaQty($t->laptop, $t->lap32))->toBe(2);
     qaSend($t, $t->admin, 'payment on cancelled order', 'post', "/admin/orders/{$order->id}/payments", ['amount' => 10], 'reject');
@@ -316,9 +317,10 @@ it('refuses treasury withdrawals the account cannot cover, and refunds too', fun
     // A bank-transfer order paid in, then the bank is emptied by hand, then refunded.
     qaSend($t, $t->admin, 'manual bank order', 'post', '/admin/orders', [...qaCheckout(['payment_method' => 'bank_transfer']), 'items' => [['product_id' => $t->cable->id, 'quantity' => 1]]]);
     $order = Order::query()->latest('id')->firstOrFail();
-    qaSend($t, $t->admin, 'confirm transfer 5', 'post', "/admin/orders/{$order->id}/payments", ['amount' => 5]);
-    qaSend($t, $t->admin, 'withdraw whole bank balance', 'post', '/admin/treasury', ['direction' => 'out', 'account' => 'bank', 'amount' => 5, 'note' => 'QA']);
-    qaSend($t, $t->admin, 'refund from empty bank account', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => 5, 'method' => 'bank_transfer'], 'reject');
+    $paid = $order->total_cents / 100;
+    qaSend($t, $t->admin, 'confirm the full transfer', 'post', "/admin/orders/{$order->id}/payments", ['amount' => $paid]);
+    qaSend($t, $t->admin, 'withdraw whole bank balance', 'post', '/admin/treasury', ['direction' => 'out', 'account' => 'bank', 'amount' => $paid, 'note' => 'QA']);
+    qaSend($t, $t->admin, 'refund from empty bank account', 'post', "/admin/orders/{$order->id}/refunds", ['amount' => $paid, 'method' => 'bank_transfer'], 'reject');
 });
 
 it('validates money inputs instead of crashing', function (): void {
@@ -376,7 +378,9 @@ it('refuses LYD amounts it cannot store exactly, instead of rounding them', func
         qaSend($t, $t->admin, "payment amount '$typed'", 'post', "/admin/orders/{$order->id}/payments", ['amount' => $typed], 'reject');
         qaSend($t, $t->admin, "treasury deposit '$typed'", 'post', '/admin/treasury', ['direction' => 'in', 'account' => 'cash', 'amount' => $typed, 'note' => 'QA'], 'reject');
     }
-    qaSend($t, $t->admin, "payment amount '12.34'", 'post', "/admin/orders/{$order->id}/payments", ['amount' => '12.34']);
+    // A two-decimal amount is accepted (payments are the full total since 2026-10-10).
+    $typed = number_format($order->total_cents / 100, 2, '.', '');
+    qaSend($t, $t->admin, "payment amount '$typed'", 'post', "/admin/orders/{$order->id}/payments", ['amount' => $typed]);
 });
 
 it('agrees on revenue and cost across dashboard and reports after a partial return', function (): void {

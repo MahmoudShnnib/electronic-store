@@ -12,6 +12,7 @@ use App\Enums\TreasuryDirection;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Services\Payments\PaymentGatewayManager;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -47,10 +48,17 @@ final class ConfirmPayment
                 ]);
             }
 
-            // Net of refunds: after a deposit is given back the full total is owed again.
-            if ($order->netPaidCents() + $amountCents > $order->total_cents) {
+            // Customers always pay the whole order at once (owner decision 2026-10-10):
+            // a payment is exactly what is still owed, net of refunds — never part of it.
+            $owed = $order->total_cents - $order->netPaidCents();
+            if ($owed <= 0) {
                 throw ValidationException::withMessages([
-                    'amount' => __('Payment would exceed the order total.'),
+                    'amount' => __('Order :number is already paid.', ['number' => $order->number]),
+                ]);
+            }
+            if ($amountCents !== $owed) {
+                throw ValidationException::withMessages([
+                    'amount' => __('Record the full amount owed (:owed). Part payments are not accepted.', ['owed' => Money::format($owed, $order->currency)]),
                 ]);
             }
 

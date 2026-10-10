@@ -125,6 +125,9 @@ final class OrderQueryService
         $paidCents = (int) $order->payments->where('status', 'confirmed')->sum('amount_cents');
         $refundedCents = (int) $order->refunds->where('status', 'completed')->sum('amount_cents');
         $returnable = $order->returnableQuantities();
+        $outstandingCents = in_array($order->status, [OrderStatus::InProgress, OrderStatus::Completed], true)
+            ? max(0, $order->total_cents - $paidCents + $refundedCents)
+            : 0;
 
         return [
             'order' => [
@@ -157,10 +160,9 @@ final class OrderQueryService
                 'refunded_cents' => $refundedCents,
                 'paid_formatted' => Money::format($paidCents, $order->currency),
                 // What completing the order would still collect (net of refunds); nothing once it's cancelled or refunded.
-                'outstanding_formatted' => Money::format(
-                    in_array($order->status, [OrderStatus::InProgress, OrderStatus::Completed], true) ? max(0, $order->total_cents - $paidCents + $refundedCents) : 0,
-                    $order->currency,
-                ),
+                'outstanding_formatted' => Money::format($outstandingCents, $order->currency),
+                // The one payment that can be recorded: always the whole amount owed.
+                'outstanding_cents' => $outstandingCents,
                 'refunded_formatted' => Money::format($refundedCents, $order->currency),
                 'customer_note' => $order->customer_note,
                 // Drives the "return / product problem" button: only a

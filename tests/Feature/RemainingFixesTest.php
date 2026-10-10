@@ -312,7 +312,7 @@ it('a customer is not offered "cancel" on an order that already has a payment on
     $this->actingAs($user)->get(route('account.orders.show', $order))
         ->assertInertia(fn (AssertableInertia $page) => $page->where('order.cancellable', true));
 
-    app(ConfirmPayment::class)->handle($order, 2_000);
+    app(ConfirmPayment::class)->handle($order, $order->total_cents); // paid in full (2026-10-10)
 
     $this->actingAs($user)->get(route('account.orders.show', $order))
         ->assertInertia(fn (AssertableInertia $page) => $page->where('order.cancellable', false));

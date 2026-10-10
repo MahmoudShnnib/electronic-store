@@ -147,5 +147,7 @@
     "The :account account only holds :balance, not enough for this refund.": "حساب :account لا يحتوي إلا على :balance، وهذا لا يكفي لهذا الاسترداد.",
     "This warehouse is inactive. Activate it before adding stock to it.": "هذا المستودع غير مفعّل. فعّله قبل إضافة مخزون إليه.",
     "This product still has stock. Write it off, return it or sell it before deleting the product.": "لا يزال لهذا المنتج مخزون. اشطبه أو أرجعه للمورّد أو بِعه قبل حذف المنتج.",
-    "Not deleted because they still have stock: :names": "لم تُحذف لأن لها مخزونًا: :names"
+    "Not deleted because they still have stock: :names": "لم تُحذف لأن لها مخزونًا: :names",
+    "Order :number is already paid.": "الطلب :number مدفوع بالكامل.",
+    "Record the full amount owed (:owed). Part payments are not accepted.": "سجّل المبلغ المستحق كاملًا (:owed). لا يُقبل الدفع الجزئي."
 }

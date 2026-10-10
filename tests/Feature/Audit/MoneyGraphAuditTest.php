@@ -117,8 +117,10 @@ it('MON-3: a POS manual discount is reflected in the lines, so product/category/
 it('MON-4: completing an order whose deposit was refunded collects the full total, not just total − original payments', function (): void {
     $p = mgProduct(10_000);
     $order = mgOrder(customer(), [[$p, 1]]);
-    app(ConfirmPayment::class)->handle($order, 5_000);             // deposit 50
-    app(CreateRefund::class)->handle($order->refresh(), 5_000, RefundMethod::Cash); // deposit returned
+    // Part payments are refused since 2026-10-10; a full prepayment given back is the same case.
+    expect(fn () => app(ConfirmPayment::class)->handle($order, 5_000))->toThrow(ValidationException::class);
+    app(ConfirmPayment::class)->handle($order->refresh(), 10_000);  // paid up front
+    app(CreateRefund::class)->handle($order->refresh(), 10_000, RefundMethod::Cash); // given back
 
     try {
         app(UpdateOrderStatus::class)->handle($order->refresh(), OrderStatus::Completed);
@@ -190,8 +192,9 @@ it('MON-8 (check): refunds cannot exceed what was paid and payments cannot excee
     $p = mgProduct(10_000);
     $order = mgOrder(customer(), [[$p, 1]]);
     expect(fn () => app(ConfirmPayment::class)->handle($order, 10_001))->toThrow(ValidationException::class);
-    app(ConfirmPayment::class)->handle($order, 4_000);
-    expect(fn () => app(CreateRefund::class)->handle($order->refresh(), 4_001, RefundMethod::Cash))->toThrow(ValidationException::class);
+    expect(fn () => app(ConfirmPayment::class)->handle($order, 4_000))->toThrow(ValidationException::class); // part payment
+    app(ConfirmPayment::class)->handle($order, 10_000);
+    expect(fn () => app(CreateRefund::class)->handle($order->refresh(), 10_001, RefundMethod::Cash))->toThrow(ValidationException::class);
     expect(fn () => app(CreateRefund::class)->handle($order->refresh(), -1, RefundMethod::Cash))->toThrow(ValidationException::class);
 });
 
