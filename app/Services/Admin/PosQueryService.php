@@ -269,6 +269,8 @@ final class PosQueryService
             ->get()
             ->mapWithKeys(fn ($row) => [$row->product_id.':'.($row->product_variant_id ?? 0) => (int) $row->cost]);
         $cost = fn (string $key): array => isset($maxCost[$key]) ? ['max_cost_formatted' => Money::format($maxCost[$key])] : [];
+        // The product card stands for all its variants, so it carries the highest of them.
+        $productMaxCost = $maxCost->mapToGroups(fn (int $value, string $key) => [strtok($key, ':') => $value])->map->max();
 
         return Product::query()
             ->where('status', ProductStatus::Active)
@@ -300,7 +302,7 @@ final class PosQueryService
                 'price' => Money::toDecimal($p->currentPriceCents()),
                 'price_formatted' => Money::format($p->currentPriceCents()),
                 'available' => $available[$p->id.':0'] ?? 0,
-                ...$cost($p->id.':0'),
+                ...(isset($productMaxCost[$p->id]) ? ['max_cost_formatted' => Money::format($productMaxCost[$p->id])] : []),
                 'image' => $this->url($p->images->first()?->path),
                 'variants' => $p->variants
                     ->where('is_active', true)

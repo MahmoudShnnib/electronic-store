@@ -38,3 +38,19 @@ it('shows admins the highest cost of the units in the register warehouse, and ca
             ->missing('products.0.max_cost_formatted'));
     }
 });
+
+it('puts the highest cost of all its variants on a variant product\'s card, and each variant\'s own in the picker', function (): void {
+    $product = Product::factory()->create(['has_variants' => true, 'cost_price_cents' => 40_000]);
+    $red = $product->variants()->create(['name' => 'Red', 'sku' => 'MC-RED', 'price_cents' => 90_000, 'cost_price_cents' => 0, 'is_active' => true]);
+    $blue = $product->variants()->create(['name' => 'Blue', 'sku' => 'MC-BLUE', 'price_cents' => 90_000, 'cost_price_cents' => 0, 'is_active' => true]);
+    app(AdjustStock::class)->handle(defaultWarehouse(), $product, $red, 2, MovementType::ManualIncrease, 'Delivery', unitCostCents: 45_000);
+    app(AdjustStock::class)->handle(defaultWarehouse(), $product, $blue, 2, MovementType::ManualIncrease, 'Delivery', unitCostCents: 52_000);
+
+    $admin = staff('admin');
+    app(OpenShift::class)->handle($admin, defaultWarehouse(), 0);
+
+    $this->actingAs($admin)->get(route('admin.pos.register'))->assertInertia(fn (AssertableInertia $page) => $page
+        ->where('products.0.max_cost_formatted', Money::format(52_000))
+        ->where('products.0.variants.0.max_cost_formatted', Money::format(45_000))
+        ->where('products.0.variants.1.max_cost_formatted', Money::format(52_000)));
+});

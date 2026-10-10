@@ -97,6 +97,8 @@ interface Tile {
     /** One for a plain product, one per active variant otherwise. */
     units: Unit[];
     available: number;
+    /** Admins only (absent for cashiers): the highest price paid for any of its units held. */
+    maxCost?: string;
 }
 
 const props = defineProps<{
@@ -360,6 +362,7 @@ const tiles = computed<Tile[]>(() =>
                 image: product.image ?? cheapest.image,
                 units: own,
                 available: own.reduce((sum, unit) => sum + Math.max(0, unit.available), 0),
+                maxCost: product.max_cost_formatted,
             },
         ];
     }),
@@ -1073,6 +1076,9 @@ watch(
                         </span>
                         <span v-else class="block text-[0.6875rem] tabular-nums text-ad-label">
                             {{ t('admin.pos.in_stock_n', { count: unit.available }) }}
+                        </span>
+                        <span v-if="unit.maxCost" class="block text-[0.6875rem] tabular-nums text-ad-muted">
+                            {{ t('admin.pos.max_cost', { amount: unit.maxCost }) }}
                         </span>
                     </span>
                 </button>
