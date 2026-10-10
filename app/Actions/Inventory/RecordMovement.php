@@ -15,7 +15,6 @@ use App\Models\Warehouse;
 use App\Support\CostLayers;
 use App\Support\HomeCache;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -201,8 +200,10 @@ final class RecordMovement
 
     private function lockedStockRow(Warehouse $warehouse, Product $product, ?ProductVariant $variant): StockLevel
     {
-        // Ensure the row exists before locking it. The unique index makes the
-        // create race-safe: a concurrent insert loses and we lock the winner's row.
+        // Ensure the row exists before locking it. ON CONFLICT DO NOTHING makes the
+        // create race-safe: a concurrent insert waits for the winner, inserts nothing
+        // and we lock the winner's row. A plain insert that hit the unique index would
+        // abort the whole Postgres transaction (25P02), so the re-lock below would fail.
         $stock = StockLevel::query()
             ->where('warehouse_id', $warehouse->id)
             ->where('product_id', $product->id)
@@ -214,15 +215,11 @@ final class RecordMovement
             return $stock;
         }
 
-        try {
-            StockLevel::create([
-                'warehouse_id' => $warehouse->id,
-                'product_id' => $product->id,
-                'product_variant_id' => $variant?->id,
-            ]);
-        } catch (UniqueConstraintViolationException) {
-            // Lost the race — the row now exists; fall through and lock it.
-        }
+        StockLevel::query()->fillAndInsertOrIgnore([[
+            'warehouse_id' => $warehouse->id,
+            'product_id' => $product->id,
+            'product_variant_id' => $variant?->id,
+        ]]);
 
         return StockLevel::query()
             ->where('warehouse_id', $warehouse->id)
