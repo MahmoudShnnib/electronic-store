@@ -255,9 +255,10 @@ it('MON-13 (check): cancel releases coupon usage; used_count stays equal to rede
     $p = mgProduct(10_000);
     $coupon = Coupon::factory()->create(['code' => 'ONE', 'value_cents' => 1_000, 'usage_limit' => 1]);
     $o1 = mgOrder(customer(), [[$p, 1]], coupon: 'ONE');
-    expect($coupon->refresh()->used_count)->toBe(1)->and($coupon->redemptions()->count())->toBe(1);
+    expect($coupon->refresh()->used_count)->toBe(1)->and($coupon->redemptions()->whereNull('released_at')->count())->toBe(1);
     app(CancelOrder::class)->handle($o1);
-    expect($coupon->refresh()->used_count)->toBe(0)->and($coupon->redemptions()->count())->toBe(0);
+    // BD7 (2026-10-10): the cancelled use stays as history, released.
+    expect($coupon->refresh()->used_count)->toBe(0)->and($coupon->redemptions()->whereNull('released_at')->count())->toBe(0);
     mgOrder(customer(), [[$p, 1]], coupon: 'ONE');
     expect($coupon->refresh()->used_count)->toBe(1);
 });

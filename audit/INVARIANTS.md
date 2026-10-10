@@ -88,8 +88,8 @@ dashboard and sales report already use). Money is integer hundredths.
 
 ## Coupons
 
-- **C1** `coupons.used_count` = number of redemptions, ≤ `usage_limit`; no redemption is
-  held by a cancelled order.
+- **C1** `coupons.used_count` = number of active (not released) redemptions, ≤ `usage_limit`;
+  no active redemption is held by a cancelled order (cancelling releases it — kept as history, BD7).
 
 ## 🔴 Unclear — Business Decision Required (not enforced, see MORNING_REVIEW.md)
 

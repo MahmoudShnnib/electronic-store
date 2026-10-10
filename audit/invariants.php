@@ -363,7 +363,9 @@ function auditInvariants(): array
 
     // ── Coupons ──────────────────────────────────────────────────────────────
     foreach (DB::table('coupons')->get() as $c) {
-        $red = DB::table('coupon_redemptions')->where('coupon_id', $c->id)->count();
+        $red = DB::table('coupon_redemptions')->where('coupon_id', $c->id)
+            ->when(Schema::hasColumn('coupon_redemptions', 'released_at'), fn ($q) => $q->whereNull('released_at'))
+            ->count();
         if ($red !== (int) $c->used_count) {
             $v['C1'][] = "coupon {$c->code}: used_count {$c->used_count}, $red redemptions";
         }
@@ -372,7 +374,9 @@ function auditInvariants(): array
         }
     }
     foreach (DB::table('coupon_redemptions')->join('orders', 'orders.id', '=', 'coupon_redemptions.order_id')
-        ->where('orders.status', 'cancelled')->pluck('orders.number') as $num) {
+        ->where('orders.status', 'cancelled')
+        ->when(Schema::hasColumn('coupon_redemptions', 'released_at'), fn ($q) => $q->whereNull('coupon_redemptions.released_at'))
+        ->pluck('orders.number') as $num) {
         $v['C1'][] = "redemption still held by cancelled order $num";
     }
 

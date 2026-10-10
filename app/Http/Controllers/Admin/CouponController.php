@@ -25,7 +25,7 @@ final class CouponController extends Controller implements HasMiddleware
     public function index(Request $request): Response
     {
         $coupons = Coupon::query()
-            ->withCount('redemptions')
+            ->withCount(['redemptions' => fn ($q) => $q->whereNull('released_at')])
             // ponytail: loads every redemption for the 25 coupons on the page and
             // keeps the newest 10 in PHP. Move to a per-coupon endpoint if a
             // single code ever collects thousands of uses.
@@ -56,6 +56,7 @@ final class CouponController extends Controller implements HasMiddleware
                     'order_number' => $r->order?->number,
                     'amount_formatted' => Money::format($r->amount_cents),
                     'at' => $r->created_at->toDateString(),
+                    'released' => $r->released_at !== null,
                 ])->values(),
                 'applies_to' => $c->applies_to,
                 'applies_to_ids' => $c->applies_to_ids,

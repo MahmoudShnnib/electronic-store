@@ -623,7 +623,8 @@
             "disabled": "Disabled",
             "delete_message": "Delete coupon “{code}”?",
             "history": "View redemptions",
-            "history_title": "Redemptions for {code}"
+            "history_title": "Redemptions for {code}",
+            "released": "Released — order cancelled"
         },
         "customers": {
             "title": "Customers",

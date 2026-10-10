@@ -34,7 +34,7 @@ interface CouponRow extends Record<string, unknown> {
     usage_limit: number | null;
     per_customer_limit: number | null;
     used_count: number;
-    redemptions: { id: number; customer: string; order_number: string | null; amount_formatted: string; at: string }[];
+    redemptions: { id: number; customer: string; order_number: string | null; amount_formatted: string; at: string; released: boolean }[];
     applies_to: string;
     applies_to_ids: number[] | null;
     starts_at: string | null;
@@ -293,7 +293,10 @@ function destroy(): void {
             :scroll="{ x: true }"
         >
             <template #bodyCell="{ column, record }">
-                <template v-if="column.key === 'order_number'">{{ record.order_number ?? '—' }}</template>
+                <template v-if="column.key === 'order_number'">
+                    {{ record.order_number ?? '—' }}
+                    <StatusBadge v-if="record.released" status="cancelled" :label="t('admin.coupons.released')" class="ms-2" />
+                </template>
             </template>
         </Table>
     </FormModal>

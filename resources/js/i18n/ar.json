@@ -623,7 +623,8 @@
             "disabled": "معطّل",
             "delete_message": "حذف الكوبون «{code}»؟",
             "history": "عرض عمليات الاستخدام",
-            "history_title": "عمليات استخدام {code}"
+            "history_title": "عمليات استخدام {code}",
+            "released": "أُعيد — الطلب ملغى"
         },
         "customers": {
             "title": "العملاء",

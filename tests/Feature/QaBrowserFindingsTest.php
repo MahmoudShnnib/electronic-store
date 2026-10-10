@@ -9,7 +9,6 @@ use App\Enums\PaymentStatus;
 use App\Models\Coupon;
 use App\Models\CouponRedemption;
 use App\Models\Order;
-use App\Models\Product;
 use App\Models\User;
 use App\Support\Dates;
 use App\Support\ReferenceNumber;
@@ -68,7 +67,8 @@ it('releases a coupon redemption and its usage count when an order is cancelled'
 
     app(CancelOrder::class)->handle($order);
 
-    expect(CouponRedemption::where('order_id', $order->id)->exists())->toBeFalse()
+    // BD7 (2026-10-10): kept as history, marked released.
+    expect(CouponRedemption::where('order_id', $order->id)->whereNull('released_at')->exists())->toBeFalse()
         ->and($coupon->refresh()->used_count)->toBe(0);
 });
 
