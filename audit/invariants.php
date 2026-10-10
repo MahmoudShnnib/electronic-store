@@ -136,7 +136,7 @@ function auditInvariants(): array
 
     $out = ['customer_order', 'damaged', 'lost', 'manual_decrease', 'supplier_return', 'transfer_out'];
     $in = ['initial', 'purchase_receipt', 'order_cancellation', 'customer_return', 'manual_increase', 'transfer_in'];
-    $zeroOk = ['purchase_incoming', 'purchase_cancelled', 'correction', 'supplier_return'];
+    $zeroOk = ['purchase_incoming', 'purchase_cancelled', 'correction', 'variant_split', 'supplier_return'];
     foreach ($movements as $m) {
         $c = (int) $m->quantity_change;
         if ((in_array($m->type, $out, true) && $c > 0) || (in_array($m->type, $in, true) && $c < 0)
@@ -365,7 +365,7 @@ function auditInvariants(): array
     }
 
     // ── Audit trail on stock, write-offs ─────────────────────────────────────
-    $manual = ['initial', 'manual_increase', 'manual_decrease', 'damaged', 'lost', 'correction', 'supplier_return'];
+    $manual = ['initial', 'manual_increase', 'manual_decrease', 'damaged', 'lost', 'correction', 'variant_split', 'supplier_return'];
     $refMorphs = [$orderMorph, (new PurchaseOrder)->getMorphClass(), (new StockTransfer)->getMorphClass()];
     foreach ($movements as $m) {
         if (in_array($m->type, $manual, true)) {

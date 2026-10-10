@@ -20,6 +20,8 @@ enum MovementType: string
     case TransferOut = 'transfer_out';
     case TransferIn = 'transfer_in';
     case Correction = 'correction';
+    /** Stock moved from a product onto its first variants when it gained them: not a gain or a loss. */
+    case VariantSplit = 'variant_split';
     case PurchaseIncoming = 'purchase_incoming';
     case PurchaseCancelled = 'purchase_cancelled';
 

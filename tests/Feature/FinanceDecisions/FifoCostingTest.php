@@ -123,6 +123,8 @@ it('carries the costs onto the variants when a stocked product gains them', func
     $blue = $this->phone->variants()->where('sku', 'PHONE-BLUE')->sole();
     expect(fifoBatches($this->phone, null, $red))->toBe([[70_000 => 8]])
         ->and(fifoBatches($this->phone, null, $blue))->toBe([[70_000 => 2], [65_000 => 5]])
+        // A move, not a loss: nothing shows as written off.
+        ->and(finSnapshot($this, $this->admin)['report.writeoffs.total'])->toBe(finFmt(0))
         ->and(auditFailures())->toBe([]);
 });
 

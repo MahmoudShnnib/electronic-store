@@ -243,7 +243,7 @@ final class SaveProduct
 
         foreach ($levels as $level) {
             $drained = $recordMovement->handle(
-                type: MovementType::Correction,
+                type: MovementType::VariantSplit,
                 warehouse: $level->warehouse,
                 product: $product,
                 quantityChange: -$level->quantity,
@@ -268,7 +268,7 @@ final class SaveProduct
                 [$share, $layers] = CostLayers::split($layers, $quantity);
 
                 $recordMovement->handle(
-                    type: MovementType::Correction,
+                    type: MovementType::VariantSplit,
                     warehouse: $level->warehouse,
                     product: $product,
                     variant: $variant,
