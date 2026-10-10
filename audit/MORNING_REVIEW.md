@@ -9,12 +9,23 @@
 | (follows "they only pay in full") | A payment must be exactly the amount owed; order page has one "Record full payment" button | `e486b91` |
 | BD1 / BD6 | Whole returns only: every unit back + everything paid refunded, or nothing; a delivered order is refunded only through the return form | `2abccfc` |
 | BD5 | Revenue = money received, on the day it arrives (payments in, refunds out) — reports + dashboard | `3f57e4f` |
-| BD2 | Parked by the owner (per-unit purchase cost) | — |
+| BD2 | FIFO costing: every purchase keeps its unit cost, sales use the oldest units first, profit uses what they cost; stock dialog asks the unit cost; POS shows admins the highest cost of the units in that warehouse (branch `feat/fifo-costing`, migration `2026_10_10_110000`) | `53818d5`, `6a79e1a`, `31fe2b7`, `31bc0cd`, `539404b`, `91c9959` |
+
+Also on `feat/fifo-costing`: `32e0af1` (separate session) — two requests creating the same new
+stock row at once no longer abort the Postgres transaction. Checks on the branch tip: 536 tests
+pass, Concurrency suite 5 pass, `php audit/check_invariants.php` ALL RULES PASS (dev DB), pint clean.
 
 Rules M3/M4: the case that broke them (deposit refunded, then paid in full) can no longer
 happen now that payments and refunds are always whole.
 
-Needs on deploy: `php artisan migrate` (2026_10_05_100000 and 2026_10_10_100000).
+Needs on deploy: `php artisan down`, `php artisan migrate` (2026_10_05_100000, 2026_10_10_100000,
+2026_10_10_110000), reload PHP-FPM, `php audit/check_invariants.php` (S10/S11 must pass), `php artisan up`.
+The FIFO migration seeds one batch per stock row at today's cost; stock moved by old code between
+the migration and the code switch would have no batch, hence the maintenance window.
+
+FIFO known gaps (owner's call, not built): PO shipping/discount are not spread into unit cost;
+supplier returns use FIFO, not the returned PO's batch; free (0-total) orders' goods never reach
+profit cost; write-offs (damaged/lost) have no report line of their own.
 
 ---
 

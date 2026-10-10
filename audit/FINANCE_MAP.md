@@ -57,7 +57,7 @@ Each is a hypothesis from reading the code; the scenario loop confirms or clears
 | `inventory_movements` | immutable ledger of `quantity` changes (before/change/after, type, reference, reason, user) | `RecordMovement` |
 | `products.status` | `out_of_stock` auto-reverts to `active` on restock | `RecordMovement` |
 | storefront availability | max single-warehouse `quantity` over sellable rows | `AddToCart::assertQuantityAvailable`, product cards/pages |
-| reports: inventory valuation | `(quantity+reserved) × cost`, `× price` | read-only (`ReportService::inventoryValuation`) |
+| reports: inventory valuation | FIFO batches (`quantity_remaining × unit_cost`) + `cost_cents` of open orders not yet paid; retail at today's price | read-only (`ReportService::inventoryValuation`) |
 | reports/dashboard: low/out of stock | from `stock_levels.quantity` | read-only |
 
 ### Money
@@ -65,6 +65,8 @@ Each is a hypothesis from reading the code; the scenario loop confirms or clears
 |---|---|---|
 | `orders.subtotal/discount/total_cents` | snapshot at placement (coupon + manual discount in `discount_cents`) | `PlaceOrder` only (never edited later) |
 | `order_items.unit_price/discount/line_total/unit_cost_cents` | per-line snapshot | `PlaceOrder` |
+| `order_items.cost_cents/cost_layers` | FIFO cost of the units the line took (slices `{cost, qty, received_at}`); `unit_cost_cents` is now only their average | `PlaceOrder` |
+| `stock_batches` | one row per arrival of stock on a stock row: unit cost paid, units left; used oldest first | `RecordMovement` only |
 | `orders.payment_status` | roll-up of payments − refunds | `ConfirmPayment`, `CreateRefund`, `settleOutstanding` (0-total) |
 | `payments` (status `confirmed`) | money received | `ConfirmPayment` (admin button, or auto on Completed) |
 | `refunds` (status `completed`) | money given back | `CreateRefund` (refund form, return form via `ResolveOrderIssue`) |
@@ -74,7 +76,7 @@ Each is a hypothesis from reading the code; the scenario loop confirms or clears
 | `price_histories` | every price/sale/cost change | `SaveProduct` |
 | `activity_log` | audit trail (payment_confirmed, refund_created, order_status_changed, order_cancelled, treasury_movement, model diffs) | actions + LogsActivity models |
 | Dashboard KPIs | revenue today/month = Σ(total − refunds) over in_progress+completed+refunded, UTC days | read-only |
-| Sales report | same revenue rule, store-timezone days; cost from `unit_cost_cents` minus returned units; refunds by refund date | read-only |
+| Sales report | same revenue rule, store-timezone days; cost = `order_items.cost_cents` (FIFO), booked with the payment and taken out with the refund; refunds by refund date | read-only |
 | Invoices report | invoiced = total (non-cancelled), paid = **gross** payments | read-only |
 | Admin order page | paid (gross), refunded, outstanding = total − gross | read-only |
 | Treasury page | balances from ledger | read-only |
