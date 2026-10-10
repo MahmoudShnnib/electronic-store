@@ -12,6 +12,9 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 final class UpdateSettingsRequest extends FormRequest
 {
+    /** The networks the storefront footer has icons for. */
+    public const SOCIAL_NETWORKS = ['facebook', 'instagram', 'tiktok', 'youtube'];
+
     public function authorize(): bool
     {
         return true;
@@ -21,6 +24,9 @@ final class UpdateSettingsRequest extends FormRequest
     {
         return [
             'settings' => ['required', 'array'],
+            // The footer links straight to these, so they must be real URLs.
+            'settings.social_links' => ['sometimes', 'array:'.implode(',', self::SOCIAL_NETWORKS)],
+            'settings.social_links.*' => ['nullable', 'url:http,https', 'max:255'],
         ];
     }
 }

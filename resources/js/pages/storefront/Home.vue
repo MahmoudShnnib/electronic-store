@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import CatchGame from '@/components/store/CatchGame.vue';
+import HeroCarousel from '@/components/store/HeroCarousel.vue';
 import ProductCard from '@/components/store/ProductCard.vue';
 import SnakeButton from '@/components/store/SnakeButton.vue';
-import type { ProductCardData } from '@/components/store/types';
+import type { HeroSlide, ProductCardData } from '@/components/store/types';
 import StoreLayout from '@/layouts/StoreLayout.vue';
-import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue';
+import { RightOutlined } from '@ant-design/icons-vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { Carousel as ACarousel, Button, Col, Row, Typography } from 'ant-design-vue';
+import { Button, Col, Row, Typography } from 'ant-design-vue';
 import {
     Banknote,
     Cpu,
@@ -26,12 +27,12 @@ import {
     TrendingUp,
     Truck,
 } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: StoreLayout });
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Paragraph } = Typography;
 
 interface HomeCategory {
     id: number;
@@ -53,6 +54,12 @@ interface HomeBrand {
     logo_path: string | null;
 }
 
+/** A promo tile as curated in the dashboard: a category card plus optional overrides. */
+interface PromoTile extends HomeCategory {
+    title?: string | null;
+    title_ar?: string | null;
+}
+
 interface CategorySection {
     category: { name: string; name_ar: string | null; slug: string };
     products: { data: ProductCardData[] };
@@ -66,6 +73,9 @@ const props = defineProps<{
     onSale: { data: ProductCardData[] };
     bestSellers: { data: ProductCardData[] };
     categorySections: CategorySection[];
+    /** Curated in the dashboard's Homepage page; null means "pick automatically". */
+    heroSlides: HeroSlide[] | null;
+    promoTiles: PromoTile[] | null;
 }>();
 
 const { t } = useI18n();
@@ -104,29 +114,18 @@ function takeUnique(pool: ProductCardData[], limit: number, exclude: number[] = 
 }
 
 const HERO_SLIDE_COUNT = 5;
-const HERO_ROTATE_MS = 6000;
 
-const heroSlides = computed(() => takeUnique([...props.featured.data, ...props.newArrivals.data], HERO_SLIDE_COUNT));
-
-// a-carousel owns slide position/animation/dots; we just drive it via ref for
-// keyboard + the custom arrow buttons (its built-in nav isn't RTL-aware).
-const carouselRef = ref<InstanceType<typeof ACarousel>>();
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const heroAutoplay = computed(() => !prefersReducedMotion && heroSlides.value.length > 1);
-
-function nextSlide() {
-    carouselRef.value?.next();
-}
-function previousSlide() {
-    carouselRef.value?.prev();
-}
-
-/** Split a product name so the last word can carry the bold accent. */
-function splitName(name: string): { light: string; bold: string } {
-    const parts = name.trim().split(' ');
-    if (parts.length === 1) return { light: '', bold: name };
-    return { light: parts.slice(0, -1).join(' '), bold: parts[parts.length - 1] };
-}
+/** Curated slides when the dashboard has set some, otherwise featured products then the newest. */
+const heroSlides = computed<HeroSlide[]>(
+    () =>
+        props.heroSlides ??
+        takeUnique([...props.featured.data, ...props.newArrivals.data], HERO_SLIDE_COUNT).map((product) => ({
+            product,
+            title: null,
+            title_ar: null,
+            image: null,
+        })),
+);
 
 /** The service promises the shop actually keeps — mirrored at checkout. */
 const trustItems = [
@@ -164,12 +163,20 @@ const gameImages = computed(() => [
 /** A single tile can't loop seamlessly — render it once, unanimated. */
 const brandCopies = computed(() => (props.brands.length >= 2 ? 3 : 1));
 
-/** Two promo tiles beside the hero: best live discount first, then the biggest
- *  category — the truthful stand-ins for the reference site's ad banners. */
-const sideTiles = computed(() => {
+/** Two promo tiles beside the hero: curated in the dashboard, or automatically the
+ *  best live discount first, then the biggest category. */
+const sideTiles = computed<PromoTile[]>(() => {
+    if (props.promoTiles) return props.promoTiles;
+
     const ranked = [...props.categories].sort((a, b) => b.max_discount - a.max_discount || b.products_count - a.products_count);
     return ranked.slice(0, 2);
 });
+
+function tileTitle(tile: PromoTile): string {
+    const custom = locale.value === 'ar' ? tile.title_ar || tile.title : tile.title;
+
+    return custom || categoryName(tile);
+}
 
 function sectionTitle(section: CategorySection): string {
     return locale.value === 'ar' && section.category.name_ar ? section.category.name_ar : section.category.name;
@@ -189,86 +196,15 @@ function sectionTitle(section: CategorySection): string {
          live story to tell (biggest discount, then sheer size). -->
     <section class="mx-auto max-w-7xl px-4 pt-6">
         <div class="grid gap-4 lg:grid-cols-3">
-            <div
-                class="store-slab store-slab-hero store-slab-deco relative overflow-hidden rounded-2xl lg:col-span-2"
-                role="region"
-                aria-roledescription="carousel"
-                :aria-label="t('home.featured')"
-                tabindex="0"
-                @keydown.left.prevent="locale === 'ar' ? nextSlide() : previousSlide()"
-                @keydown.right.prevent="locale === 'ar' ? previousSlide() : nextSlide()"
-            >
-                <ACarousel
-                    v-if="heroSlides.length > 0"
-                    ref="carouselRef"
-                    :autoplay="heroAutoplay"
-                    :autoplay-speed="HERO_ROTATE_MS"
-                    dots
-                    effect="fade"
-                >
-                    <div v-for="(slide, index) in heroSlides" :key="slide.id">
-                        <div class="grid items-center gap-6 px-6 py-10 sm:px-10 lg:grid-cols-2 lg:py-14">
-                            <div class="text-center lg:text-start">
-                                <Text class="store-slab-ink-soft !text-sm !font-semibold sm:!text-lg">{{ t('home.featured') }}</Text>
-                                <Title :level="2" class="store-slab-title !mt-2 !text-3xl !font-light !leading-tight !tracking-tight sm:!text-5xl">
-                                    {{ splitName(slide.name).light }}
-                                    <span class="font-semibold">{{ splitName(slide.name).bold }}</span>
-                                </Title>
-                                <Paragraph class="store-slab-ink-soft !mt-3 !text-base">{{ t('home.hero_subtitle') }}</Paragraph>
-                                <p class="mt-1 text-2xl font-light">{{ slide.current_price_formatted }}</p>
-                                <div class="mt-6">
-                                    <SnakeButton :href="route('products.show', slide.slug)">{{ t('home.shop_now') }}</SnakeButton>
-                                </div>
-                            </div>
-                            <div class="hidden items-center justify-center lg:flex">
-                                <!-- The first slide is the page's LCP element; the rest are
-                                     off-screen until the carousel advances. -->
-                                <img
-                                    v-if="slide.image"
-                                    :src="slide.image"
-                                    :alt="slide.name"
-                                    width="512"
-                                    height="512"
-                                    class="max-h-64 w-auto rounded-2xl object-contain drop-shadow-2xl"
-                                    :loading="index === 0 ? 'eager' : 'lazy'"
-                                    :fetchpriority="index === 0 ? 'high' : undefined"
-                                    decoding="async"
-                                />
-                                <div v-else class="store-slab-well flex h-56 w-56 items-center justify-center rounded-3xl">
-                                    <Package class="h-20 w-20 opacity-25" />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </ACarousel>
+            <HeroCarousel v-if="heroSlides.length > 0" :slides="heroSlides" class="lg:col-span-2" />
 
-                <!-- Empty state: no products at all. -->
-                <div v-else class="px-6 py-16 text-center">
-                    <Title :level="1" class="store-slab-title !text-5xl !font-light sm:!text-6xl">{{ $page.props.name }}</Title>
-                    <Paragraph class="store-slab-ink-soft !mt-4 !text-lg">{{ t('home.hero_subtitle') }}</Paragraph>
-                    <div class="mt-8">
-                        <SnakeButton :href="route('catalog.index')">{{ t('home.view_all') }}</SnakeButton>
-                    </div>
+            <!-- Empty state: no products at all. -->
+            <div v-else class="store-slab relative overflow-hidden rounded-2xl px-6 py-16 text-center lg:col-span-2">
+                <Title :level="1" class="store-slab-title !text-5xl !font-light sm:!text-6xl">{{ $page.props.name }}</Title>
+                <Paragraph class="store-slab-ink-soft !mt-4 !text-lg">{{ t('home.hero_subtitle') }}</Paragraph>
+                <div class="mt-8">
+                    <SnakeButton :href="route('catalog.index')">{{ t('home.view_all') }}</SnakeButton>
                 </div>
-
-                <template v-if="heroSlides.length > 1">
-                    <Button
-                        shape="circle"
-                        class="store-slab-arrow !absolute start-2 top-1/2 hidden -translate-y-1/2 sm:!flex"
-                        :aria-label="t('home.previous_slide')"
-                        @click="previousSlide"
-                    >
-                        <template #icon><component :is="locale === 'ar' ? RightOutlined : LeftOutlined" /></template>
-                    </Button>
-                    <Button
-                        shape="circle"
-                        class="store-slab-arrow !absolute end-2 top-1/2 hidden -translate-y-1/2 sm:!flex"
-                        :aria-label="t('home.next_slide')"
-                        @click="nextSlide"
-                    >
-                        <template #icon><component :is="locale === 'ar' ? LeftOutlined : RightOutlined" /></template>
-                    </Button>
-                </template>
             </div>
 
             <!-- Side promo tiles -->
@@ -282,7 +218,7 @@ function sectionTitle(section: CategorySection): string {
                     <img
                         v-if="tile.image"
                         :src="tile.image"
-                        :alt="categoryName(tile)"
+                        :alt="tileTitle(tile)"
                         width="640"
                         height="360"
                         loading="lazy"
@@ -294,8 +230,8 @@ function sectionTitle(section: CategorySection): string {
                     </div>
                     <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent"></div>
                     <div class="absolute inset-x-0 bottom-0 p-4 text-start text-white">
-                        <p class="text-base font-semibold leading-tight">{{ categoryName(tile) }}</p>
-                        <p v-if="tile.max_discount > 0" class="mt-1 text-sm font-bold text-[#4ade9b]">
+                        <p class="text-base font-semibold leading-tight">{{ tileTitle(tile) }}</p>
+                        <p v-if="tile.max_discount > 0" class="mt-1 text-sm font-bold text-st-accent-bright">
                             {{ t('home.up_to_off', { percent: tile.max_discount }) }}
                         </p>
                         <p v-else class="mt-1 text-xs opacity-80">{{ t('home.product_count', tile.products_count) }}</p>
@@ -333,7 +269,7 @@ function sectionTitle(section: CategorySection): string {
                     <component :is="categoryIcon(category)" v-else class="h-10 w-10 text-black/35" />
                 </div>
                 <span class="mt-2 line-clamp-2 block text-xs font-semibold leading-snug sm:text-sm">{{ categoryName(category) }}</span>
-                <span v-if="category.max_discount > 0" class="mt-0.5 block text-xs font-bold text-[#0f9d58]">
+                <span v-if="category.max_discount > 0" class="mt-0.5 block text-xs font-bold text-st-accent-text">
                     {{ t('home.up_to_off', { percent: category.max_discount }) }}
                 </span>
                 <span v-else class="mt-0.5 block text-xs opacity-55">{{ t('home.product_count', category.products_count) }}</span>
@@ -355,7 +291,7 @@ function sectionTitle(section: CategorySection): string {
     <section v-for="section in productSections" :key="section.key" class="mx-auto max-w-7xl px-4 pt-10">
         <div class="mb-4 flex items-center justify-between">
             <Title :level="3" class="store-section-title !m-0 !flex !items-center !gap-2 !text-lg !font-semibold">
-                <component :is="section.icon" class="h-5 w-5 text-[#0f9d58]" />
+                <component :is="section.icon" class="h-5 w-5 text-st-accent-text" />
                 {{ section.title }}
             </Title>
             <Link :href="section.href">

@@ -106,4 +106,9 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
         Route::post('settings', [Admin\SettingController::class, 'update'])->name('settings.update');
         Route::post('settings/receipt-logo', [Admin\Settings\ReceiptLogoController::class, 'store'])->name('settings.receipt-logo.store');
         Route::delete('settings/receipt-logo', [Admin\Settings\ReceiptLogoController::class, 'destroy'])->name('settings.receipt-logo.destroy');
+
+        // Storefront homepage curation. POST, not PUT: it carries file uploads.
+        Route::get('homepage', [Admin\HomepageController::class, 'index'])->name('homepage.index');
+        Route::post('homepage', [Admin\HomepageController::class, 'update'])->name('homepage.update');
+        Route::get('homepage/products', [Admin\HomepageController::class, 'products'])->name('homepage.products');
     });

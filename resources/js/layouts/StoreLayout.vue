@@ -8,7 +8,7 @@ import { useHideOnScroll } from '@/composables/useHideOnScroll';
 import { useStoreTheme } from '@/composables/useStoreTheme';
 import { switchLocale, type AppLocale } from '@/i18n';
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Badge, Button, ConfigProvider, Divider, Drawer, Dropdown, Menu, MenuItem, Tooltip } from 'ant-design-vue';
+import { Badge, Button, ConfigProvider, Divider, Drawer, Dropdown, Menu, MenuItem } from 'ant-design-vue';
 import arEG from 'ant-design-vue/es/locale/ar_EG';
 import enGB from 'ant-design-vue/es/locale/en_GB';
 import dayjs from 'dayjs';
@@ -49,6 +49,24 @@ function toggleDark() {
 
 const locale = computed(() => (page.props.locale as AppLocale) ?? 'en');
 
+const accountOpen = ref(false);
+
+function setDark(dark: boolean) {
+    updateAppearance(dark ? 'dark' : 'light');
+}
+
+/** Each language is written in itself, so it is findable by someone who can't read the other. */
+const localeOptions: { value: AppLocale; label: string }[] = [
+    { value: 'ar', label: 'العربية' },
+    { value: 'en', label: 'English' },
+];
+
+function setLocale(value: AppLocale) {
+    if (value === locale.value) return;
+    accountOpen.value = false;
+    switchLocale(value);
+}
+
 function toggleLocale() {
     menuOpen.value = false;
     switchLocale(locale.value === 'ar' ? 'en' : 'ar');
@@ -71,8 +89,12 @@ const cartCount = computed(() => (page.props.cartCount as number) ?? 0);
 const wishlistCount = computed(() => (page.props.wishlistCount as number) ?? 0);
 const appName = computed(() => (page.props.name as string) ?? 'Electronic Store');
 
+const firstName = computed(() => user.value?.name.trim().split(/\s+/)[0] ?? '');
+const userInitial = computed(() => firstName.value.charAt(0).toUpperCase());
+
 function logout() {
     menuOpen.value = false;
+    accountOpen.value = false;
     router.post(route('logout'));
 }
 
@@ -142,6 +164,17 @@ const accountLinks = computed<NavLink[]>(() => {
     return links;
 });
 
+/** The account panel's links: the account pages with Wishlist slotted in after Orders. */
+const panelLinks = computed<NavLink[]>(() => {
+    const wishlist = shopLinks.value.find((link) => link.key === 'wishlist');
+    const links = [...accountLinks.value];
+    const afterOrders = links.findIndex((link) => link.key === 'orders') + 1;
+
+    if (wishlist) links.splice(afterOrders, 0, wishlist);
+
+    return links;
+});
+
 interface NavCategory {
     id: number;
     name: string;
@@ -167,7 +200,7 @@ function categoryLabel(category: NavCategory): string {
                 class="store-header sticky top-0 z-40 transition-transform duration-300"
                 :class="headerHidden ? '-translate-y-full' : 'translate-y-0'"
             >
-                <div class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:gap-5">
+                <div class="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:gap-4">
                     <!-- Drawer trigger: the whole store, for viewports too narrow for the bar -->
                     <Button type="text" class="store-icon-btn lg:!hidden" :aria-label="t('nav.categories')" @click="menuOpen = true">
                         <template #icon><MenuIcon class="h-5 w-5" /></template>
@@ -178,111 +211,190 @@ function categoryLabel(category: NavCategory): string {
                         <span class="hidden sm:inline">{{ appName }}</span>
                     </Link>
 
-                    <!-- All categories: the storefront's loudest header control, same as the
-                         reference site's "كل الأقسام" pill. Desktop only; the drawer covers mobile. -->
-                    <Dropdown v-if="navCategories.length > 0" :trigger="['click']" class="hidden lg:inline-flex">
-                        <Button class="store-cats-btn">
-                            <span class="flex items-center gap-2">
-                                <LayoutGrid class="h-4 w-4" />
-                                {{ t('nav.all_categories') }}
-                                <ChevronDown class="h-4 w-4 opacity-80" />
-                            </span>
-                        </Button>
-                        <template #overlay>
-                            <Menu class="store-account-menu">
-                                <MenuItem v-for="category in navCategories" :key="category.id">
-                                    <Link :href="route('catalog.category', category.slug)" class="flex items-center justify-between gap-6">
-                                        <span>{{ categoryLabel(category) }}</span>
-                                        <span class="text-xs opacity-50">{{ category.products_count }}</span>
-                                    </Link>
-                                </MenuItem>
-                                <Divider class="!my-1" />
-                                <MenuItem key="all">
-                                    <Link :href="route('catalog.index')">{{ t('home.view_all') }}</Link>
-                                </MenuItem>
-                            </Menu>
-                        </template>
-                    </Dropdown>
-
-                    <!-- Primary destinations, desktop only; the drawer carries them below `lg` -->
-                    <nav class="hidden shrink-0 items-center gap-1 lg:flex" :aria-label="t('nav.categories')">
-                        <Link v-for="link in shopLinks.slice(0, 2)" :key="link.key" :href="link.href">
-                            <Button type="text" :class="['store-nav-btn', { 'store-nav-btn-active': link.active }]">{{ link.label }}</Button>
-                        </Link>
-                    </nav>
-
-                    <div class="mx-auto hidden max-w-xl flex-1 md:block">
-                        <SearchBar />
-                    </div>
-
-                    <div class="ms-auto flex shrink-0 items-center gap-1 md:ms-0">
-                        <Tooltip :title="t('common.language')">
-                            <Button type="text" class="store-icon-btn" :aria-label="t('common.language')" @click="toggleLocale">
-                                <template #icon><Languages class="h-5 w-5" /></template>
-                            </Button>
-                        </Tooltip>
-
-                        <Tooltip :title="isDark ? t('common.light_mode') : t('common.dark_mode')">
-                            <Button type="text" class="store-icon-btn" :aria-label="t('common.toggle_theme')" @click="toggleDark">
-                                <template #icon>
-                                    <Sun v-if="isDark" class="h-5 w-5" />
-                                    <Moon v-else class="h-5 w-5" />
-                                </template>
-                            </Button>
-                        </Tooltip>
-
-                        <Link :href="route('wishlist.index')" class="hidden lg:block">
-                            <Tooltip :title="t('nav.wishlist')">
-                                <Badge :count="wishlistCount" size="small" :offset="[locale === 'ar' ? 4 : -4, 4]">
-                                    <Button type="text" class="store-icon-btn" :aria-label="t('nav.wishlist')">
-                                        <template #icon><Heart class="h-5 w-5" /></template>
-                                    </Button>
-                                </Badge>
-                            </Tooltip>
-                        </Link>
-
-                        <Link :href="route('cart.show')" class="hidden lg:block">
-                            <Tooltip :title="t('nav.cart')">
-                                <Badge :count="cartCount" size="small" :offset="[locale === 'ar' ? 4 : -4, 4]">
-                                    <Button type="text" class="store-icon-btn" :aria-label="t('nav.cart')">
-                                        <template #icon><ShoppingBag class="h-5 w-5" /></template>
-                                    </Button>
-                                </Badge>
-                            </Tooltip>
-                        </Link>
-
-                        <!-- Account: a menu when signed in, a straight link when not -->
-                        <Dropdown v-if="user" :trigger="['click']" placement="bottomRight" class="hidden lg:inline-flex">
-                            <Button type="text" class="store-icon-btn" :aria-label="t('nav.account')">
-                                <template #icon><User class="h-5 w-5" /></template>
+                    <!-- All categories: the loudest header control. Desktop only; the
+                         drawer covers smaller screens. -->
+                    <div class="hidden lg:block">
+                        <Dropdown v-if="navCategories.length > 0" :trigger="['click']">
+                            <Button class="store-cats-btn">
+                                <span class="flex items-center gap-2">
+                                    <LayoutGrid class="h-4 w-4" />
+                                    {{ t('nav.all_categories') }}
+                                    <ChevronDown class="h-4 w-4 opacity-80" />
+                                </span>
                             </Button>
                             <template #overlay>
                                 <Menu class="store-account-menu">
-                                    <div class="px-4 py-2">
-                                        <p class="truncate text-sm font-semibold">{{ user.name }}</p>
-                                        <p class="truncate text-xs opacity-60">{{ user.email }}</p>
-                                    </div>
-                                    <Divider class="!my-1" />
-                                    <MenuItem v-for="link in accountLinks" :key="link.key">
-                                        <Link :href="link.href" class="flex items-center gap-2.5">
-                                            <component :is="link.icon" class="h-4 w-4" />
-                                            {{ link.label }}
+                                    <MenuItem v-for="category in navCategories" :key="category.id">
+                                        <Link :href="route('catalog.category', category.slug)" class="flex items-center justify-between gap-6">
+                                            <span>{{ categoryLabel(category) }}</span>
+                                            <span class="text-xs opacity-50">{{ category.products_count }}</span>
                                         </Link>
                                     </MenuItem>
                                     <Divider class="!my-1" />
-                                    <MenuItem key="logout" @click="logout">
-                                        <span class="flex items-center gap-2.5">
-                                            <LogOut class="h-4 w-4" />
-                                            {{ t('nav.logout') }}
-                                        </span>
+                                    <MenuItem key="all">
+                                        <Link :href="route('catalog.index')">{{ t('home.view_all') }}</Link>
                                     </MenuItem>
                                 </Menu>
                             </template>
                         </Dropdown>
+                    </div>
 
-                        <Link v-else :href="route('login')" class="hidden lg:block">
-                            <Button type="primary" shape="round">{{ t('nav.login') }}</Button>
+                    <!-- Search gets the room Home/Products used to take: the logo is
+                         home, and "All categories" ends in a view-all link. -->
+                    <div class="mx-auto hidden max-w-2xl flex-1 md:block">
+                        <SearchBar shortcut />
+                    </div>
+
+                    <div class="ms-auto flex shrink-0 items-center gap-1.5 md:ms-0">
+                        <!-- Below lg the bar keeps the two toggles; on desktop they live in
+                             the account menu so the bar holds five things and no more. -->
+                        <Button type="text" class="store-icon-btn lg:!hidden" :aria-label="t('common.language')" @click="toggleLocale">
+                            <template #icon><Languages class="h-5 w-5" /></template>
+                        </Button>
+                        <Button type="text" class="store-icon-btn lg:!hidden" :aria-label="t('common.toggle_theme')" @click="toggleDark">
+                            <template #icon>
+                                <Sun v-if="isDark" class="h-5 w-5" />
+                                <Moon v-else class="h-5 w-5" />
+                            </template>
+                        </Button>
+
+                        <!-- Cart: a labelled chip with its count — the one destination every
+                             visit is heading for. -->
+                        <Link
+                            :href="route('cart.show')"
+                            :class="['store-cart-chip hidden lg:inline-flex', { 'store-cart-chip-full': cartCount > 0 }]"
+                            :aria-label="`${t('nav.cart')} (${cartCount})`"
+                        >
+                            <ShoppingBag class="h-[1.125rem] w-[1.125rem]" />
+                            <span>{{ t('nav.cart') }}</span>
+                            <span v-if="cartCount > 0" class="store-cart-count">{{ cartCount }}</span>
                         </Link>
+
+                        <!-- Account: one panel for everyone. It says "My account", not
+                             "Log in" — it holds more than sign-in (wishlist, language,
+                             appearance), and a sign-in label made guests think that was all. -->
+                        <div class="hidden lg:block">
+                            <Dropdown v-model:open="accountOpen" :trigger="['click']" placement="bottomRight">
+                                <button type="button" class="store-account-chip" :aria-expanded="accountOpen" aria-haspopup="dialog">
+                                    <span class="store-avatar" aria-hidden="true">
+                                        <template v-if="user">{{ userInitial }}</template>
+                                        <User v-else class="h-4 w-4" />
+                                    </span>
+                                    <span class="max-w-[8rem] truncate">{{ user ? firstName : t('nav.account') }}</span>
+                                    <ChevronDown class="store-account-caret h-4 w-4 opacity-60" />
+                                </button>
+
+                                <template #overlay>
+                                    <div class="store-account-panel" role="dialog" :aria-label="t('nav.account')">
+                                        <!-- 1. Who you are, or why you'd sign in -->
+                                        <div v-if="user" class="store-account-head flex items-center gap-3">
+                                            <span class="store-avatar store-avatar-lg" aria-hidden="true">{{ userInitial }}</span>
+                                            <div class="min-w-0">
+                                                <p class="truncate text-sm font-semibold">{{ user.name }}</p>
+                                                <p class="truncate text-xs" style="color: var(--st-ink-faint)">{{ user.email }}</p>
+                                            </div>
+                                        </div>
+
+                                        <div v-else class="store-account-head">
+                                            <p class="text-base font-bold">{{ t('nav.welcome') }}</p>
+                                            <p class="mt-1 text-xs leading-relaxed" style="color: var(--st-ink-soft)">{{ t('nav.guest_pitch') }}</p>
+                                            <div class="mt-4 grid gap-2">
+                                                <Link :href="route('login')" class="block" @click="accountOpen = false">
+                                                    <Button type="primary" block size="large">
+                                                        <span class="flex items-center justify-center gap-2">
+                                                            <LogIn class="h-4 w-4" />
+                                                            {{ t('nav.login') }}
+                                                        </span>
+                                                    </Button>
+                                                </Link>
+                                                <Link :href="route('register')" class="block" @click="accountOpen = false">
+                                                    <Button block size="large">
+                                                        <span class="flex items-center justify-center gap-2">
+                                                            <UserPlus class="h-4 w-4" />
+                                                            {{ t('nav.register') }}
+                                                        </span>
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                        </div>
+
+                                        <!-- 2. Where you can go -->
+                                        <nav class="store-account-section">
+                                            <Link
+                                                v-for="link in panelLinks"
+                                                :key="link.key"
+                                                :href="link.href"
+                                                :class="['store-account-row', { 'store-account-row-on': link.active }]"
+                                                @click="accountOpen = false"
+                                            >
+                                                <component :is="link.icon" class="h-4 w-4" />
+                                                <span class="flex-1">{{ link.label }}</span>
+                                                <span v-if="link.badge" class="store-account-count">{{ link.badge }}</span>
+                                            </Link>
+                                        </nav>
+
+                                        <!-- 3. How the shop looks to you: current state, not a command -->
+                                        <div class="store-account-section store-account-prefs">
+                                            <div class="store-pref">
+                                                <span class="store-pref-label">
+                                                    <Languages class="h-4 w-4" />
+                                                    {{ t('nav.language') }}
+                                                </span>
+                                                <div class="store-seg" role="radiogroup" :aria-label="t('nav.language')">
+                                                    <button
+                                                        v-for="option in localeOptions"
+                                                        :key="option.value"
+                                                        type="button"
+                                                        role="radio"
+                                                        :aria-checked="locale === option.value"
+                                                        :lang="option.value"
+                                                        :class="['store-seg-btn', { 'store-seg-btn-on': locale === option.value }]"
+                                                        @click="setLocale(option.value)"
+                                                    >
+                                                        {{ option.label }}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div class="store-pref">
+                                                <span class="store-pref-label">
+                                                    <Moon v-if="isDark" class="h-4 w-4" />
+                                                    <Sun v-else class="h-4 w-4" />
+                                                    {{ t('nav.appearance') }}
+                                                </span>
+                                                <div class="store-seg" role="radiogroup" :aria-label="t('nav.appearance')">
+                                                    <button
+                                                        type="button"
+                                                        role="radio"
+                                                        :aria-checked="!isDark"
+                                                        :class="['store-seg-btn', { 'store-seg-btn-on': !isDark }]"
+                                                        @click="setDark(false)"
+                                                    >
+                                                        <Sun class="h-3.5 w-3.5" />
+                                                        {{ t('nav.light') }}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        role="radio"
+                                                        :aria-checked="isDark"
+                                                        :class="['store-seg-btn', { 'store-seg-btn-on': isDark }]"
+                                                        @click="setDark(true)"
+                                                    >
+                                                        <Moon class="h-3.5 w-3.5" />
+                                                        {{ t('nav.dark') }}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button v-if="user" type="button" class="store-account-row store-account-logout" @click="logout">
+                                            <LogOut class="h-4 w-4" />
+                                            <span class="flex-1 text-start">{{ t('nav.logout') }}</span>
+                                        </button>
+                                    </div>
+                                </template>
+                            </Dropdown>
+                        </div>
                     </div>
                 </div>
 

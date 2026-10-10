@@ -22,7 +22,7 @@ export function updateTheme(value: Appearance) {
 
     // Keep the browser chrome on the same ground colour the page paints
     // (--st-ground); the blade bootstrap sets the same pair before first paint.
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0a0c0d' : '#f1f1ec');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#05070c' : '#eef2f7');
 }
 
 const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');

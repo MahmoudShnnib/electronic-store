@@ -69,7 +69,7 @@ const submit = () => {
 
             <p class="mt-6 text-center text-sm opacity-65">
                 {{ t('auth.have_account') }}
-                <Link :href="route('login')" class="font-medium text-[#0F9D58] hover:underline">{{ t('auth.login') }}</Link>
+                <Link :href="route('login')" class="font-medium text-st-accent-text hover:underline">{{ t('auth.login') }}</Link>
             </p>
         </Form>
     </AuthBase>

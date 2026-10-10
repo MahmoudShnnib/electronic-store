@@ -11,6 +11,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\Pos\PrinterConfig;
@@ -78,6 +79,16 @@ class AppServiceProvider extends ServiceProvider
         // The storefront header's "All categories" menu — same 10-minute cache
         // the homepage rail uses, so the list costs nothing per request.
         Inertia::share('navCategories', fn () => app(HomePageService::class)->categoryCards());
+
+        // The footer's contact block. Settings are cached forever and busted on
+        // save, so this is an array lookup, not a query.
+        Inertia::share('storeContact', fn () => [
+            'phone' => Setting::get('contact_info')['phone'] ?? null,
+            'email' => Setting::get('contact_info')['email'] ?? null,
+        ]);
+
+        // Footer social icons: only networks the dashboard has a link for.
+        Inertia::share('socialLinks', fn () => array_filter(Setting::get('social_links') ?? []));
 
         // Anything the homepage renders busts its cache, so dashboard edits show
         // up immediately instead of after the 10-minute TTL.

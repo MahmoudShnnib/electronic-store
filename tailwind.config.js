@@ -67,6 +67,13 @@ export default {
                     border: 'hsl(var(--sidebar-border))',
                     ring: 'hsl(var(--sidebar-ring))',
                 },
+                // Storefront accent. Values live in the storefront palette block of
+                // resources/css/app.css (--st-accent*), which flips them per theme.
+                'st-accent': 'rgb(var(--st-accent-rgb) / <alpha-value>)',
+                'st-accent-2': 'rgb(var(--st-accent-2-rgb) / <alpha-value>)',
+                'st-accent-text': 'var(--st-accent-text)',
+                'st-accent-bright': 'var(--st-accent-bright)',
+                'st-on-accent': 'var(--st-on-accent)',
                 // Admin theme. Values live in resources/js/theme/adminTokens.ts and
                 // reach the page as --ad-* variables only while an admin layout is
                 // mounted — these classes mean nothing on the storefront.

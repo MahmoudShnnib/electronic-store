@@ -24,10 +24,24 @@ interface ContactInfo {
 
 const contact = (props.settings['contact_info'] ?? {}) as ContactInfo;
 
+/** The networks the storefront footer has icons for; an empty one is hidden there. */
+const socialNetworks = [
+    { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/…' },
+    { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/…' },
+    { key: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@…' },
+    { key: 'youtube', label: 'YouTube', placeholder: 'https://youtube.com/@…' },
+] as const;
+
+const social = (props.settings['social_links'] ?? {}) as Partial<Record<(typeof socialNetworks)[number]['key'], string | null>>;
+
 const form = useForm({
     store_name: String(props.settings['store_name'] ?? ''),
     contact_email: contact.email ?? '',
     contact_phone: contact.phone ?? '',
+    social_facebook: social.facebook ?? '',
+    social_instagram: social.instagram ?? '',
+    social_tiktok: social.tiktok ?? '',
+    social_youtube: social.youtube ?? '',
     bank_transfer_details: String(props.settings['bank_transfer_details'] ?? ''),
     invoice_details: String(props.settings['invoice_details'] ?? ''),
     page_about: String(props.settings['page.about'] ?? ''),
@@ -69,6 +83,12 @@ function submit(): void {
         settings: {
             store_name: data.store_name,
             contact_info: { email: data.contact_email, phone: data.contact_phone },
+            social_links: {
+                facebook: data.social_facebook.trim() || null,
+                instagram: data.social_instagram.trim() || null,
+                tiktok: data.social_tiktok.trim() || null,
+                youtube: data.social_youtube.trim() || null,
+            },
             bank_transfer_details: data.bank_transfer_details,
             invoice_details: data.invoice_details,
             'page.about': data.page_about,
@@ -102,6 +122,26 @@ function submit(): void {
                     </Field>
                     <Field :label="t('admin.settings.support_phone')">
                         <Input v-model:value="form.contact_phone" />
+                    </Field>
+                </div>
+            </Card>
+
+            <Card :title="t('admin.settings.social')" size="small">
+                <p class="admin-muted mb-3 text-sm">{{ t('admin.settings.social_hint') }}</p>
+                <div class="grid gap-x-4 sm:grid-cols-2">
+                    <Field
+                        v-for="network in socialNetworks"
+                        :key="network.key"
+                        :label="network.label"
+                        :error="form.errors[`settings.social_links.${network.key}` as keyof typeof form.errors]"
+                    >
+                        <Input
+                            v-model:value="form[`social_${network.key}`]"
+                            type="url"
+                            dir="ltr"
+                            style="direction: ltr"
+                            :placeholder="network.placeholder"
+                        />
                     </Field>
                 </div>
             </Card>
