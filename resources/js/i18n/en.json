@@ -431,7 +431,7 @@
             "low_stock_threshold": "Once available stock drops to this number the product is flagged as low stock on the dashboard.",
             "avg_order_value": "Revenue divided by the number of orders paid in this period. Revenue is money received: an order counts the day it is paid, a refund subtracts the day it is given back.",
             "discounts_given": "Total coupon discount applied to orders in this period.",
-            "est_profit": "Revenue in this period minus what the items paid for cost to buy. A refund takes back both the money and the cost. Shipping and overheads are not deducted.",
+            "est_profit": "Revenue in this period minus what the items paid for cost to buy. A refund takes back both the money and the cost. Goods given away (an order that came to 0) count on the day the order is completed. Shipping and overheads are not deducted.",
             "inventory_cost_value": "What the stock you still own cost to buy, at the price each delivery was bought for: units on the shelf plus units held for orders not paid yet. Once an order is paid its goods count as sold.",
             "inventory_retail_value": "What that same stock would bring in at current selling prices.",
             "outstanding": "What completing the order would still collect: the total minus payments, net of refunds. Nothing for cancelled or refunded orders."

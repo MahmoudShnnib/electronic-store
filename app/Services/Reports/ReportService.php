@@ -104,6 +104,15 @@ final class ReportService
         $cost = (int) $this->revenueItems($from, $to)
             ->selectRaw('COALESCE(SUM(ev.sign * order_items.cost_cents),0) as cost')
             ->value('cost');
+        // Goods given away — an order that came to 0 (a full coupon or discount) — bring
+        // in no money, so no payment books their cost: it counts the day they're handed over.
+        $cost += (int) DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->whereNull('orders.deleted_at')
+            ->where('orders.status', 'completed')
+            ->where('orders.total_cents', 0)
+            ->whereBetween('orders.completed_at', [$from, $to])
+            ->sum('order_items.cost_cents');
 
         $refunded = (int) DB::table('refunds')->where('status', 'completed')->whereBetween('created_at', [$from, $to])->sum('amount_cents');
         // Customers only — staff accounts are not new customers.

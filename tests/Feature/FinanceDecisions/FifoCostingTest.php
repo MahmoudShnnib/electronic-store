@@ -197,3 +197,20 @@ it('spreads a PO\'s shipping and discount over the units received, the same on e
     'both' => [['shipping' => 100, 'discount' => 200], 69_000],
     'neither' => [[], 70_000],
 ]);
+
+it('books the cost of goods given away (an order that came to 0) the day the order is completed', function (): void {
+    $this->mug->update(['price_cents' => 0]);
+    $free = finBuy($this, $this->buyer, [[$this->mug, 1]]);
+    $open = finSnapshot($this, $this->admin);
+    finComplete($this, $free);
+    $done = finSnapshot($this, $this->admin);
+
+    expect($free->refresh()->total_cents)->toBe(0)
+        ->and($open['report.summary.estimated_cost_formatted'])->toBe(finFmt(0))
+        ->and($done['report.summary.estimated_cost_formatted'])->toBe(finFmt(500))
+        ->and($done['report.summary.estimated_profit_formatted'])->toBe(finFmt(-500))
+        // The mug leaves stock value exactly when its cost enters the report.
+        ->and($open['report.valuation.cost_value_formatted'])->toBe(finFmt(10 * 70_000 + 5 * 65_000 + 50 * 2_000 + 500))
+        ->and($done['report.valuation.cost_value_formatted'])->toBe(finFmt(10 * 70_000 + 5 * 65_000 + 50 * 2_000))
+        ->and(auditFailures())->toBe([]);
+});
