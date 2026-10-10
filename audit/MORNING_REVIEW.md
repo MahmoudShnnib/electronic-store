@@ -1,3 +1,23 @@
+# Update 2026-10-10 — owner decisions applied (branch `feat/finance-decisions`)
+
+| Decision | What changed | Commit |
+|---|---|---|
+| BD3 | New `lost` (lost / stolen) stock write-off type | `005d3b7` |
+| BD8 | A product with any stock (shelf, reserved, damaged, incoming) can't be deleted; bulk delete skips and names them | `662fd40` |
+| BD7 | Cancelling keeps the coupon use as history, marked released (migration `2026_10_10_100000`) | `6759c62` |
+| BD4 | Zero price allowed, with a warning on the product form | `d87950f` |
+| (follows "they only pay in full") | A payment must be exactly the amount owed; order page has one "Record full payment" button | `e486b91` |
+| BD1 / BD6 | Whole returns only: every unit back + everything paid refunded, or nothing; a delivered order is refunded only through the return form | `2abccfc` |
+| BD5 | Revenue = money received, on the day it arrives (payments in, refunds out) — reports + dashboard | `3f57e4f` |
+| BD2 | Parked by the owner (per-unit purchase cost) | — |
+
+Rules M3/M4: the case that broke them (deposit refunded, then paid in full) can no longer
+happen now that payments and refunds are always whole.
+
+Needs on deploy: `php artisan migrate` (2026_10_05_100000 and 2026_10_10_100000).
+
+---
+
 # Morning review — overnight finance & inventory audit (2026-10-05)
 
 Branch `audit/finance` (forked from `fix/db-consistency-qa` @ d46c4ee). 18 commits, nothing
