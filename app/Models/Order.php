@@ -22,7 +22,7 @@ final class Order extends Model
     protected $fillable = [
         'number', 'user_id', 'customer', 'billing_address', 'shipping_address',
         'status', 'payment_status', 'payment_method',
-        'currency', 'subtotal_cents', 'discount_cents', 'coupon_code',
+        'currency', 'subtotal_cents', 'discount_cents', 'manual_discount_cents', 'manual_discount_reason', 'coupon_code',
         'total_cents', 'customer_note',
         'internal_note', 'idempotency_key', 'placed_via', 'cashier_shift_id', 'confirmed_at',
         'shipped_at', 'delivered_at', 'completed_at', 'cancelled_at',
@@ -39,6 +39,7 @@ final class Order extends Model
             'payment_method' => PaymentMethod::class,
             'subtotal_cents' => 'integer',
             'discount_cents' => 'integer',
+            'manual_discount_cents' => 'integer',
             'total_cents' => 'integer',
             'confirmed_at' => 'immutable_datetime',
             'shipped_at' => 'immutable_datetime',

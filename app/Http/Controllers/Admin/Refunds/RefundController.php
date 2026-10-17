@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Admin\Refunds;
 
 use App\Http\Controllers\Controller;
 use App\Models\Refund;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -40,7 +41,7 @@ final class RefundController extends Controller implements HasMiddleware
                 'reference' => $r->reference,
                 'reason' => $r->reason,
                 'created_by' => $r->creator?->name,
-                'created_at' => $r->created_at->toDateTimeString(),
+                'created_at' => Dates::dateTime($r->created_at),
             ]);
 
         return Inertia::render('admin/refunds/Index', [

@@ -96,6 +96,12 @@ return [
         'cancelled' => 'Cancelled',
     ],
 
+    'supplier_transaction_type' => [
+        'purchase' => 'Goods received',
+        'payment' => 'Payment',
+        'adjustment' => 'Adjustment',
+    ],
+
     'treasury_account' => [
         'cash' => 'Cash',
         'bank' => 'Bank',

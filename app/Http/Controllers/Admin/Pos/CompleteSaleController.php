@@ -52,6 +52,11 @@ final class CompleteSaleController extends Controller implements HasMiddleware
             couponCode: $validated['coupon_code'] ?? null,
             manualDiscountCents: $discount,
             note: $validated['note'] ?? null,
+            manualDiscountReason: $validated['discount_reason'] ?? null,
+            // Admins may go further than a cashier; everyone else is capped.
+            manualDiscountMaxPercent: $request->user()->hasAnyRole(['admin', 'super_admin'])
+                ? null
+                : (int) config('store.pos_manual_discount_max_percent'),
         );
 
         // Back to the register rather than off to the receipt page. A cashier

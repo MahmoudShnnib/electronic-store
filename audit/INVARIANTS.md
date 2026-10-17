@@ -98,6 +98,13 @@ dashboard and sales report already use). Money is integer hundredths.
 - **C1** `coupons.used_count` = number of active (not released) redemptions, ≤ `usage_limit`;
   no active redemption is held by a cancelled order (cancelling releases it — kept as history, BD7).
 
+## Supplier accounts
+
+- **P1** Every supplier payment (`supplier_transactions.type = payment`, negative amount) has
+  exactly one treasury OUT leg of the same size on the same account; purchases and
+  adjustments never move treasury money; a purchase is a positive amount tied to a PO.
+  (Purchase amounts equal the FIFO batches they created — same `LandedCost` slices.)
+
 ## 🔴 Unclear — Business Decision Required (not enforced, see MORNING_REVIEW.md)
 
 - Revenue is recognised when an order is **placed** (open unpaid orders count). Should it be

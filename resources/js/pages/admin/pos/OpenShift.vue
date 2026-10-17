@@ -4,6 +4,7 @@ import PosLayout from '@/layouts/PosLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { Button, Card, InputNumber, Radio, Textarea, Typography } from 'ant-design-vue';
 import { Warehouse as WarehouseIcon } from 'lucide-vue-next';
+import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: PosLayout });
@@ -17,14 +18,26 @@ interface WarehouseOption {
     name: string;
     code: string;
     is_default: boolean;
+    /** What the last drawer here was counted at when it closed; null if none closed yet. */
+    last_counted: number | null;
+    last_counted_formatted: string | null;
 }
 
 const props = defineProps<{ warehouses: WarehouseOption[] }>();
 
+const initialWarehouse = props.warehouses.find((w) => w.is_default) ?? props.warehouses[0] ?? null;
+
 const form = useForm({
-    warehouse_id: props.warehouses.find((w) => w.is_default)?.id ?? props.warehouses[0]?.id ?? null,
-    opening_float: 0,
+    warehouse_id: initialWarehouse?.id ?? null,
+    // The cash left in the drawer at the last close; change it only if some was taken out.
+    opening_float: initialWarehouse?.last_counted ?? 0,
     note: '',
+});
+
+const selectedWarehouse = computed(() => props.warehouses.find((w) => w.id === form.warehouse_id) ?? null);
+
+watch(selectedWarehouse, (warehouse) => {
+    form.opening_float = warehouse?.last_counted ?? 0;
 });
 
 function submit(): void {
@@ -57,7 +70,10 @@ function submit(): void {
                 </Field>
 
                 <Field :label="t('admin.pos.opening_float')" :error="form.errors.opening_float" :help="t('admin.pos.opening_float_help')" required>
-                    <InputNumber v-model:value="form.opening_float" :min="0" :step="1" class="!w-full" />
+                    <InputNumber v-model:value="form.opening_float" :min="0" :step="1" :precision="2" class="!w-full" />
+                    <Text v-if="selectedWarehouse?.last_counted_formatted" type="secondary" class="mt-1 block !text-xs">
+                        {{ t('admin.pos.last_counted_hint', { amount: selectedWarehouse.last_counted_formatted }) }}
+                    </Text>
                 </Field>
 
                 <Field :label="t('admin.common.notes')" :error="form.errors.note">

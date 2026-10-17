@@ -10,6 +10,7 @@ use App\Actions\Orders\ResolveOrderIssue;
 use App\Actions\Pos\CloseShift;
 use App\Actions\Pos\CompleteSale;
 use App\Actions\Pos\OpenShift;
+use App\Actions\Pos\ReturnSale;
 use App\Enums\CouponType;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
@@ -170,8 +171,9 @@ it('POS-9: a cash refund during the shift lowers the expected drawer exactly onc
     $shift = pgaShift(staff('cashier'), 5_000);
     $order = pgaSale($shift, [['product_id' => $product->id, 'quantity' => 2]]);
 
-    // Returns are whole since 2026-10-10: both units back, all 200 handed out of the drawer.
-    app(ResolveOrderIssue::class)->handle($order, 'returned', 20_000, RefundMethod::Cash);
+    // Returns are whole since 2026-10-10 and taken at the till since 2026-10-12:
+    // both units back, all 200 handed out of this drawer.
+    app(ReturnSale::class)->handle($shift, $order, 'returned', RefundMethod::Cash);
 
     $closed = app(CloseShift::class)->handle($shift, 5_000);
     expect($closed->expected_cash_cents)->toBe(5_000)->and($closed->difference_cents)->toBe(0);

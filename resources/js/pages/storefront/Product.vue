@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Pagination from '@/components/store/Pagination.vue';
 import ProductCard from '@/components/store/ProductCard.vue';
+import ProductDescription from '@/components/store/ProductDescription.vue';
 import QuantityInput from '@/components/store/QuantityInput.vue';
 import RatingStars from '@/components/store/RatingStars.vue';
 import type { PaginationLink, ProductCardData } from '@/components/store/types';
@@ -294,7 +295,7 @@ function submitReview() {
              tabs rather than three stacked walls the shopper has to scroll past. -->
         <Tabs class="!mt-12" size="large">
             <TabPane v-if="product.description" key="description" :tab="t('product.description')">
-                <Paragraph class="!max-w-3xl whitespace-pre-line !text-sm !leading-relaxed opacity-80">{{ product.description }}</Paragraph>
+                <ProductDescription :text="product.description" />
             </TabPane>
 
             <TabPane v-if="Object.keys(specifications).length > 0" key="specs" :tab="t('product.specifications')">

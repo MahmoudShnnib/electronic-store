@@ -7,7 +7,11 @@ namespace App\Actions\Purchasing;
 use App\Actions\Inventory\RecordMovement;
 use App\Enums\MovementType;
 use App\Enums\PurchaseOrderStatus;
+use App\Enums\SupplierTransactionType;
 use App\Models\PurchaseOrder;
+use App\Models\SupplierTransaction;
+use App\Support\CostLayers;
+use App\Support\LandedCost;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -15,6 +19,10 @@ use InvalidArgumentException;
  * Receives quantities against a purchase order (supports partial receiving).
  * Every received line creates a purchase_receipt inventory movement; the PO
  * flips to partially_received/received automatically.
+ *
+ * What arrived is also owed: the same landed cost the stock is booked at is
+ * written to the supplier's account, so inventory and the debt for it always
+ * agree to the cent.
  */
 final class ReceivePurchaseOrder
 {
@@ -48,6 +56,10 @@ final class ReceivePurchaseOrder
             }
 
             $warehouse = $po->warehouse;
+            $po->load('items');
+            // Each line's share of the PO total (shipping and discount spread in), exact to the cent.
+            $lineTotals = LandedCost::lineTotals($po);
+            $owed = 0;
 
             if (! $warehouse->is_active || $warehouse->trashed()) {
                 throw new InvalidArgumentException(__('Warehouse :name is not active; activate it before receiving into it.', ['name' => $warehouse->name]));
@@ -75,6 +87,16 @@ final class ReceivePurchaseOrder
                     ));
                 }
 
+                // What these units really cost (FIFO batches): the line's share of the PO
+                // total, booked as received. A line at 0 means no price was set — the old
+                // PO form prefilled 0 for variants without their own cost — so, like a
+                // variant cost of 0 everywhere else, it falls back to the variant's, else
+                // the product's, cost price, and adds nothing to what the supplier is owed.
+                $layers = $item->unit_cost_cents > 0
+                    ? LandedCost::receiptLayers($lineTotals[$item->id] ?? 0, $item->quantity_ordered, $item->quantity_received, $quantity)
+                    : null;
+                $owed += $layers === null ? 0 : CostLayers::total($layers);
+
                 $item->increment('quantity_received', $quantity);
 
                 $this->recordMovement->handle(
@@ -86,13 +108,19 @@ final class ReceivePurchaseOrder
                     incomingChange: -$quantity,
                     reference: $po,
                     userId: $userId,
-                    // What these units really cost (FIFO batch): the line price with the PO's
-                    // shipping and discount spread over it. A line at 0 means no price was set
-                    // — the old PO form prefilled 0 for variants without their own cost — so,
-                    // like a variant cost of 0 everywhere else, it falls back to the variant's,
-                    // else the product's, cost price.
-                    unitCostCents: $item->unit_cost_cents > 0 ? $this->landedUnitCost($po, $item->unit_cost_cents) : null,
+                    costLayers: $layers,
                 );
+            }
+
+            if ($owed > 0) {
+                SupplierTransaction::create([
+                    'supplier_id' => $po->supplier_id,
+                    'type' => SupplierTransactionType::Purchase,
+                    'amount_cents' => $owed,
+                    'purchase_order_id' => $po->id,
+                    'note' => "PO {$po->po_number}",
+                    'created_by' => $userId,
+                ]);
             }
 
             $po->refresh();
@@ -112,19 +140,5 @@ final class ReceivePurchaseOrder
 
             return $po;
         });
-    }
-
-    /**
-     * A line price scaled by what the whole PO cost against its lines: 10 phones at
-     * 700 with 100 shipping cost 710 each; with 200 off, 680 each. Same factor for
-     * every partial receipt, since a sent PO's amounts no longer change.
-     */
-    private function landedUnitCost(PurchaseOrder $po, int $lineUnitCostCents): int
-    {
-        if ($po->subtotal_cents <= 0) {
-            return $lineUnitCostCents;
-        }
-
-        return (int) round($lineUnitCostCents * $po->total_cents / $po->subtotal_cents);
     }
 }

@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\SpecificationGroup;
 use App\Models\Supplier;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -61,7 +62,7 @@ final class ProductQueryService
                 'low_stock' => (int) ($p->stock_quantity ?? 0) <= $p->low_stock_threshold,
                 'image' => ($img = $p->images->firstWhere('is_primary', true) ?? $p->images->first()) !== null
                     ? Storage::disk('public')->url($img->path) : null,
-                'deleted_at' => $p->deleted_at?->toDateTimeString(),
+                'deleted_at' => Dates::dateTime($p->deleted_at),
                 // Everything below only feeds the row details modal — the list
                 // itself never renders it, so no extra request when a row opens.
                 'name_ar' => $p->name_ar,
@@ -75,8 +76,8 @@ final class ProductQueryService
                 'gallery' => $p->images
                     ->map(fn ($img) => Storage::disk('public')->url($img->path))
                     ->values(),
-                'created_at' => $p->created_at?->toDateTimeString(),
-                'updated_at' => $p->updated_at?->toDateTimeString(),
+                'created_at' => Dates::dateTime($p->created_at),
+                'updated_at' => Dates::dateTime($p->updated_at),
             ]);
 
         return [

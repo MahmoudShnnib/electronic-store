@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import BoxIcon from '@/components/store/icons/BoxIcon.vue';
+import CartIcon from '@/components/store/icons/CartIcon.vue';
+import HomeIcon from '@/components/store/icons/HomeIcon.vue';
+import UserIcon from '@/components/store/icons/UserIcon.vue';
 import { useHideOnScroll } from '@/composables/useHideOnScroll';
 import { Link, usePage } from '@inertiajs/vue3';
-import { Home, LayoutGrid, ShoppingBag, User } from 'lucide-vue-next';
-import { computed, type FunctionalComponent } from 'vue';
+import { computed, type Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -17,7 +20,8 @@ interface NavItem {
     key: string;
     label: string;
     href: string;
-    icon: FunctionalComponent;
+    /** One of the store nav icons; rendered filled while the item is active. */
+    icon: Component;
     active: boolean;
     badge?: number;
 }
@@ -37,21 +41,21 @@ const items = computed<NavItem[]>(() => [
         key: 'home',
         label: t('nav.home'),
         href: route('home'),
-        icon: Home,
+        icon: HomeIcon,
         active: path.value === '/',
     },
     {
         key: 'products',
         label: t('nav.products'),
         href: route('catalog.index'),
-        icon: LayoutGrid,
+        icon: BoxIcon,
         active: startsWithAny(['/products', '/category', '/brand', '/search']),
     },
     {
         key: 'cart',
         label: t('nav.cart'),
         href: route('cart.show'),
-        icon: ShoppingBag,
+        icon: CartIcon,
         active: startsWithAny(['/cart', '/checkout']),
         badge: cartCount.value,
     },
@@ -59,7 +63,7 @@ const items = computed<NavItem[]>(() => [
         key: 'account',
         label: t('nav.account'),
         href: user.value ? route('account.orders.index') : route('login'),
-        icon: User,
+        icon: UserIcon,
         active: startsWithAny(['/account', '/settings', '/login', '/register', '/wishlist']),
     },
 ]);
@@ -80,7 +84,7 @@ const items = computed<NavItem[]>(() => [
             :aria-label="item.badge && item.badge > 0 ? `${item.label} (${item.badge})` : item.label"
             :class="item.active ? 'store-tabbar-item-on flex-1 gap-2 px-4' : 'store-tabbar-item-off w-12 shrink-0'"
         >
-            <component :is="item.icon" class="h-5 w-5 shrink-0" />
+            <component :is="item.icon" :filled="item.active" class="h-5 w-5 shrink-0" />
             <span v-if="item.active" class="truncate text-sm font-semibold">{{ item.label }}</span>
             <span v-if="item.badge && item.badge > 0 && !item.active" class="store-tabbar-badge">{{ item.badge }}</span>
         </Link>

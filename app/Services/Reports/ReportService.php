@@ -96,7 +96,7 @@ final class ReportService
     public function salesSummary(CarbonImmutable $from, CarbonImmutable $to): array
     {
         $row = $this->revenueOrders($from, $to)
-            ->selectRaw('COALESCE(SUM(ev.amount),0) as revenue, '.self::PAID_ORDERS.' as orders, COALESCE(SUM(ev.sign * orders.discount_cents),0) as discounts')
+            ->selectRaw('COALESCE(SUM(ev.amount),0) as revenue, '.self::PAID_ORDERS.' as orders, COALESCE(SUM(ev.sign * orders.discount_cents),0) as discounts, COALESCE(SUM(ev.sign * orders.manual_discount_cents),0) as manual_discounts')
             ->first();
 
         // Cost follows the money: the goods of an order paid in the range cost what the
@@ -123,6 +123,8 @@ final class ReportService
             'orders' => (int) $row->orders,
             'revenue_formatted' => Money::format((int) $row->revenue),
             'discounts_formatted' => Money::format((int) $row->discounts),
+            // The part of the discounts a cashier keyed in by hand (the rest came from coupons).
+            'manual_discounts_formatted' => Money::format((int) $row->manual_discounts),
             'avg_order_formatted' => Money::format((int) $row->orders > 0 ? intdiv((int) $row->revenue, (int) $row->orders) : 0),
             'estimated_cost_formatted' => Money::format($cost),
             // A loss shows as a loss, not as zero.
@@ -184,16 +186,18 @@ final class ReportService
 
     public function salesByBrand(CarbonImmutable $from, CarbonImmutable $to): Collection
     {
+        // Products without a brand are allowed; they are kept as one "No brand"
+        // row so the table still adds up to the revenue.
         return $this->revenueItems($from, $to)
             ->join('products', 'products.id', '=', 'order_items.product_id')
-            ->join('brands', 'brands.id', '=', 'products.brand_id')
+            ->leftJoin('brands', 'brands.id', '=', 'products.brand_id')
             ->groupBy('brands.id', 'brands.name')
             ->havingRaw(self::ITEM_UNITS.' <> 0 OR '.self::ITEM_REVENUE.' <> 0')
             ->orderByDesc(DB::raw(self::ITEM_REVENUE))
             ->selectRaw('brands.name, '.self::ITEM_UNITS.' as units, '.self::ITEM_REVENUE.' as revenue_cents')
             ->get()
             ->map(fn ($r) => [
-                'name' => $r->name,
+                'name' => $r->name ?? __('No brand'),
                 'units' => (int) $r->units,
                 'revenue_formatted' => Money::format((int) $r->revenue_cents),
                 'revenue' => Money::toDecimal((int) $r->revenue_cents),
@@ -320,7 +324,8 @@ final class ReportService
                 return [
                     'order_id' => (int) $r->id,
                     'number' => $r->number,
-                    'date' => CarbonImmutable::parse($r->created_at)->toDateString(),
+                    // The shop's day, like the range it was filtered by.
+                    'date' => CarbonImmutable::parse($r->created_at, 'UTC')->setTimezone((string) config('store.timezone'))->toDateString(),
                     'customer' => $customer['name'] ?? '—',
                     'phone' => $customer['phone'] ?? '',
                     'status' => $r->status,
@@ -336,31 +341,47 @@ final class ReportService
     }
 
     /**
-     * Stock written off in the range — damaged, lost, decreased by hand, sent back to
-     * a supplier, or short at a count — at what it cost (FIFO). Not part of the
-     * estimated profit, which only covers goods sold.
+     * Stock lost in the range — damaged, lost, decreased by hand, or the net of the
+     * count corrections — at what it cost (FIFO). Not part of the estimated profit,
+     * which only covers goods sold.
      *
-     * @return array{total_formatted: string, rows: list<array{type: string, label: string, units: int, cost_formatted: string}>}
+     * Count corrections are netted: a phone missing at one count and found at the
+     * next is no loss. Goods sent back to a supplier are listed apart and left out
+     * of the total — the supplier owes their value back, so they are not a loss.
+     *
+     * @return array{total_formatted: string, rows: list<array{type: string, label: string, units: int, cost_formatted: string}>, supplier_returns: array{units: int, cost_formatted: string}}
      */
     public function writeOffs(CarbonImmutable $from, CarbonImmutable $to): array
     {
+        // cost_cents is what the moved units cost, always positive; the sign of
+        // quantity_change says which way they went.
         $rows = DB::table('inventory_movements')
-            ->whereIn('type', ['damaged', 'lost', 'manual_decrease', 'supplier_return', 'correction'])
-            ->where('quantity_change', '<', 0)
             ->whereBetween('created_at', [$from, $to])
+            ->where(fn ($q) => $q
+                ->where(fn ($q) => $q->whereIn('type', ['damaged', 'lost', 'manual_decrease', 'supplier_return'])->where('quantity_change', '<', 0))
+                ->orWhere(fn ($q) => $q->where('type', 'correction')->where('quantity_change', '<>', 0)))
             ->groupBy('type')
             ->orderBy('type')
-            ->selectRaw('type, -SUM(quantity_change) AS units, COALESCE(SUM(cost_cents), 0) AS cost')
-            ->get();
+            ->selectRaw('type, -SUM(quantity_change) AS units, COALESCE(SUM(-SIGN(quantity_change) * cost_cents), 0) AS cost')
+            ->get()
+            ->keyBy('type');
+
+        $returns = $rows->pull('supplier_return');
+        // A count that nets to nothing either way is not worth a line.
+        $losses = $rows->reject(fn ($row) => (int) $row->units === 0 && (int) $row->cost === 0);
 
         return [
-            'total_formatted' => Money::format((int) $rows->sum('cost')),
-            'rows' => $rows->map(fn ($row) => [
+            'total_formatted' => Money::format((int) $losses->sum('cost')),
+            'rows' => $losses->map(fn ($row) => [
                 'type' => $row->type,
-                'label' => MovementType::from($row->type)->label(),
+                'label' => $row->type === 'correction' ? __('Count differences (net)') : MovementType::from($row->type)->label(),
                 'units' => (int) $row->units,
                 'cost_formatted' => Money::format((int) $row->cost),
-            ])->all(),
+            ])->values()->all(),
+            'supplier_returns' => [
+                'units' => (int) ($returns->units ?? 0),
+                'cost_formatted' => Money::format((int) ($returns->cost ?? 0)),
+            ],
         ];
     }
 
@@ -487,7 +508,8 @@ final class ReportService
             ],
         };
 
-        $filename = sprintf('%s_%s_%s.csv', $report, $from->toDateString(), $to->toDateString());
+        $dates = ReportDateRange::localDates($from, $to);
+        $filename = sprintf('%s_%s_%s.csv', $report, $dates['from'], $dates['to']);
 
         return response()->streamDownload(function () use ($header, $rows): void {
             $out = fopen('php://output', 'w');

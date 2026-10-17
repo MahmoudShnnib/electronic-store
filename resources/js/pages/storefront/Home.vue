@@ -50,8 +50,10 @@ interface HomeCategory {
 interface HomeBrand {
     id: number;
     name: string;
+    name_ar: string | null;
     slug: string;
-    logo_path: string | null;
+    /** Public URL of the logo uploaded in the dashboard; null shows a monogram. */
+    logo: string | null;
 }
 
 /** A promo tile as curated in the dashboard: a category card plus optional overrides. */
@@ -81,6 +83,10 @@ const props = defineProps<{
 const { t } = useI18n();
 const page = usePage();
 const locale = computed(() => page.props.locale as string);
+
+function brandName(brand: HomeBrand): string {
+    return locale.value === 'ar' && brand.name_ar ? brand.name_ar : brand.name;
+}
 
 function categoryName(category: HomeCategory): string {
     return locale.value === 'ar' && category.name_ar ? category.name_ar : category.name;
@@ -350,13 +356,23 @@ function sectionTitle(section: CategorySection): string {
             <div
                 v-for="copy in brandCopies"
                 :key="copy"
-                class="promo-marquee flex shrink-0 gap-3 pe-3"
+                class="promo-marquee flex shrink-0 gap-4 py-2 pe-4"
                 :class="{ 'promo-marquee-static': brandCopies === 1 }"
-                :style="{ animationDuration: `${brands.length * 2.5}s` }"
+                :style="{ animationDuration: `${brands.length * 3.5}s` }"
                 :aria-hidden="copy > 1 ? 'true' : undefined"
             >
-                <Link v-for="brand in brands" :key="brand.id" :href="route('catalog.brand', brand.slug)" :tabindex="copy > 1 ? -1 : undefined">
-                    <Button shape="round" class="!whitespace-nowrap">{{ brand.name }}</Button>
+                <Link
+                    v-for="brand in brands"
+                    :key="brand.id"
+                    :href="route('catalog.brand', brand.slug)"
+                    :tabindex="copy > 1 ? -1 : undefined"
+                    class="brand-tile"
+                >
+                    <span class="brand-tile-logo">
+                        <img v-if="brand.logo" :src="brand.logo" :alt="brandName(brand)" loading="lazy" draggable="false" />
+                        <span v-else class="brand-tile-monogram" aria-hidden="true">{{ brandName(brand).charAt(0) }}</span>
+                    </span>
+                    <span class="brand-tile-name">{{ brandName(brand) }}</span>
                 </Link>
             </div>
         </div>
@@ -397,7 +413,77 @@ function sectionTitle(section: CategorySection): string {
     animation: none;
 }
 
+/* Brand strip: a white logo well so dark marks stay legible on the dark band. */
+.brand-tile {
+    display: flex;
+    width: 9.5rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.625rem;
+    border: 1px solid var(--st-line);
+    border-radius: 1rem;
+    background: var(--st-surface);
+    padding: 0.75rem 0.75rem 0.875rem;
+    box-shadow: var(--st-lift);
+    transition:
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.brand-tile:hover,
+.brand-tile:focus-visible {
+    border-color: rgb(var(--st-accent-rgb) / 0.6);
+    transform: translateY(-3px);
+}
+
+.brand-tile-logo {
+    display: flex;
+    height: 4.5rem;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    background: #ffffff;
+    padding: 0.625rem;
+}
+
+.brand-tile-logo img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.brand-tile-monogram {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, rgb(var(--st-accent-rgb) / 0.16), rgb(var(--st-accent-bright-rgb) / 0.3));
+    /* The well is white in both themes, so the ink is fixed too. */
+    color: #0e7490;
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+
+.brand-tile-name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--st-ink);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
 @media (prefers-reduced-motion: reduce) {
+    .brand-tile:hover,
+    .brand-tile:focus-visible {
+        transform: none;
+    }
+
     .promo-marquee,
     [dir='rtl'] .promo-marquee {
         animation: none;

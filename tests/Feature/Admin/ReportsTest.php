@@ -108,3 +108,38 @@ it('denies reports to roles without reports.view', function (): void {
         ->get(route('admin.reports.sales'))
         ->assertForbidden();
 });
+
+it('keeps products without a brand in the brand table so it adds up to revenue', function (): void {
+    seedRevenueOrder();
+    Product::query()->update(['brand_id' => null]);
+
+    $this->actingAs(staff('super_admin'))
+        ->get(route('admin.reports.sales'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('byBrand', 1)
+            ->where('byBrand.0.name', 'No brand')
+            ->where('byBrand.0.units', 2)
+            ->where('byBrand.0.revenue', 300));
+});
+
+it('filters the orders list by the shop\'s local day, like the reports', function (): void {
+    $order = seedRevenueOrder(false);
+    // 23:30 UTC on the 11th is 01:30 on the 12th in Tripoli.
+    $order->forceFill(['created_at' => '2026-10-11 23:30:00'])->save();
+
+    $list = fn (string $day) => $this->actingAs(staff('super_admin'))
+        ->get(route('admin.orders.index', ['from' => $day, 'to' => $day]));
+
+    $list('2026-10-12')->assertInertia(fn (Assert $page) => $page->has('orders.data', 1));
+    $list('2026-10-11')->assertInertia(fn (Assert $page) => $page->has('orders.data', 0));
+});
+
+it('echoes the chosen range back as the same local dates, so Apply does not creep a day back', function (): void {
+    $this->actingAs(staff('super_admin'))
+        ->get(route('admin.reports.sales', ['from' => '2026-10-01', 'to' => '2026-10-31']))
+        ->assertInertia(fn (Assert $page) => $page->where('filters', ['from' => '2026-10-01', 'to' => '2026-10-31']));
+
+    $this->actingAs(staff('super_admin'))
+        ->get(route('admin.reports.invoices', ['from' => '2026-10-01', 'to' => '2026-10-31']))
+        ->assertInertia(fn (Assert $page) => $page->where('filters', ['from' => '2026-10-01', 'to' => '2026-10-31']));
+});

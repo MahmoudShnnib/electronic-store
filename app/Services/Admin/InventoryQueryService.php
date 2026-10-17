@@ -9,6 +9,7 @@ use App\Models\InventoryMovement;
 use App\Models\StockLevel;
 use App\Models\Warehouse;
 use App\Services\Reports\ReportDateRange;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Http\Request;
 
@@ -101,14 +102,16 @@ final class InventoryQueryService
     public function movementsProps(Request $request): array
     {
         ReportDateRange::validate($request);
+        [$from, $to] = ReportDateRange::localBounds($request);
 
         $movements = InventoryMovement::query()
             ->with(['product:id,name,sku', 'variant:id,name', 'warehouse:id,name', 'user:id,name'])
             ->when($request->filled('product_id'), fn ($q) => $q->where('product_id', (int) $request->query('product_id')))
             ->when($request->filled('warehouse_id'), fn ($q) => $q->where('warehouse_id', (int) $request->query('warehouse_id')))
             ->when($request->filled('type'), fn ($q) => $q->where('type', (string) $request->query('type')))
-            ->when($request->filled('from'), fn ($q) => $q->where('created_at', '>=', $request->date('from')->startOfDay()))
-            ->when($request->filled('to'), fn ($q) => $q->where('created_at', '<=', $request->date('to')->endOfDay()))
+            // The shop's local days, like the reports — not UTC days.
+            ->when($from !== null, fn ($q) => $q->where('created_at', '>=', $from))
+            ->when($to !== null, fn ($q) => $q->where('created_at', '<=', $to))
             ->latest('created_at')
             ->latest('id')
             ->paginate(50)
@@ -126,7 +129,7 @@ final class InventoryQueryService
                 'after' => $m->quantity_after,
                 'reason' => $m->reason,
                 'user' => $m->user?->name ?? __('admin.system'),
-                'created_at' => $m->created_at->toDateTimeString(),
+                'created_at' => Dates::dateTime($m->created_at),
             ]);
 
         return [

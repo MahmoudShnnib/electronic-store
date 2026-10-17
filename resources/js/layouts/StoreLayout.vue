@@ -3,6 +3,9 @@ import FlashMessages from '@/components/FlashMessages.vue';
 import MobileBottomNav from '@/components/store/MobileBottomNav.vue';
 import SearchBar from '@/components/store/SearchBar.vue';
 import StoreFooter from '@/components/store/StoreFooter.vue';
+import BoxIcon from '@/components/store/icons/BoxIcon.vue';
+import CartIcon from '@/components/store/icons/CartIcon.vue';
+import HomeIcon from '@/components/store/icons/HomeIcon.vue';
 import { isDark, useAppearance } from '@/composables/useAppearance';
 import { useHideOnScroll } from '@/composables/useHideOnScroll';
 import { useStoreTheme } from '@/composables/useStoreTheme';
@@ -17,7 +20,6 @@ import 'dayjs/locale/en-gb';
 import {
     ChevronDown,
     Heart,
-    Home,
     Languages,
     LayoutDashboard,
     LayoutGrid,
@@ -28,12 +30,11 @@ import {
     Moon,
     Package,
     Settings,
-    ShoppingBag,
     Sun,
     User,
     UserPlus,
 } from 'lucide-vue-next';
-import { computed, ref, watchEffect, type FunctionalComponent } from 'vue';
+import { computed, ref, watchEffect, type Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -114,19 +115,19 @@ interface NavLink {
     key: string;
     label: string;
     href: string;
-    icon: FunctionalComponent;
+    icon: Component;
     active: boolean;
     badge?: number;
 }
 
 /** The shop's own destinations — the same list feeds the desktop bar and the drawer. */
 const shopLinks = computed<NavLink[]>(() => [
-    { key: 'home', label: t('nav.home'), href: route('home'), icon: Home, active: isActive(['/']) },
+    { key: 'home', label: t('nav.home'), href: route('home'), icon: HomeIcon, active: isActive(['/']) },
     {
         key: 'catalog',
         label: t('nav.products'),
         href: route('catalog.index'),
-        icon: LayoutGrid,
+        icon: BoxIcon,
         active: isActive(['/products', '/category', '/brand', '/search']),
     },
     {
@@ -265,7 +266,7 @@ function categoryLabel(category: NavCategory): string {
                             :class="['store-cart-chip hidden lg:inline-flex', { 'store-cart-chip-full': cartCount > 0 }]"
                             :aria-label="`${t('nav.cart')} (${cartCount})`"
                         >
-                            <ShoppingBag class="h-[1.125rem] w-[1.125rem]" />
+                            <CartIcon class="h-[1.125rem] w-[1.125rem]" />
                             <span>{{ t('nav.cart') }}</span>
                             <span v-if="cartCount > 0" class="store-cart-count">{{ cartCount }}</span>
                         </Link>
@@ -429,7 +430,7 @@ function categoryLabel(category: NavCategory): string {
                             @click="closeMenu"
                         >
                             <span class="flex items-center gap-2.5">
-                                <component :is="link.icon" class="h-4 w-4" />
+                                <component :is="link.icon" :filled="link.active" class="h-4 w-4" />
                                 {{ link.label }}
                             </span>
                             <Badge v-if="link.badge" :count="link.badge" size="small" />
@@ -441,7 +442,7 @@ function categoryLabel(category: NavCategory): string {
                             @click="closeMenu"
                         >
                             <span class="flex items-center gap-2.5">
-                                <ShoppingBag class="h-4 w-4" />
+                                <CartIcon :filled="isActive(['/cart'])" class="h-4 w-4" />
                                 {{ t('nav.cart') }}
                             </span>
                             <Badge v-if="cartCount" :count="cartCount" size="small" />

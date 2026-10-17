@@ -302,14 +302,15 @@ it('keeps the till, treasury and refunds in step through a POS shift', function 
     qaSend($t, $t->admin, 'sell without shift', 'post', '/admin/pos/sales', ['items' => [['product_id' => $t->cable->id, 'quantity' => 1]], 'payment_method' => 'cash'], 'reject');
     qaSend($t, $t->admin, 'open shift at main, float 100', 'post', '/admin/pos/shifts', ['warehouse_id' => $t->main->id, 'opening_float' => 100]);
     qaSend($t, $t->admin, 'open second shift', 'post', '/admin/pos/shifts', ['warehouse_id' => $t->main->id, 'opening_float' => 0], 'reject');
-    qaSend($t, $t->admin, 'cash sale 2 cables, 1 LYD off', 'post', '/admin/pos/sales', ['items' => [['product_id' => $t->cable->id, 'quantity' => 2]], 'payment_method' => 'cash', 'discount' => 1]);
+    qaSend($t, $t->admin, 'cash sale 2 cables, 1 LYD off', 'post', '/admin/pos/sales', ['items' => [['product_id' => $t->cable->id, 'quantity' => 2]], 'payment_method' => 'cash', 'discount' => 1, 'discount_reason' => 'Loyal customer']);
     qaSend($t, $t->admin, 'cash sale phone', 'post', '/admin/pos/sales', ['items' => [['product_id' => $t->phone->id, 'quantity' => 1]], 'payment_method' => 'cash']);
     qaSend($t, $t->admin, 'sale beyond shelf stock', 'post', '/admin/pos/sales', ['items' => [['product_id' => $t->phone->id, 'quantity' => 100]], 'payment_method' => 'cash'], 'reject');
-    qaSend($t, $t->admin, 'discount above total', 'post', '/admin/pos/sales', ['items' => [['product_id' => $t->cable->id, 'quantity' => 1]], 'payment_method' => 'cash', 'discount' => 999], 'reject');
+    qaSend($t, $t->admin, 'discount above total', 'post', '/admin/pos/sales', ['items' => [['product_id' => $t->cable->id, 'quantity' => 1]], 'payment_method' => 'cash', 'discount' => 999, 'discount_reason' => 'Too much'], 'reject');
 
     $sale = Order::query()->where('placed_via', 'pos')->latest('id')->firstOrFail();
     // Returns are whole and refunded in full (2026-10-10).
-    qaSend($t, $t->admin, 'return phone sold at till, cash back', 'post', "/admin/orders/{$sale->id}/issue", ['reason' => 'Changed mind', 'amount' => 1000, 'method' => 'cash', 'restock' => true]);
+    // Counter sales are taken back at the till (2026-10-12), out of this drawer.
+    qaSend($t, $t->admin, 'return phone sold at till, cash back', 'post', '/admin/pos/returns', ['order_id' => $sale->id, 'reason' => 'Changed mind', 'method' => 'cash']);
 
     $shift = CashierShift::query()->latest('id')->firstOrFail();
     $expected = $shift->expectedCashCents();

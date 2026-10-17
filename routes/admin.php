@@ -36,6 +36,9 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
 
         // Purchasing
         Route::resource('suppliers', Admin\SupplierController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::get('suppliers/{supplier}', Admin\Suppliers\SupplierAccountController::class)->name('suppliers.show');
+        Route::post('suppliers/{supplier}/payments', Admin\Suppliers\StoreSupplierPaymentController::class)->name('suppliers.payments.store');
+        Route::post('suppliers/{supplier}/adjustments', Admin\Suppliers\StoreSupplierAdjustmentController::class)->name('suppliers.adjustments.store');
         Route::resource('purchase-orders', Admin\PurchaseOrders\PurchaseOrderController::class)->except(['edit', 'update'])
             ->parameters(['purchase-orders' => 'purchaseOrder']);
         Route::get('purchase-orders/{purchaseOrder}/edit', [Admin\PurchaseOrders\PurchaseOrderController::class, 'edit'])->name('purchase-orders.edit');
@@ -63,7 +66,11 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
         Route::get('pos/shifts/close', [Admin\Pos\ShiftController::class, 'open'])->name('pos.shifts.close');
         Route::post('pos/shifts/close', [Admin\Pos\ShiftController::class, 'close'])->name('pos.shifts.closed');
         Route::get('pos/shifts', [Admin\Pos\ShiftController::class, 'index'])->name('pos.shifts.index');
+        Route::get('pos/sales', Admin\Pos\PosSalesController::class)->name('pos.sales.index');
         Route::post('pos/sales', Admin\Pos\CompleteSaleController::class)->name('pos.sales.store');
+        Route::get('pos/returns/lookup', [Admin\Pos\PosReturnController::class, 'lookup'])->name('pos.returns.lookup');
+        Route::post('pos/returns', [Admin\Pos\PosReturnController::class, 'store'])->name('pos.returns.store');
+        Route::get('pos/customers/lookup', Admin\Pos\PosCustomerLookupController::class)->name('pos.customers.lookup');
         Route::get('pos/sales/{order}/receipt', Admin\Pos\ReceiptController::class)->name('pos.receipt');
         Route::post('pos/sales/{order}/receipt/print', Admin\Pos\PrintReceiptController::class)->name('pos.receipt.print');
 
@@ -111,4 +118,15 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
         Route::get('homepage', [Admin\HomepageController::class, 'index'])->name('homepage.index');
         Route::post('homepage', [Admin\HomepageController::class, 'update'])->name('homepage.update');
         Route::get('homepage/products', [Admin\HomepageController::class, 'products'])->name('homepage.products');
+
+        // Page builder for the headless storefront's CMS (ADR 0001).
+        Route::post('pages/images', Admin\Content\SectionImageController::class)->name('pages.images.store');
+        Route::resource('pages', Admin\Content\PageController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
+        Route::scopeBindings()->group(function (): void {
+            Route::post('pages/{page}/sections', [Admin\Content\PageSectionController::class, 'store'])->name('pages.sections.store');
+            Route::post('pages/{page}/sections/reorder', [Admin\Content\PageSectionController::class, 'reorder'])->name('pages.sections.reorder');
+            Route::put('pages/{page}/sections/{section}', [Admin\Content\PageSectionController::class, 'update'])->name('pages.sections.update');
+            Route::patch('pages/{page}/sections/{section}/toggle', [Admin\Content\PageSectionController::class, 'toggle'])->name('pages.sections.toggle');
+            Route::delete('pages/{page}/sections/{section}', [Admin\Content\PageSectionController::class, 'destroy'])->name('pages.sections.destroy');
+        });
     });

@@ -14,7 +14,7 @@ final class Refund extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_id', 'amount_cents', 'method', 'reference',
+        'order_id', 'cashier_shift_id', 'amount_cents', 'method', 'reference',
         'reason', 'status', 'created_by',
     ];
 
@@ -29,6 +29,12 @@ final class Refund extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /** The till the cash went back out of; null for a refund made in the back office. */
+    public function cashierShift(): BelongsTo
+    {
+        return $this->belongsTo(CashierShift::class);
     }
 
     public function creator(): BelongsTo

@@ -48,7 +48,7 @@ final class CustomerController extends Controller implements HasMiddleware
                 'verified' => $u->email_verified_at !== null,
                 'orders_count' => $u->orders_count,
                 'lifetime_formatted' => Money::format((int) ($u->lifetime_cents ?? 0)),
-                'joined_at' => $u->created_at->toDateString(),
+                'joined_at' => Dates::date($u->created_at),
                 'last_login_at' => Dates::relative($u->last_login_at),
             ]);
 
@@ -70,14 +70,14 @@ final class CustomerController extends Controller implements HasMiddleware
                 'phone' => $customer->phone,
                 'is_active' => $customer->is_active,
                 'verified' => $customer->email_verified_at !== null,
-                'joined_at' => $customer->created_at->toDateString(),
+                'joined_at' => Dates::date($customer->created_at),
                 'addresses' => $customer->addresses()->get(),
                 'orders' => $customer->orders()->latest()->take(20)->get()->map(fn ($o) => [
                     'id' => $o->id,
                     'number' => $o->number,
                     'status_label' => $o->status->label(),
                     'total_formatted' => Money::format($o->total_cents, $o->currency),
-                    'created_at' => $o->created_at->toDateString(),
+                    'created_at' => Dates::date($o->created_at),
                 ]),
                 'reviews_count' => $customer->reviews()->count(),
             ],

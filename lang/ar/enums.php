@@ -95,6 +95,12 @@ return [
         'cancelled' => 'ملغى',
     ],
 
+    'supplier_transaction_type' => [
+        'purchase' => 'بضاعة مستلمة',
+        'payment' => 'دفعة',
+        'adjustment' => 'تسوية',
+    ],
+
     'treasury_account' => [
         'cash' => 'نقدًا',
         'bank' => 'مصرفي',

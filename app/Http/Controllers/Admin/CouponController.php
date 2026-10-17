@@ -8,6 +8,7 @@ use App\Enums\CouponType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Marketing\CouponRequest;
 use App\Models\Coupon;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,7 +56,7 @@ final class CouponController extends Controller implements HasMiddleware
                     'customer' => $r->user?->name ?? __('admin.guest'),
                     'order_number' => $r->order?->number,
                     'amount_formatted' => Money::format($r->amount_cents),
-                    'at' => $r->created_at->toDateString(),
+                    'at' => Dates::date($r->created_at),
                     'released' => $r->released_at !== null,
                 ])->values(),
                 'applies_to' => $c->applies_to,

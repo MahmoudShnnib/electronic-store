@@ -96,21 +96,17 @@ final class CashierShift extends Model
     }
 
     /**
-     * Cash handed back out of this drawer: refunds on this shift's sales, plus
-     * cash this cashier paid back during the shift for a sale from an earlier one.
+     * Cash handed back out of this drawer: the refunds paid at this till
+     * (refunds.cashier_shift_id). A refund made in the back office comes out of
+     * the treasury, not out of any drawer — matching by order or by cashier used
+     * to take one refund off two drawers at once.
      */
     public function cashRefundedCents(): int
     {
         return (int) Refund::query()
+            ->where('cashier_shift_id', $this->id)
             ->where('status', 'completed')
             ->where('method', 'cash')
-            ->where(fn ($q) => $q
-                ->whereIn('order_id', $this->orders()->select('id'))
-                ->orWhere(fn ($q) => $q
-                    ->where('created_by', $this->user_id)
-                    ->where('created_at', '>=', $this->opened_at)
-                    ->when($this->closed_at !== null, fn ($q) => $q->where('created_at', '<=', $this->closed_at))))
             ->sum('amount_cents');
-
     }
 }

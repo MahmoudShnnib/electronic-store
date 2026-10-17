@@ -11,6 +11,7 @@ use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Models\CashierShift;
 use App\Models\Order;
+use App\Models\Warehouse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -29,6 +30,7 @@ final class CompleteSale
     public function __construct(
         private readonly CreateManualOrder $createManualOrder,
         private readonly UpdateOrderStatus $updateOrderStatus,
+        private readonly FindCustomerByPhone $findCustomer,
     ) {}
 
     /**
@@ -43,6 +45,8 @@ final class CompleteSale
         ?string $couponCode = null,
         int $manualDiscountCents = 0,
         ?string $note = null,
+        ?string $manualDiscountReason = null,
+        ?int $manualDiscountMaxPercent = null,
     ): Order {
         if (! $shift->isOpen()) {
             throw ValidationException::withMessages([
@@ -66,7 +70,7 @@ final class CompleteSale
 
         // One transaction: a sale that fails to complete must not leave a
         // half-made order holding stock.
-        return DB::transaction(fn (): Order => $this->ringUp($shift, $lines, $paymentMethod, $customer, $couponCode, $manualDiscountCents, $note));
+        return DB::transaction(fn (): Order => $this->ringUp($shift, $lines, $paymentMethod, $customer, $couponCode, $manualDiscountCents, $note, $manualDiscountReason, $manualDiscountMaxPercent));
     }
 
     /**
@@ -81,6 +85,8 @@ final class CompleteSale
         ?string $couponCode,
         int $manualDiscountCents,
         ?string $note,
+        ?string $manualDiscountReason,
+        ?int $manualDiscountMaxPercent,
     ): Order {
         $order = $this->createManualOrder->handle(
             items: $lines,
@@ -92,9 +98,34 @@ final class CompleteSale
             manualDiscountCents: $manualDiscountCents,
         );
 
+        // The cap is a share of the subtotal, which only exists once the order
+        // is priced. Failing here rolls the whole sale back.
+        if ($manualDiscountMaxPercent !== null && $manualDiscountCents * 100 > $order->subtotal_cents * $manualDiscountMaxPercent) {
+            throw ValidationException::withMessages([
+                'discount' => __('A cashier can take off at most :percent% by hand. Ask an admin for more.', ['percent' => $manualDiscountMaxPercent]),
+            ]);
+        }
+
+        // A phone that matches a customer account puts the sale in their history;
+        // anyone else stays a cash customer. Nobody is created here.
+        $customerAccount = $this->findCustomer->handle($customer['phone'] ?? null);
+
         // Stamped before completing so the payment ConfirmPayment raises is
         // already attributable to this drawer if anything downstream reads it.
-        $order->update(['cashier_shift_id' => $shift->id]);
+        // The manual discount is kept apart from the coupon so reports can
+        // tell them apart and say who gave it and why.
+        $order->update([
+            'number' => $this->nextReceiptNumber($shift->warehouse),
+            'user_id' => $customerAccount?->id,
+            'customer' => $customerAccount === null ? $order->customer : [
+                ...$order->customer,
+                'name' => trim((string) ($customer['name'] ?? '')) ?: $customerAccount->name,
+                'email' => $order->customer['email'] ?? $customerAccount->email,
+            ],
+            'cashier_shift_id' => $shift->id,
+            'manual_discount_cents' => $manualDiscountCents,
+            'manual_discount_reason' => $manualDiscountCents > 0 ? (trim((string) $manualDiscountReason) ?: null) : null,
+        ]);
 
         $order = $this->updateOrderStatus->handle(
             $order,
@@ -107,6 +138,20 @@ final class CompleteSale
         // reload, so the instance it hands back still carries the pre-payment
         // status. Re-read before the receipt is built from it.
         return $order->refresh();
+    }
+
+    /**
+     * The branch's next receipt number: POS-MAIN-000127, one gapless run per
+     * branch. The counter is bumped under the warehouse row's lock inside the
+     * sale's transaction, so two tills never share a number and a sale that
+     * fails gives its number back.
+     */
+    private function nextReceiptNumber(Warehouse $warehouse): string
+    {
+        $locked = Warehouse::query()->lockForUpdate()->findOrFail($warehouse->id);
+        $locked->increment('pos_receipt_seq');
+
+        return sprintf('POS-%s-%06d', strtoupper((string) $locked->code), $locked->pos_receipt_seq);
     }
 
     /**

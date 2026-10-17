@@ -46,6 +46,9 @@ const props = defineProps<{
         shipping_address: Address;
         billing_address: Address;
         discount_formatted: string;
+        /** The part keyed in by hand at the register, with the cashier's reason. */
+        manual_discount_formatted: string | null;
+        manual_discount_reason: string | null;
         coupon_code: string | null;
         total_formatted: string;
         total_cents: number;
@@ -57,6 +60,8 @@ const props = defineProps<{
         refunded_formatted: string;
         customer_note: string | null;
         can_resolve_issue: boolean;
+        /** Rung up at a till: returned there, not here. */
+        is_counter_sale: boolean;
         created_at: string;
         items: {
             id: number;
@@ -265,6 +270,14 @@ function addressRows(address: Address): { label: string; value: string }[] {
                             </template>
                             <bdi dir="ltr">−{{ order.discount_formatted }}</bdi>
                         </DescriptionsItem>
+                        <DescriptionsItem v-if="order.manual_discount_formatted" :label="t('admin.orders.manual_discount')">
+                            <span class="flex flex-col items-end">
+                                <bdi dir="ltr">−{{ order.manual_discount_formatted }}</bdi>
+                                <span v-if="order.manual_discount_reason" class="text-xs text-ad-muted" dir="auto">{{
+                                    order.manual_discount_reason
+                                }}</span>
+                            </span>
+                        </DescriptionsItem>
                         <DescriptionsItem :label="t('admin.common.total')">
                             <span class="font-semibold">{{ order.total_formatted }}</span>
                         </DescriptionsItem>
@@ -452,8 +465,12 @@ function addressRows(address: Address): { label: string; value: string }[] {
                     </form>
                 </template>
 
+                <Text v-else-if="order.is_counter_sale && order.status === 'completed'" type="secondary" class="block !text-xs">
+                    {{ t('admin.orders.counter_sale_return_hint') }}
+                </Text>
+
                 <!-- An order already sent back can still need money returned. -->
-                <form v-else-if="order.can.refund && heldCents > 0" @submit.prevent="submitRefund">
+                <form v-else-if="order.can.refund && heldCents > 0 && !order.is_counter_sale" @submit.prevent="submitRefund">
                     <Text v-if="refundForm.errors.amount" type="danger" class="mb-2 block !text-xs">{{ refundForm.errors.amount }}</Text>
                     <Field :label="t('admin.common.method')" :error="refundForm.errors.method">
                         <AdminSelect v-model="refundForm.method" :options="refundMethods" />

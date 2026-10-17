@@ -17,6 +17,7 @@ use App\Models\Payment;
 use App\Models\PurchaseOrder;
 use App\Models\Refund;
 use App\Models\StockTransfer;
+use App\Models\SupplierTransaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -48,6 +49,7 @@ const AUDIT_RULES = [
     'A4' => 'No financial row points at a missing order',
     'W1' => 'Write-offs never touch orders, payments, refunds or treasury',
     'C1' => 'Coupon usage = redemptions, within limit, none held by cancelled orders',
+    'P1' => 'Supplier accounts: every payment has one matching treasury OUT; purchases are positive and tied to an order',
 ];
 
 function auditInvariants(): array
@@ -333,6 +335,7 @@ function auditInvariants(): array
         (new Payment)->getMorphClass() => 'payments',
         (new Refund)->getMorphClass() => 'refunds',
         (new CashierShift)->getMorphClass() => 'cashier_shifts',
+        (new SupplierTransaction)->getMorphClass() => 'supplier_transactions',
     ];
     $treasury = DB::table('treasury_transactions')->get();
     foreach ($treasury as $t) {
@@ -401,6 +404,27 @@ function auditInvariants(): array
         ->when(Schema::hasColumn('coupon_redemptions', 'released_at'), fn ($q) => $q->whereNull('coupon_redemptions.released_at'))
         ->pluck('orders.number') as $num) {
         $v['C1'][] = "redemption still held by cancelled order $num";
+    }
+
+    // ── Supplier accounts ────────────────────────────────────────────────────
+    if (Schema::hasTable('supplier_transactions')) {
+        $supplierMorph = (new SupplierTransaction)->getMorphClass();
+        $legs = DB::table('treasury_transactions')->where('source_type', $supplierMorph)->get()->groupBy('source_id');
+
+        foreach (DB::table('supplier_transactions')->get() as $st) {
+            if ($st->type === 'payment') {
+                $leg = $legs->get($st->id, collect());
+                if ($leg->count() !== 1 || (int) $leg->first()->amount_cents !== -(int) $st->amount_cents
+                    || $leg->first()->direction !== 'out' || $leg->first()->account !== $st->account) {
+                    $v['P1'][] = "supplier payment #{$st->id} ({$st->amount_cents}) has no single matching treasury OUT on {$st->account}";
+                }
+            } elseif ($legs->has($st->id)) {
+                $v['P1'][] = "supplier {$st->type} #{$st->id} moved treasury money";
+            }
+            if ($st->type === 'purchase' && ((int) $st->amount_cents <= 0 || $st->purchase_order_id === null)) {
+                $v['P1'][] = "supplier purchase #{$st->id} is not a positive amount tied to an order";
+            }
+        }
     }
 
     return $v;

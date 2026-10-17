@@ -5,7 +5,7 @@ import PosLayout from '@/layouts/PosLayout.vue';
 import { formatMoney } from '@/lib/money';
 import { Head, Link, router, usePage, usePoll } from '@inertiajs/vue3';
 import { Button, Empty, Input, InputNumber, message, Modal, Radio, Result, Select, Tooltip, Typography } from 'ant-design-vue';
-import { ChevronDown, ImageOff, Minus, Plus, Search, Trash2, X } from 'lucide-vue-next';
+import { BadgeCheck, ChevronDown, ImageOff, Minus, Plus, Receipt, Search, Trash2, Undo2, X } from 'lucide-vue-next';
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -114,6 +114,10 @@ const props = defineProps<{
     brands: CountedChip[];
     paymentMethods: { value: string; label: string }[];
     recentSales: { id: number; number: string; total_formatted: string; created_at: string }[];
+    /** The most a cashier may take off by hand, in percent of the subtotal; null = uncapped. */
+    manualDiscountMaxPercent: number | null;
+    /** Staff who may refund can take a counter sale back here. */
+    canReturn: boolean;
     // Flashed for one render straight after a sale, null otherwise.
     justSold: { order: ReceiptOrder; store: ReceiptStore; printer: { direct: boolean; width: number } } | null;
 }>();
@@ -257,9 +261,11 @@ function removeLine(line: BasketLine): void {
 function clearBasket(): void {
     basket.value = [];
     discount.value = 0;
+    discountReason.value = '';
     couponCode.value = '';
     customerName.value = '';
     customerPhone.value = '';
+    matchedCustomer.value = null;
     showDetails.value = false;
 }
 
@@ -527,14 +533,132 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 onMounted(() => window.addEventListener('keydown', onKeydown));
+
+/* -- Who is buying ----------------------------------------------------------- */
+
+/**
+ * A phone that belongs to a customer account links the sale to them (the server
+ * decides; this only says so while the cashier types). Nobody is created.
+ */
+const matchedCustomer = ref<{ id: number; name: string } | null>(null);
+let phoneTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function getJson<T>(url: string): Promise<T> {
+    const response = await fetch(url, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' });
+
+    return (await response.json()) as T;
+}
+
+/* -- Returns at the till ------------------------------------------------------ */
+
+interface ReturnSale {
+    id: number;
+    number: string;
+    at: string;
+    customer: string | null;
+    payment_method: string;
+    payment_label: string;
+    total_formatted: string;
+    refund_formatted: string;
+    status_label: string;
+    returnable: boolean;
+    items: { name: string; quantity: number; total_formatted: string }[];
+}
+
+const returning = ref(false);
+const returnNumber = ref('');
+const returnSale = ref<ReturnSale | null>(null);
+const returnError = ref<string | null>(null);
+const returnReason = ref('');
+const returnMethod = ref<'cash' | 'bank_transfer'>('cash');
+const returnReference = ref('');
+const lookingUp = ref(false);
+const returnSubmitting = ref(false);
+const returnNumberInput = ref<{ focus: () => void } | null>(null);
+
+function openReturn(): void {
+    returnNumber.value = '';
+    returnSale.value = null;
+    returnError.value = null;
+    returnReason.value = '';
+    returnReference.value = '';
+    returning.value = true;
+    requestAnimationFrame(() => requestAnimationFrame(() => returnNumberInput.value?.focus()));
+}
+
+/** Finds the sale behind a typed or scanned receipt number. */
+async function lookUpReturn(): Promise<void> {
+    if (returnNumber.value.trim() === '' || lookingUp.value) return;
+
+    lookingUp.value = true;
+    returnError.value = null;
+    returnSale.value = null;
+
+    try {
+        const result = await getJson<{ found: boolean; message?: string; sale?: ReturnSale }>(
+            route('admin.pos.returns.lookup', { number: returnNumber.value.trim() }),
+        );
+
+        if (result.found && result.sale) {
+            returnSale.value = result.sale;
+            // Give it back the way it came in, unless the cashier says otherwise.
+            returnMethod.value = result.sale.payment_method === 'bank_transfer' ? 'bank_transfer' : 'cash';
+        } else {
+            returnError.value = result.message ?? t('admin.pos.return_not_found');
+        }
+    } catch {
+        returnError.value = t('admin.pos.return_not_found');
+    } finally {
+        lookingUp.value = false;
+    }
+}
+
+function submitReturn(): void {
+    if (returnSale.value === null || returnReason.value.trim() === '' || returnSubmitting.value) return;
+
+    returnSubmitting.value = true;
+
+    router.post(
+        route('admin.pos.returns.store'),
+        {
+            order_id: returnSale.value.id,
+            reason: returnReason.value.trim(),
+            method: returnMethod.value,
+            reference: returnReference.value.trim() || null,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => (returning.value = false),
+            onFinish: () => (returnSubmitting.value = false),
+        },
+    );
+}
 onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
 /* -- Totals ---------------------------------------------------------------- */
 
 const discount = ref(0);
+const discountReason = ref('');
 const couponCode = ref('');
 const customerName = ref('');
 const customerPhone = ref('');
+
+watch(customerPhone, (phone) => {
+    clearTimeout(phoneTimer);
+    matchedCustomer.value = null;
+
+    // Nine digits is the shortest number that can identify someone.
+    if (phone.replace(/\D/g, '').length < 9) return;
+
+    phoneTimer = setTimeout(async () => {
+        try {
+            const result = await getJson<{ customer: { id: number; name: string } | null }>(route('admin.pos.customers.lookup', { phone }));
+            if (customerPhone.value === phone) matchedCustomer.value = result.customer;
+        } catch {
+            matchedCustomer.value = null;
+        }
+    }, 350);
+});
 const paymentMethod = ref(props.paymentMethods[0]?.value ?? 'cash');
 
 /**
@@ -554,6 +678,11 @@ const itemCount = computed(() => basket.value.reduce((sum, line) => sum + line.q
  * would disagree with in the other direction.
  */
 const total = computed(() => Math.max(0, subtotal.value - (discount.value ?? 0)));
+
+/** The keyed-in discount may not exceed this (the server enforces the same cap). */
+const maxDiscount = computed(() =>
+    props.manualDiscountMaxPercent === null ? subtotal.value : Math.floor(subtotal.value * props.manualDiscountMaxPercent) / 100,
+);
 
 /* -- Checkout -------------------------------------------------------------- */
 
@@ -612,6 +741,7 @@ function checkout(): void {
             payment_method: paymentMethod.value,
             coupon_code: couponCode.value || null,
             discount: canDiscount.value ? discount.value : 0,
+            discount_reason: canDiscount.value && (discount.value ?? 0) > 0 ? discountReason.value.trim() || null : null,
             customer: { name: customerName.value || null, phone: customerPhone.value || null },
         },
         {
@@ -764,7 +894,11 @@ watch(
                 <span class="font-medium tabular-nums text-ad-text">{{ shift.expected_cash_formatted }}</span>
             </span>
 
-            <Link :href="route('admin.pos.shifts.close')" class="ms-auto">
+            <Button v-if="canReturn" size="small" class="ms-auto" @click="openReturn">
+                <template #icon><Undo2 class="h-3.5 w-3.5" /></template>
+                {{ t('admin.pos.return') }}
+            </Button>
+            <Link :href="route('admin.pos.shifts.close')" :class="canReturn ? '' : 'ms-auto'">
                 <Button size="small">{{ t('admin.pos.close_shift') }}</Button>
             </Link>
         </div>
@@ -993,16 +1127,26 @@ watch(
                     <div v-if="showDetails" class="space-y-2 px-3 pb-2">
                         <div class="grid grid-cols-2 gap-2">
                             <Input v-model:value="customerName" size="small" :placeholder="t('admin.pos.customer_name')" />
-                            <Input v-model:value="customerPhone" size="small" :placeholder="t('admin.pos.customer_phone')" />
+                            <Input v-model:value="customerPhone" size="small" :placeholder="t('admin.pos.customer_phone')" dir="ltr" />
                         </div>
+                        <p v-if="matchedCustomer" class="!m-0 flex items-center gap-1 text-xs text-ad-accent">
+                            <BadgeCheck class="h-3.5 w-3.5" />
+                            {{ t('admin.pos.customer_matched', { name: matchedCustomer.name }) }}
+                        </p>
                         <Input v-model:value="couponCode" size="small" :placeholder="t('admin.pos.coupon_code')" />
                     </div>
 
                     <div class="space-y-2 px-3 pb-3">
                         <div v-if="canDiscount" class="flex items-center gap-2">
                             <span class="w-16 shrink-0 text-xs text-ad-muted">{{ t('admin.pos.discount') }}</span>
-                            <InputNumber v-model:value="discount" :min="0" :max="subtotal" size="small" class="!flex-1" />
+                            <InputNumber v-model:value="discount" :min="0" :max="maxDiscount" size="small" class="!flex-1" />
                         </div>
+                        <template v-if="canDiscount && (discount ?? 0) > 0">
+                            <Input v-model:value="discountReason" size="small" :maxlength="255" :placeholder="t('admin.pos.discount_reason')" />
+                            <p v-if="manualDiscountMaxPercent !== null" class="!m-0 text-xs text-ad-muted">
+                                {{ t('admin.pos.discount_cap_hint', { percent: manualDiscountMaxPercent }) }}
+                            </p>
+                        </template>
 
                         <RadioGroup v-model:value="paymentMethod" button-style="solid" class="!flex">
                             <RadioButton v-for="method in paymentMethods" :key="method.value" :value="method.value" class="!flex-1 !text-center">
@@ -1031,15 +1175,25 @@ watch(
                             {{ t('admin.pos.take_payment') }}
                         </Button>
 
-                        <div v-if="recentSales.length > 0" class="flex flex-wrap gap-1 pt-0.5">
-                            <Link
-                                v-for="sale in recentSales"
-                                :key="sale.id"
-                                :href="route('admin.pos.receipt', sale.id)"
-                                class="rounded border border-ad-line px-1.5 py-0.5 text-[0.6875rem] text-ad-muted transition hover:border-ad-accent hover:text-ad-accent"
-                            >
-                                {{ sale.number.slice(-6) }}
-                            </Link>
+                        <!-- The shift's last sales, to reprint a slip: when and how much is
+                             what a cashier remembers, not an order number. -->
+                        <div v-if="recentSales.length > 0" class="border-t border-ad-line pt-2">
+                            <p class="!mb-1 text-[0.6875rem] font-medium text-ad-muted">{{ t('admin.pos.recent_sales') }}</p>
+                            <ul class="space-y-0.5">
+                                <li v-for="sale in recentSales" :key="sale.id">
+                                    <Link
+                                        :href="route('admin.pos.receipt', sale.id)"
+                                        :title="sale.number"
+                                        class="flex items-center justify-between gap-2 rounded px-1.5 py-1 text-xs text-ad-text-2 transition hover:bg-ad-hover hover:text-ad-accent"
+                                    >
+                                        <span class="flex items-center gap-1.5 tabular-nums text-ad-muted">
+                                            <Receipt class="size-3.5 shrink-0" />
+                                            {{ sale.created_at }}
+                                        </span>
+                                        <span class="font-medium tabular-nums">{{ sale.total_formatted }}</span>
+                                    </Link>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -1116,6 +1270,10 @@ watch(
                 <span class="text-ad-muted">{{ t('admin.pos.discount') }}</span>
                 <span>-{{ money(discount ?? 0) }}</span>
             </div>
+            <div v-if="canDiscount && (discount ?? 0) > 0 && discountReason.trim()" class="flex justify-between gap-2 text-sm">
+                <span class="text-ad-muted">{{ t('admin.pos.discount_reason') }}</span>
+                <span dir="auto">{{ discountReason }}</span>
+            </div>
             <div v-if="customerName" class="flex justify-between gap-2 text-sm">
                 <span class="text-ad-muted">{{ t('admin.pos.customer') }}</span>
                 <span dir="auto">{{ customerName }}</span>
@@ -1170,4 +1328,76 @@ watch(
             </Result>
         </Modal>
     </template>
+
+    <!-- Returns at the till: find the receipt, take everything back, pay the
+         money out of this drawer (cash) or by transfer. -->
+    <Modal :open="returning" :title="t('admin.pos.return_title')" :footer="null" centered width="520px" @cancel="returning = false">
+        <form class="flex gap-2" @submit.prevent="lookUpReturn">
+            <Input
+                ref="returnNumberInput"
+                v-model:value="returnNumber"
+                :placeholder="t('admin.pos.return_number_placeholder')"
+                dir="ltr"
+                class="!flex-1"
+                autocomplete="off"
+            />
+            <Button html-type="submit" :loading="lookingUp">{{ t('admin.pos.return_find') }}</Button>
+        </form>
+        <p v-if="returnError" class="!mb-0 !mt-2 text-sm text-ad-danger">{{ returnError }}</p>
+
+        <div v-if="returnSale" class="mt-4 space-y-3">
+            <div class="rounded-lg border border-ad-line p-3 text-sm">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="font-semibold tabular-nums" dir="ltr">{{ returnSale.number }}</span>
+                    <span class="text-xs tabular-nums text-ad-muted">{{ returnSale.at }}</span>
+                </div>
+                <div class="mt-1 text-xs text-ad-muted">
+                    {{ returnSale.customer ?? t('admin.pos_sales.cash_customer') }} · {{ returnSale.payment_label }} · {{ returnSale.status_label }}
+                </div>
+                <ul class="mt-2 space-y-1 border-t border-ad-line pt-2">
+                    <li v-for="(item, index) in returnSale.items" :key="index" class="flex justify-between gap-2">
+                        <span dir="auto">{{ item.quantity }} × {{ item.name }}</span>
+                        <span class="tabular-nums">{{ item.total_formatted }}</span>
+                    </li>
+                </ul>
+                <div class="mt-2 flex justify-between border-t border-ad-line pt-2 font-semibold">
+                    <span>{{ t('admin.pos.total') }}</span>
+                    <span class="tabular-nums">{{ returnSale.total_formatted }}</span>
+                </div>
+            </div>
+
+            <p v-if="!returnSale.returnable" class="!m-0 rounded-lg bg-ad-hover p-3 text-sm text-ad-danger">
+                {{ t('admin.pos.return_not_returnable') }}
+            </p>
+
+            <template v-else>
+                <p class="!m-0 text-xs text-ad-muted">{{ t('admin.pos.return_whole_hint') }}</p>
+                <Input.TextArea v-model:value="returnReason" :rows="2" :maxlength="500" :placeholder="t('admin.pos.return_reason')" />
+                <RadioGroup v-model:value="returnMethod" button-style="solid" class="!flex">
+                    <RadioButton value="cash" class="!flex-1 !text-center">{{ t('admin.pos_sales.method_cash') }}</RadioButton>
+                    <RadioButton value="bank_transfer" class="!flex-1 !text-center">{{ t('admin.pos_sales.method_bank') }}</RadioButton>
+                </RadioGroup>
+                <Input
+                    v-if="returnMethod === 'bank_transfer'"
+                    v-model:value="returnReference"
+                    :placeholder="t('admin.common.reference_optional')"
+                    dir="ltr"
+                />
+                <p class="!m-0 text-xs text-ad-muted">
+                    {{ returnMethod === 'cash' ? t('admin.pos.return_from_drawer') : t('admin.pos.return_by_transfer') }}
+                </p>
+                <Button
+                    type="primary"
+                    danger
+                    block
+                    size="large"
+                    :disabled="returnReason.trim() === ''"
+                    :loading="returnSubmitting"
+                    @click="submitReturn"
+                >
+                    {{ t('admin.pos.return_confirm', { amount: returnSale.refund_formatted }) }}
+                </Button>
+            </template>
+        </div>
+    </Modal>
 </template>

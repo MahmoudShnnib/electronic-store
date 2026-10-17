@@ -10,6 +10,7 @@ use App\Models\PurchaseOrder;
 use App\Models\Setting;
 use App\Models\Supplier;
 use App\Models\Warehouse;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -47,7 +48,7 @@ final class PurchaseOrderQueryService
                 'total_formatted' => Money::format($po->total_cents),
                 'items_count' => (int) $po->items_count,
                 'expected_at' => $po->expected_at?->toDateString(),
-                'created_at' => $po->created_at->toDateString(),
+                'created_at' => Dates::date($po->created_at),
             ]);
 
         return [
@@ -124,15 +125,15 @@ final class PurchaseOrderQueryService
                 'status_label' => $purchaseOrder->status->label(),
                 'is_editable' => $purchaseOrder->status->isEditable(),
                 'is_receivable' => $purchaseOrder->status->isReceivable(),
-                'sent_at' => $purchaseOrder->sent_at?->toDateTimeString(),
+                'sent_at' => Dates::dateTime($purchaseOrder->sent_at),
                 'discount_formatted' => Money::format($purchaseOrder->discount_cents),
                 'shipping_formatted' => Money::format($purchaseOrder->shipping_cents),
                 'total_formatted' => Money::format($purchaseOrder->total_cents),
                 'expected_at' => $purchaseOrder->expected_at?->toDateString(),
-                'received_at' => $purchaseOrder->received_at?->toDateTimeString(),
+                'received_at' => Dates::dateTime($purchaseOrder->received_at),
                 'notes' => $purchaseOrder->notes,
                 'created_by' => $purchaseOrder->creator?->name,
-                'created_at' => $purchaseOrder->created_at->toDateTimeString(),
+                'created_at' => Dates::dateTime($purchaseOrder->created_at),
                 'items' => $purchaseOrder->items->map(fn ($item) => [
                     'id' => $item->id,
                     'name' => $item->variant !== null
@@ -163,9 +164,9 @@ final class PurchaseOrderQueryService
         return [
             'purchaseOrder' => [
                 'po_number' => $purchaseOrder->po_number,
-                'created_at' => $purchaseOrder->created_at->toDateString(),
+                'created_at' => Dates::date($purchaseOrder->created_at),
                 'status_label' => $purchaseOrder->status->label(),
-                'sent_at' => $purchaseOrder->sent_at?->toDateTimeString(),
+                'sent_at' => Dates::dateTime($purchaseOrder->sent_at),
                 'expected_at' => $purchaseOrder->expected_at?->toDateString(),
                 'supplier' => $purchaseOrder->supplier->only(['company_name', 'contact_person', 'email', 'phone', 'address']),
                 'warehouse' => $purchaseOrder->warehouse->only(['name', 'address']),

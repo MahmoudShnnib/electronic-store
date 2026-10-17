@@ -81,6 +81,14 @@ const form = useForm({
 });
 
 /**
+ * The server reports a line's problem as `items.<index>.<field>`; without this
+ * a refused cost or variant failed the save with nothing on screen.
+ */
+function lineError(index: number, field: string): string | undefined {
+    return (form.errors as Record<string, string | undefined>)[`items.${index}.${field}`];
+}
+
+/**
  * Every purchasable line as a flat list — "Product (SKU)" for simple products,
  * "Product — Variant (SKU)" for each variant. The old <optgroup> headings only
  * repeated the product name that each option already carries.
@@ -207,7 +215,7 @@ function submit(): void {
                 <Text v-if="form.errors.items" type="danger" class="mb-2 block !text-xs">{{ form.errors.items }}</Text>
 
                 <div v-for="(item, index) in form.items" :key="item.key" class="mb-3 grid items-end gap-3 sm:grid-cols-[1fr_100px_130px_110px_36px]">
-                    <Field :label="t('admin.common.product')">
+                    <Field :label="t('admin.common.product')" :error="lineError(index, 'product_id') ?? lineError(index, 'product_variant_id')">
                         <AdminSelect
                             :model-value="selectionValue(item)"
                             :placeholder="t('admin.common.choose')"
@@ -215,11 +223,11 @@ function submit(): void {
                             @update:model-value="applySelection(item, String($event))"
                         />
                     </Field>
-                    <Field :label="t('admin.common.qty')">
+                    <Field :label="t('admin.common.qty')" :error="lineError(index, 'quantity')">
                         <InputNumber v-model:value="item.quantity" :min="1" class="w-full" />
                     </Field>
-                    <Field :label="t('admin.common.unit_cost')">
-                        <InputNumber v-model:value="item.unit_cost" :min="0" :step="0.01" class="w-full" />
+                    <Field :label="t('admin.common.unit_cost')" :error="lineError(index, 'unit_cost')">
+                        <InputNumber v-model:value="item.unit_cost" :min="0" :step="0.01" :precision="2" class="w-full" />
                     </Field>
                     <p class="pb-2 text-sm font-medium text-ad-text-2">
                         {{ money(item.quantity * (item.unit_cost || 0)) }}
@@ -239,10 +247,10 @@ function submit(): void {
             <Card :title="t('admin.purchase_orders.totals')" size="small">
                 <div class="grid gap-3">
                     <Field :label="t('admin.common.discount')" :error="form.errors.discount">
-                        <InputNumber v-model:value="form.discount" :min="0" :step="0.01" class="w-full" />
+                        <InputNumber v-model:value="form.discount" :min="0" :step="0.01" :precision="2" class="w-full" />
                     </Field>
                     <Field :label="t('admin.common.shipping')" :error="form.errors.shipping">
-                        <InputNumber v-model:value="form.shipping" :min="0" :step="0.01" class="w-full" />
+                        <InputNumber v-model:value="form.shipping" :min="0" :step="0.01" :precision="2" class="w-full" />
                     </Field>
                 </div>
                 <dl class="mt-4 space-y-1 border-t border-ad-line pt-3 text-sm">
