@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\Content\ContentCache;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
@@ -32,6 +33,10 @@ final class Setting extends Model
         self::query()->updateOrCreate(['key' => $key], ['value' => $value]);
 
         Cache::forget('settings.all');
+
+        // The content API serves settings too (contact, social links, static
+        // page text), so its cached payloads are stale now.
+        ContentCache::bump();
     }
 
     public function getActivitylogOptions(): LogOptions

@@ -9,8 +9,8 @@ use App\Http\Requests\Admin\Settings\UpdateHomepageRequest;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Setting;
+use App\Services\Admin\ProductSummaries;
 use App\Support\HomeCache;
-use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -149,32 +149,10 @@ final class HomepageController extends Controller implements HasMiddleware
             ->all();
     }
 
-    /**
-     * What the picker and the slide list show for a product, including whether
-     * the storefront will actually display it — a draft or hidden product is
-     * skipped there, and the admin should see why before saving.
-     *
-     * @return Collection<int, array<string, mixed>>
-     */
+    /** @return Collection<int, array<string, mixed>> */
     private function summaries($query): Collection
     {
-        $products = $query->with('images')->get(['id', 'name', 'name_ar', 'sku', 'price_cents', 'sale_price_cents', 'sale_starts_at', 'sale_ends_at']);
-
-        $visible = Product::query()->visibleInStore()->whereIn('id', $products->pluck('id'))->pluck('id')->all();
-
-        return $products->map(function (Product $product) use ($visible): array {
-            $image = $product->images->firstWhere('is_primary', true) ?? $product->images->first();
-
-            return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'name_ar' => $product->name_ar,
-                'sku' => $product->sku,
-                'price_formatted' => Money::format($product->currentPriceCents()),
-                'image' => $image !== null ? Storage::disk('public')->url($image->path) : null,
-                'visible' => in_array($product->id, $visible, true),
-            ];
-        });
+        return app(ProductSummaries::class)->of($query);
     }
 
     private function url(?string $path): ?string

@@ -200,6 +200,34 @@ final class Product extends Model
         return max(0, (int) ($this->stock_quantity ?? $this->stockLevels()->sellable()->max('quantity')));
     }
 
+    /**
+     * Sellable units per variant and for the product, each the biggest single
+     * stock row (an order line ships from one warehouse). A variant product
+     * with no row of its own reports the sum of its variants. One query.
+     *
+     * @return array{product: int, variants: array<int, int>}
+     */
+    public function sellableQuantities(): array
+    {
+        $levels = $this->stockLevels()
+            ->sellable()
+            ->selectRaw('product_variant_id, MAX(quantity) as qty')
+            ->groupBy('product_variant_id')
+            ->pluck('qty', 'product_variant_id');
+
+        $variants = [];
+        foreach ($levels as $variantId => $qty) {
+            if ($variantId !== null && $variantId !== '') {
+                $variants[(int) $variantId] = (int) $qty;
+            }
+        }
+
+        return [
+            'product' => (int) ($levels[null] ?? $levels[''] ?? array_sum($variants)),
+            'variants' => $variants,
+        ];
+    }
+
     public function scopeFeatured(Builder $query): Builder
     {
         return $query->where('is_featured', true);

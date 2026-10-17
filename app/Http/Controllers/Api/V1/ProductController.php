@@ -7,41 +7,34 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\V1\ProductDetailResource;
 use App\Http\Resources\V1\ProductResource;
-use App\Models\Category;
 use App\Models\Product;
+use App\Services\Storefront\CatalogQuery;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 final class ProductController extends Controller
 {
     /**
-     * Browse the catalog with search, filters, and sorting.
+     * Browse the catalog with search, filters, and sorting (see CatalogQuery
+     * for the query string).
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $products = Product::query()
-            ->visibleInStore()
-            ->with(['brand:id,name,slug', 'category:id,name,slug', 'images'])
-            ->withAvg('approvedReviews as rating_avg', 'rating')
-            ->withCount('approvedReviews as rating_count')
-            ->withStock()
-            ->when($request->filled('q'), fn ($q) => $q->search((string) $request->query('q')))
-            ->when($request->filled('category'), fn ($q) => $q->whereIn(
-                'category_id',
-                Category::subtreeIds(Category::query()->where('slug', (string) $request->query('category'))->pluck('id')->all(), activeOnly: true),
-            ))
-            ->when($request->filled('brand'), fn ($q) => $q->whereHas(
-                'brand',
-                fn ($qq) => $qq->where('slug', (string) $request->query('brand')),
-            ))
-            ->when($request->boolean('featured'), fn ($q) => $q->featured())
-            ->when($request->boolean('on_sale'), fn ($q) => $q->onSale())
-            ->when($request->query('sort') === 'price_asc', fn ($q) => $q->orderByRaw(Product::EFFECTIVE_PRICE.' ASC'))
-            ->when($request->query('sort') === 'price_desc', fn ($q) => $q->orderByRaw(Product::EFFECTIVE_PRICE.' DESC'))
-            ->when(! in_array($request->query('sort'), ['price_asc', 'price_desc'], true), fn ($q) => $q->latest('published_at'))
-            ->paginate(min(50, max(1, (int) $request->query('per_page', '20'))));
+        $products = CatalogQuery::fromRequest($request)
+            ->products()
+            ->paginate(min(50, max(1, (int) $request->query('per_page', '20'))))
+            ->withQueryString();
 
         return ProductResource::collection($products);
+    }
+
+    /**
+     * Counts for the filter panel, for the same query string as the listing.
+     */
+    public function facets(Request $request): JsonResponse
+    {
+        return response()->json(['data' => CatalogQuery::fromRequest($request)->facets()], options: JSON_UNESCAPED_UNICODE);
     }
 
     /**

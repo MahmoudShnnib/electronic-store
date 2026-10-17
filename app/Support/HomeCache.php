@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Support\Content\ContentCache;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -27,5 +28,8 @@ final class HomeCache
         foreach (self::KEYS as $key) {
             Cache::forget($key);
         }
+
+        // The content API's product sections are built from the same catalogue.
+        ContentCache::bump();
     }
 }
