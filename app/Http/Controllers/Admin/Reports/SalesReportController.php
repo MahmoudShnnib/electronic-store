@@ -36,7 +36,7 @@ final class SalesReportController extends Controller implements HasMiddleware
             'byPaymentMethod' => $this->reports->salesByPaymentMethod($from, $to),
             'byStatus' => $this->reports->salesByStatus($from, $to),
             'byCustomer' => $this->reports->salesByCustomer($from, $to),
-            'filters' => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
+            'filters' => ReportDateRange::localDates($from, $to),
         ]);
     }
 }

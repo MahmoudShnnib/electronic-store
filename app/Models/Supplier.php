@@ -31,6 +31,18 @@ final class Supplier extends Model
         return $this->hasMany(PurchaseOrder::class);
     }
 
+    /** The supplier's account: goods received, payments, hand-written debts and credits. */
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(SupplierTransaction::class);
+    }
+
+    /** What the shop owes this supplier now; negative means the supplier owes the shop. */
+    public function balanceCents(): int
+    {
+        return (int) $this->transactions()->sum('amount_cents');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', 'active');

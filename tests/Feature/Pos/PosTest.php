@@ -264,6 +264,78 @@ it('drops a keyed-in discount from a cashier who lacks pos.discount', function (
     expect(Order::query()->sole()->total_cents)->toBe(50_000);
 });
 
+it('keeps a keyed-in discount apart from the coupon, with an optional reason', function (): void {
+    $product = Product::factory()->create(['price_cents' => 100_000]);
+    giveStock($product, 3);
+
+    $user = staff('order_manager');
+    openShiftFor($user);
+    $sale = fn (array $extra) => $this->actingAs($user)->post(route('admin.pos.sales.store'), [
+        'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        'payment_method' => 'cash',
+        'discount' => 100,
+        ...$extra,
+    ]);
+
+    // No reason is fine (owner's call); the 15% cap is the control.
+    $sale([])->assertSessionHasNoErrors();
+    $sale(['discount_reason' => 'Regular customer'])->assertSessionHasNoErrors();
+
+    [$plain, $explained] = Order::query()->orderBy('id')->get()->all();
+    expect($plain->discount_cents)->toBe(10_000)
+        ->and($plain->manual_discount_cents)->toBe(10_000)
+        ->and($plain->manual_discount_reason)->toBeNull()
+        ->and($explained->manual_discount_reason)->toBe('Regular customer');
+});
+
+it('caps a non-admin\'s keyed-in discount and lets an admin go further', function (): void {
+    config(['store.pos_manual_discount_max_percent' => 15]);
+    $product = Product::factory()->create(['price_cents' => 100_000]);
+    giveStock($product, 3);
+
+    $manager = staff('order_manager');
+    openShiftFor($manager);
+    $this->actingAs($manager)->post(route('admin.pos.sales.store'), [
+        'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        'payment_method' => 'cash',
+        'discount' => 150.01,
+        'discount_reason' => 'Too much',
+    ])->assertSessionHasErrors('discount');
+    // The refused sale left nothing behind: no order, stock untouched.
+    expect(Order::query()->count())->toBe(0)
+        ->and(StockLevel::query()->where('product_id', $product->id)->sole()->quantity)->toBe(3);
+
+    $this->actingAs($manager)->post(route('admin.pos.sales.store'), [
+        'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        'payment_method' => 'cash',
+        'discount' => 150,
+        'discount_reason' => 'Exactly the cap',
+    ])->assertSessionHasNoErrors();
+
+    $admin = staff('admin');
+    openShiftFor($admin);
+    $this->actingAs($admin)->post(route('admin.pos.sales.store'), [
+        'items' => [['product_id' => $product->id, 'quantity' => 1]],
+        'payment_method' => 'cash',
+        'discount' => 500,
+        'discount_reason' => 'Owner approved',
+    ])->assertSessionHasNoErrors();
+
+    expect(Order::query()->orderBy('id')->pluck('manual_discount_cents')->all())->toBe([15_000, 50_000]);
+});
+
+it('suggests the last count at the branch as the next opening float', function (): void {
+    $user = cashier();
+    $shift = openShiftFor($user, 2_000);
+    app(CloseShift::class)->handle($shift, 175_300);
+
+    $this->actingAs($user)->get(route('admin.pos.register'))
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('admin/pos/OpenShift')
+            ->where('warehouses.0.id', defaultWarehouse()->id)
+            ->where('warehouses.0.last_counted', 1753));
+});
+
 it('renders each register screen with its own Inertia component', function (): void {
     $product = Product::factory()->create(['price_cents' => 12_000]);
     giveStock($product, 3);

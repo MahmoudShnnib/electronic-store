@@ -146,3 +146,36 @@ it('renders the printable purchase order', function (): void {
         ->get(route('admin.purchase-orders.print', $po))
         ->assertOk();
 });
+
+it('books incoming stock once when the same draft is sent twice at once', function (): void {
+    $product = Product::factory()->create();
+    $po = makePo($product, 10);
+    // A second click: a copy loaded before the first send landed, still "draft".
+    $stale = PurchaseOrder::query()->findOrFail($po->id);
+
+    app(SendPurchaseOrder::class)->handle($po);
+
+    expect(fn () => app(SendPurchaseOrder::class)->handle($stale))->toThrow(InvalidArgumentException::class)
+        ->and(StockLevel::query()->sole()->incoming)->toBe(10);
+});
+
+it('refuses a purchase order discount bigger than the items cost', function (): void {
+    $product = Product::factory()->create();
+    $payload = fn (float $discount) => [
+        'supplier_id' => Supplier::factory()->create()->id,
+        'warehouse_id' => defaultWarehouse()->id,
+        'discount' => $discount,
+        'shipping' => 20,
+        'items' => [['product_id' => $product->id, 'quantity' => 2, 'unit_cost' => 50]],
+    ];
+
+    $this->actingAs(staff('admin'))
+        ->post(route('admin.purchase-orders.store'), $payload(150))
+        ->assertSessionHasErrors('discount');
+    expect(PurchaseOrder::query()->count())->toBe(0);
+
+    $this->actingAs(staff('admin'))
+        ->post(route('admin.purchase-orders.store'), $payload(100))
+        ->assertSessionHasNoErrors();
+    expect(PurchaseOrder::query()->sole()->total_cents)->toBe(2_000);
+});

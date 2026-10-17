@@ -1,5 +1,12 @@
 # State of play
 
+> **2026-10-17 — headless split started.** Branch `feat/headless-storefront` (cut from
+> `main` with the uncommitted work still in the tree). The shop is moving to a separate
+> React SPA the way `~/Oth-codes` is built; read `docs/adr/0001-headless-storefront-split.md`
+> first. Phase 1 (CMS `pages`/`page_sections`, `GET /api/v1/storefront`,
+> `GET /api/v1/pages/{key}`, CORS) is written and tested but **not committed**, and the
+> dev DB needs `php artisan migrate`.
+
 Written 2026-08-26, updated 2026-09-01. Read this first in a new session;
 it is the handoff note.
 
@@ -152,6 +159,40 @@ Two things there are load-bearing and easy to undo by accident:
 Verified in the browser against the real register: 2 → tap → 1 → tap → gone; stock dropped
 to 0 from outside removed the line with its toast inside one poll cycle; restocking put the
 tile back at "9 left" with no reload.
+
+## Supplier accounts and landed cost (2026-10-12)
+
+- **Suppliers have an account** (`supplier_transactions`, `admin/suppliers/{id}`): a ledger
+  of what the shop owes, not a login. Receiving a PO writes a `purchase` line; paying from
+  cash/bank (`RecordSupplierPayment`) writes a `payment` line **and** a treasury OUT in one
+  transaction; `adjustment` is a hand-written debt/credit (opening balance, credit note)
+  that moves no money. Balance = Σ `amount_cents` (positive = we owe). Paying needs
+  `suppliers.manage` + `treasury.manage`; inventory managers can only read.
+- **Not backfilled:** POs received before 2026-10-12 are not in any account — whether they
+  were paid is recorded nowhere. Old debts go in as an opening-balance adjustment.
+- **Landed cost is exact** (`App\Support\LandedCost`): the PO total is split over lines by
+  largest remainder, each receipt books the difference of the line's cumulative share, at
+  most two batches (unit cost and +1 cent). Full receipt = PO total to the cent; the
+  supplier `purchase` line equals the batches it created. Invariant **P1** checks payments
+  against their treasury legs.
+
+## Counter sales are their own thing (2026-10-12, owner's answers to four questions)
+
+- **Separate page** `admin/pos/sales` (Sales & Treasury → مبيعات الكاشير): receipts, totals
+  (sold / cash / bank / returned / net), filters by date (shop days), branch, cashier,
+  method, status. A cashier (no `orders.manage`) sees only their own receipts.
+  **Orders list excludes `placed_via = pos`** — it is the fulfilment queue only.
+- **Numbering:** `POS-{warehouse code}-000001`, gapless per branch: `warehouses.pos_receipt_seq`
+  bumped under the warehouse row lock inside the sale transaction (`CompleteSale`
+  renames the order after `PlaceOrder` creates it — Checkout was not touched). Sales
+  before this keep their `ORD-` numbers.
+- **Customer:** cash customer by default; a phone matching an active customer account
+  (last 9 digits, `FindCustomerByPhone`) links the sale (`orders.user_id`). Never creates users.
+- **Returns at the till only** (`ReturnSale`, register "إرجاع" button, needs
+  `refunds.manage`): wraps `ResolveOrderIssue` unchanged and stamps
+  `refunds.cashier_shift_id`. `CashierShift::cashRefundedCents()` now sums **only** refunds
+  with that shift id — this fixed the audit's "one refund off two drawers" bug. The
+  back-office return form refuses counter sales (`ResolveOrderIssueController`).
 
 ## Verify commands
 

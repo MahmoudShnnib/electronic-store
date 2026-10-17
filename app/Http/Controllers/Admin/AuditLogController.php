@@ -17,6 +17,7 @@ use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\Reports\ReportDateRange;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\Request;
@@ -38,6 +39,7 @@ final class AuditLogController extends Controller implements HasMiddleware
     public function index(Request $request): Response
     {
         ReportDateRange::validate($request);
+        [$from, $to] = ReportDateRange::localBounds($request);
 
         $logs = Activity::query()
             // Deleted subjects still deserve a name in the trail: every
@@ -54,8 +56,9 @@ final class AuditLogController extends Controller implements HasMiddleware
             ->when($request->filled('event'), fn ($q) => $q->where('event', (string) $request->query('event')))
             ->when($request->filled('causer_id'), fn ($q) => $q->where('causer_id', (int) $request->query('causer_id')))
             ->when($request->filled('subject_type'), fn ($q) => $q->where('subject_type', (string) $request->query('subject_type')))
-            ->when($request->filled('from'), fn ($q) => $q->where('created_at', '>=', $request->date('from')->startOfDay()))
-            ->when($request->filled('to'), fn ($q) => $q->where('created_at', '<=', $request->date('to')->endOfDay()))
+            // The shop's local days, like the reports — not UTC days.
+            ->when($from !== null, fn ($q) => $q->where('created_at', '>=', $from))
+            ->when($to !== null, fn ($q) => $q->where('created_at', '<=', $to))
             ->latest()
             ->paginate(50)
             ->withQueryString()
@@ -74,7 +77,7 @@ final class AuditLogController extends Controller implements HasMiddleware
                 'details' => self::details($a),
                 'ip' => $a->properties['ip'] ?? null,
                 'user_agent' => $a->properties['user_agent'] ?? null,
-                'created_at' => $a->created_at->toDateTimeString(),
+                'created_at' => Dates::dateTime($a->created_at),
             ]);
 
         return Inertia::render('admin/audit-logs/Index', [

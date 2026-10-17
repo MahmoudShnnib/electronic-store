@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin\Reviews;
 use App\Enums\ReviewStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Review;
+use App\Support\Dates;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Inertia\Inertia;
@@ -38,7 +39,7 @@ final class ReviewController extends Controller implements HasMiddleware
                 'body' => $r->body,
                 'status' => $r->status->value,
                 'verified' => $r->isVerifiedPurchase(),
-                'created_at' => $r->created_at->toDateTimeString(),
+                'created_at' => Dates::dateTime($r->created_at),
             ]);
 
         return Inertia::render('admin/reviews/Index', [

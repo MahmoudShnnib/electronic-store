@@ -25,6 +25,10 @@ return [
     // The store ships to one country; it is never a checkout input.
     'country' => env('STORE_COUNTRY', 'LY'),
 
+    // The most a cashier may take off a register sale by hand, as a percentage
+    // of its subtotal. Admins and super admins are not capped.
+    'pos_manual_discount_max_percent' => (int) env('STORE_POS_MANUAL_DISCOUNT_MAX_PERCENT', 15),
+
     // Payment methods offered at checkout. Bank transfer stays implemented but
     // hidden until it is added here.
     'payment_methods' => ['cod'],

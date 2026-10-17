@@ -23,6 +23,12 @@ final class ResolveOrderIssueController extends Controller implements HasMiddlew
 
     public function __invoke(ResolveOrderIssueRequest $request, Order $order, ResolveOrderIssue $resolveOrderIssue): RedirectResponse
     {
+        // Counter sales are taken back at the till, so the cash leaves a drawer
+        // (owner's call, 2026-10-12) — never from here.
+        if ($order->placed_via === 'pos') {
+            return back()->with('error', __('Counter sales are returned at the till.'));
+        }
+
         $validated = $request->validated();
         $refundCents = Money::fromDecimal($validated['amount'] ?? 0);
 

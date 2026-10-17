@@ -29,7 +29,7 @@ final class InvoiceReportController extends Controller implements HasMiddleware
         return Inertia::render('admin/reports/Invoices', [
             'summary' => $this->reports->invoiceSummary($from, $to),
             'invoices' => $this->reports->invoices($from, $to),
-            'filters' => ['from' => $from->toDateString(), 'to' => $to->toDateString()],
+            'filters' => ReportDateRange::localDates($from, $to),
         ]);
     }
 }

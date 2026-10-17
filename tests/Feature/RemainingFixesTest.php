@@ -13,6 +13,7 @@ use App\Actions\Orders\UpdateOrderStatus;
 use App\Actions\Payments\ConfirmPayment;
 use App\Actions\Pos\CompleteSale;
 use App\Actions\Pos\OpenShift;
+use App\Actions\Pos\ReturnSale;
 use App\Actions\Purchasing\CancelPurchaseOrder;
 use App\Actions\Purchasing\ReceivePurchaseOrder;
 use App\Actions\Purchasing\SendPurchaseOrder;
@@ -213,8 +214,8 @@ it('#11 the close-shift screen shows cash refunded from the drawer', function ()
     giveStock($product, 5);
     $shift = app(OpenShift::class)->handle($cashier, defaultWarehouse(), 0);
     $sale = app(CompleteSale::class)->handle($shift, [['product_id' => $product->id, 'quantity' => 1]]);
-    // A counter sale comes back whole and is refunded in full (2026-10-10).
-    app(ResolveOrderIssue::class)->handle($sale, 'scratch', $sale->total_cents, RefundMethod::Cash, userId: $cashier->id);
+    // A counter sale comes back whole, refunded in full (2026-10-10), at the till (2026-10-12).
+    app(ReturnSale::class)->handle($shift, $sale, 'scratch', RefundMethod::Cash, userId: $cashier->id);
 
     $this->actingAs($cashier)->get(route('admin.pos.shifts.close'))
         ->assertInertia(fn (AssertableInertia $page) => $page->where('shift.has_cash_refunds', true));

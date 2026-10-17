@@ -8,10 +8,12 @@ use App\DTOs\CheckoutData;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\ReviewStatus;
+use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 it('renders the home page', function (): void {
@@ -22,6 +24,22 @@ it('renders the home page', function (): void {
         ->assertInertia(fn (Assert $page) => $page
             ->component('storefront/Home')
             ->has('featured.data', 2));
+});
+
+it('sends active brands to the home page in order, with logo URLs', function (): void {
+    Brand::factory()->create(['name' => 'Second', 'position' => 2, 'logo_path' => null]);
+    Brand::factory()->create(['name' => 'First', 'position' => 1, 'logo_path' => 'brands/first.png']);
+    Brand::factory()->create(['name' => 'Hidden', 'position' => 0, 'is_active' => false]);
+
+    $this->get('/')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('brands', 2)
+            ->where('brands.0.name', 'First')
+            ->where('brands.0.logo', Storage::disk('public')->url('brands/first.png'))
+            ->where('brands.1.name', 'Second')
+            ->where('brands.1.logo', null)
+            ->missing('brands.0.logo_path'));
 });
 
 it('renders the catalog with search and filters', function (): void {

@@ -17,6 +17,7 @@ use App\Models\Setting;
 use App\Services\Pos\PrinterConfig;
 use App\Services\Pos\ReceiptPrinter;
 use App\Services\Reports\ReportDateRange;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Http\Request;
 
@@ -34,15 +35,20 @@ final class OrderQueryService
     public function indexProps(Request $request): array
     {
         ReportDateRange::validate($request);
+        [$from, $to] = ReportDateRange::localBounds($request);
 
         $orders = Order::query()
+            // Counter sales have their own page (admin/pos/sales); this list is
+            // the orders that need fulfilling — website, WhatsApp, phone.
+            ->where('placed_via', '<>', 'pos')
             // Units, not line count: 3 × one product should read as 3.
             ->withSum('items as items_count', 'quantity')
             ->when($request->filled('q'), fn ($q) => $q->search((string) $request->query('q')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', (string) $request->query('status')))
             ->when($request->filled('payment_status'), fn ($q) => $q->where('payment_status', (string) $request->query('payment_status')))
-            ->when($request->filled('from'), fn ($q) => $q->where('created_at', '>=', $request->date('from')->startOfDay()))
-            ->when($request->filled('to'), fn ($q) => $q->where('created_at', '<=', $request->date('to')->endOfDay()))
+            // The shop's local days, like the reports — not UTC days.
+            ->when($from !== null, fn ($q) => $q->where('created_at', '>=', $from))
+            ->when($to !== null, fn ($q) => $q->where('created_at', '<=', $to))
             ->latest()
             ->paginate(25)
             ->withQueryString()
@@ -58,7 +64,7 @@ final class OrderQueryService
                 'payment_method' => $o->payment_method->label(),
                 'items_count' => (int) $o->items_count,
                 'total_formatted' => Money::format($o->total_cents, $o->currency),
-                'created_at' => $o->created_at->toDateTimeString(),
+                'created_at' => Dates::dateTime($o->created_at),
             ]);
 
         return [
@@ -153,6 +159,8 @@ final class OrderQueryService
                 'shipping_address' => $order->shipping_address,
                 'billing_address' => $order->billing_address,
                 'discount_formatted' => Money::format($order->discount_cents, $order->currency),
+                'manual_discount_formatted' => $order->manual_discount_cents > 0 ? Money::format($order->manual_discount_cents, $order->currency) : null,
+                'manual_discount_reason' => $order->manual_discount_reason,
                 'coupon_code' => $order->coupon_code,
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
                 'total_cents' => $order->total_cents,
@@ -167,13 +175,15 @@ final class OrderQueryService
                 'customer_note' => $order->customer_note,
                 // Drives the "return / product problem" button: only a
                 // finished order can be sent back.
-                'can_resolve_issue' => $order->status === OrderStatus::Completed,
+                // A counter sale is taken back at the till, so the cash leaves a drawer.
+                'can_resolve_issue' => $order->status === OrderStatus::Completed && $order->placed_via !== 'pos',
+                'is_counter_sale' => $order->placed_via === 'pos',
                 // Hide what this staff member can't do, instead of showing buttons that answer "forbidden".
                 'can' => [
                     'manage' => (bool) request()->user()?->can('orders.manage'),
                     'refund' => (bool) request()->user()?->can('refunds.manage'),
                 ],
-                'created_at' => $order->created_at->toDateTimeString(),
+                'created_at' => Dates::dateTime($order->created_at),
                 'items' => $order->items->map(fn ($item) => [
                     'id' => $item->id,
                     'returnable' => $returnable[$item->id] ?? 0,
@@ -191,7 +201,7 @@ final class OrderQueryService
                     'to' => OrderStatusHistory::labelFor($h->to_status),
                     'comment' => $h->comment,
                     'user' => $h->user?->name ?? __('admin.system'),
-                    'at' => $h->created_at->toDateTimeString(),
+                    'at' => Dates::dateTime($h->created_at),
                 ]),
                 'payments' => $order->payments->map(fn ($p) => [
                     'id' => $p->id,
@@ -200,7 +210,7 @@ final class OrderQueryService
                     'status' => $p->status,
                     'reference' => $p->reference,
                     'confirmed_by' => $p->confirmer?->name,
-                    'at' => $p->created_at->toDateTimeString(),
+                    'at' => Dates::dateTime($p->created_at),
                 ]),
                 'refunds' => $order->refunds->map(fn ($r) => [
                     'id' => $r->id,
@@ -208,7 +218,7 @@ final class OrderQueryService
                     'method' => $r->method->label(),
                     'reference' => $r->reference,
                     'reason' => $r->reason,
-                    'at' => $r->created_at->toDateTimeString(),
+                    'at' => Dates::dateTime($r->created_at),
                 ]),
             ],
         ];
@@ -226,7 +236,7 @@ final class OrderQueryService
         return [
             'order' => [
                 'number' => $order->number,
-                'created_at' => $order->created_at->toDateString(),
+                'created_at' => Dates::date($order->created_at),
                 'customer' => $order->customer,
                 'billing_address' => $order->billing_address,
                 'shipping_address' => $order->shipping_address,
@@ -273,7 +283,7 @@ final class OrderQueryService
             'order' => [
                 'id' => $order->id,
                 'number' => $order->number,
-                'created_at' => $order->created_at->toDateString(),
+                'created_at' => Dates::date($order->created_at),
                 'recipient' => [
                     'name' => $shipping['name'] ?? $customer['name'] ?? null,
                     'phone' => $shipping['phone'] ?? $customer['phone'] ?? null,

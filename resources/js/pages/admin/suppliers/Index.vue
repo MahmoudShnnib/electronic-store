@@ -10,9 +10,9 @@ import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Paginator } from '@/components/admin/types';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { Button, Input, Textarea, Tooltip } from 'ant-design-vue';
-import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { BookOpenText, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -32,6 +32,9 @@ interface SupplierRow extends Record<string, unknown> {
     notes: string | null;
     products_count: number;
     purchase_orders_count: number;
+    /** What the shop owes this supplier; negative = the supplier owes the shop. */
+    balance_cents: number;
+    balance_formatted: string;
 }
 
 defineProps<{
@@ -45,6 +48,7 @@ const columns: Column[] = [
     { key: 'email', label: t('admin.common.email') },
     { key: 'phone', label: t('admin.common.phone') },
     { key: 'purchase_orders_count', label: t('admin.suppliers.pos') },
+    { key: 'balance', label: t('admin.suppliers.balance'), class: '!text-end' },
     { key: 'status', label: t('admin.common.status') },
 ];
 
@@ -139,12 +143,30 @@ function destroy(): void {
 
     <DataTable :columns="columns" :rows="suppliers.data">
         <template #cell-company_name="{ row }">
-            <span class="font-medium text-ad-text">{{ row.company_name }}</span>
+            <Link :href="route('admin.suppliers.show', row.id)" class="font-medium text-ad-text hover:text-ad-accent">{{ row.company_name }}</Link>
+        </template>
+        <template #cell-balance="{ row }">
+            <span v-if="row.balance_cents === 0" class="text-ad-muted">—</span>
+            <span v-else class="flex flex-col items-end">
+                <bdi dir="ltr" class="font-medium tabular-nums" :class="row.balance_cents > 0 ? 'text-ad-danger' : 'text-ad-success'">{{
+                    row.balance_formatted
+                }}</bdi>
+                <span class="text-xs text-ad-muted">{{
+                    row.balance_cents > 0 ? t('admin.supplier_account.we_owe') : t('admin.supplier_account.they_owe')
+                }}</span>
+            </span>
         </template>
         <template #cell-status="{ row }">
             <StatusBadge :status="row.status" />
         </template>
         <template #row-actions="{ row }">
+            <Tooltip :title="t('admin.suppliers.account')">
+                <Link :href="route('admin.suppliers.show', row.id)" :aria-label="t('admin.suppliers.account')">
+                    <Button type="text" size="small">
+                        <template #icon><BookOpenText class="h-4 w-4" /></template>
+                    </Button>
+                </Link>
+            </Tooltip>
             <Tooltip :title="t('admin.common.edit')">
                 <Button type="text" size="small" :aria-label="t('admin.common.edit')" @click="openEdit(row)">
                     <template #icon><Pencil class="h-4 w-4" /></template>

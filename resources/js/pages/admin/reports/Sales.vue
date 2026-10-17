@@ -25,13 +25,19 @@ const props = defineProps<{
         orders: number;
         revenue_formatted: string;
         discounts_formatted: string;
+        manual_discounts_formatted: string;
         avg_order_formatted: string;
         estimated_cost_formatted: string;
         estimated_profit_formatted: string;
         refunded_formatted: string;
         new_customers: number;
     };
-    writeOffs: { total_formatted: string; rows: { type: string; label: string; units: number; cost_formatted: string }[] };
+    writeOffs: {
+        total_formatted: string;
+        rows: { type: string; label: string; units: number; cost_formatted: string }[];
+        /** Sent back to a supplier — owed back, so listed apart and not in the total. */
+        supplier_returns: { units: number; cost_formatted: string };
+    };
     daily: { day: string; orders: number; revenue: number }[];
     byProduct: { product_id: number | null; name: string; sku: string; units: number; revenue_formatted: string }[];
     byCategory: { name: string; units: number; revenue_formatted: string; revenue: number }[];
@@ -179,7 +185,12 @@ function exportUrl(report: string): string {
         <StatCard :label="t('admin.common.orders')" :value="summary.orders" />
         <StatCard :label="t('admin.common.revenue')" :value="summary.revenue_formatted" tone="success" />
         <StatCard :label="t('admin.common.avg_order_value')" :value="summary.avg_order_formatted" :help="t('admin.help.avg_order_value')" />
-        <StatCard :label="t('admin.reports.discounts_given')" :value="summary.discounts_formatted" :help="t('admin.help.discounts_given')" />
+        <StatCard
+            :label="t('admin.reports.discounts_given')"
+            :value="summary.discounts_formatted"
+            :help="t('admin.help.discounts_given')"
+            :hint="t('admin.reports.manual_discounts', { amount: summary.manual_discounts_formatted })"
+        />
         <StatCard
             :label="t('admin.reports.est_profit')"
             :value="summary.estimated_profit_formatted"
@@ -193,7 +204,19 @@ function exportUrl(report: string): string {
             :value="writeOffs.total_formatted"
             :help="t('admin.help.written_off')"
             tone="warning"
-            :hint="writeOffs.rows.map((r) => `${r.label}: ${r.units} · ${r.cost_formatted}`).join(' — ')"
+            :hint="
+                [
+                    ...writeOffs.rows.map((r) => `${r.label}: ${r.units} · ${r.cost_formatted}`),
+                    ...(writeOffs.supplier_returns.units > 0
+                        ? [
+                              t('admin.reports.returned_to_supplier', {
+                                  units: writeOffs.supplier_returns.units,
+                                  amount: writeOffs.supplier_returns.cost_formatted,
+                              }),
+                          ]
+                        : []),
+                ].join(' — ')
+            "
         />
         <StatCard :label="t('admin.reports.new_customers')" :value="summary.new_customers" />
     </div>

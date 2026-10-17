@@ -7,6 +7,7 @@ namespace App\Services\Admin;
 use App\Enums\TreasuryAccount;
 use App\Enums\TreasuryDirection;
 use App\Models\TreasuryTransaction;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -48,7 +49,7 @@ final class TreasuryQueryService
                 'reference' => $t->reference,
                 'note' => $t->note,
                 'user' => $t->creator?->name,
-                'at' => $t->created_at->toDateTimeString(),
+                'at' => Dates::dateTime($t->created_at),
             ]);
 
         return [

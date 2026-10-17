@@ -34,6 +34,7 @@ class ProductResource extends JsonResource
             'brand' => new BrandResource($this->whenLoaded('brand')),
             'category' => new CategoryResource($this->whenLoaded('category')),
             'short_description' => $this->short_description,
+            'short_description_ar' => $this->short_description_ar,
             'price' => Money::toDecimal($this->price_cents),
             'sale_price' => $onSale ? Money::toDecimal((int) $this->sale_price_cents) : null,
             'current_price' => Money::toDecimal($this->currentPriceCents()),

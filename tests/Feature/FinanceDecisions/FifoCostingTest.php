@@ -227,8 +227,24 @@ it('reports what written-off stock cost, by kind, on the sales report', function
     $this->actingAs($this->admin)->get('/admin/reports')->assertInertia(fn ($page) => $page
         ->where('writeOffs.total_formatted', finFmt(3 * 70_000 + 7 * 70_000 + 65_000 + 2_000))
         ->where('writeOffs.rows', [
-            ['type' => 'correction', 'label' => 'Correction', 'units' => 1, 'cost_formatted' => finFmt(2_000)],
+            ['type' => 'correction', 'label' => 'Count differences (net)', 'units' => 1, 'cost_formatted' => finFmt(2_000)],
             ['type' => 'damaged', 'label' => 'Damaged', 'units' => 8, 'cost_formatted' => finFmt(7 * 70_000 + 65_000)],
             ['type' => 'lost', 'label' => 'Lost / stolen', 'units' => 3, 'cost_formatted' => finFmt(3 * 70_000)],
-        ]));
+        ])
+        // Sent back from damaged stock: its cost was already written off as damaged.
+        ->where('writeOffs.supplier_returns', ['units' => 0, 'cost_formatted' => finFmt(0)]));
+});
+
+it('nets count corrections and keeps supplier returns out of the losses', function (): void {
+    finAdjust($this, $this->cable, -2, 'correction', 'Two short at the count')->assertSessionHasNoErrors();
+    finAdjust($this, $this->cable, 1, 'correction', 'One found behind the shelf', ['unit_cost' => 20])->assertSessionHasNoErrors();
+    finAdjust($this, $this->phone, 1, 'supplier_return', 'Sent back unopened')->assertSessionHasNoErrors();
+
+    $this->actingAs($this->admin)->get('/admin/reports')->assertInertia(fn ($page) => $page
+        // 2 short − 1 found = 1 cable lost; the returned phone is not a loss.
+        ->where('writeOffs.total_formatted', finFmt(2_000))
+        ->where('writeOffs.rows', [
+            ['type' => 'correction', 'label' => 'Count differences (net)', 'units' => 1, 'cost_formatted' => finFmt(2_000)],
+        ])
+        ->where('writeOffs.supplier_returns', ['units' => 1, 'cost_formatted' => finFmt(70_000)]));
 });

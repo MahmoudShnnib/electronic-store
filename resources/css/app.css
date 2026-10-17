@@ -1861,7 +1861,6 @@ html:has(.store-shell),
     --st-ink-faint: rgb(11 18 32 / 0.46);
     --st-line: rgb(15 23 42 / 0.1);
     --st-lift: 0 1px 2px rgb(15 23 42 / 0.05), 0 12px 28px -18px rgb(15 23 42 / 0.3);
-    --st-grid: rgb(15 23 42 / 0.045);
 
     --st-slab:
         radial-gradient(90% 80% at 82% 8%, rgb(var(--st-accent-rgb) / 0.18) 0%, transparent 60%),
@@ -1899,7 +1898,6 @@ html.dark .store-shell {
     --st-ink-faint: rgb(232 238 247 / 0.44);
     --st-line: rgb(148 178 220 / 0.14);
     --st-lift: 0 1px 2px rgb(0 0 0 / 0.6), 0 18px 36px -22px rgb(0 0 0 / 0.95);
-    --st-grid: rgb(103 232 249 / 0.035);
 
     --st-slab:
         radial-gradient(80% 90% at 80% 0%, rgb(var(--st-accent-rgb) / 0.2) 0%, transparent 60%),
@@ -1911,18 +1909,13 @@ html.dark .store-shell {
     --st-slab-well: rgb(148 178 220 / 0.07);
 }
 
-/* The ground carries a faint circuit grid and a cold glow off the top edge —
-   the one decorative move that runs the whole page, so every screen (catalogue,
-   cart, account) feels like the same product as the homepage. Fixed, so it
-   doesn't scroll as a texture; masked so it fades out instead of tiling hard. */
+/* The ground carries a cold glow off the top edge — the one decorative move
+   that runs the whole page, so every screen (catalogue, cart, account) feels
+   like the same product as the homepage. Fixed, so it doesn't scroll. The
+   44px square grid that used to sit under it was removed on 2026-10-11 at the
+   user's request — don't bring it back. */
 .store-shell {
-    background-image:
-        radial-gradient(70rem 32rem at 50% -8rem, rgb(var(--st-accent-rgb) / 0.08), transparent 70%),
-        linear-gradient(var(--st-grid) 1px, transparent 1px), linear-gradient(90deg, var(--st-grid) 1px, transparent 1px);
-    background-size:
-        100% 100%,
-        44px 44px,
-        44px 44px;
+    background-image: radial-gradient(70rem 32rem at 50% -8rem, rgb(var(--st-accent-rgb) / 0.08), transparent 70%);
     background-attachment: fixed;
 }
 

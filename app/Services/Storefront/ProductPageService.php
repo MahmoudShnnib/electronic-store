@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Storefront;
 
+use App\Actions\Reviews\SubmitReview;
 use App\Http\Resources\ProductCardResource;
-use App\Models\OrderItem;
 use App\Models\Product;
+use App\Support\Dates;
 use App\Support\Money;
 use Illuminate\Support\Facades\Storage;
 
@@ -44,7 +45,7 @@ final class ProductPageService
                 'unit' => $v->attribute->unit,
             ])->values());
 
-        $availability = $this->availability($product);
+        $availability = $product->sellableQuantities();
 
         $related = Product::query()
             ->visibleInStore()
@@ -116,7 +117,7 @@ final class ProductPageService
                 'body' => $r->body,
                 'author' => $r->user?->name ?? 'Anonymous',
                 'verified' => $r->isVerifiedPurchase(),
-                'created_at' => $r->created_at->toDateString(),
+                'created_at' => Dates::date($r->created_at),
             ]),
             'ratingSummary' => [
                 'avg' => round((float) $product->approvedReviews()->avg('rating'), 1),
@@ -126,48 +127,8 @@ final class ProductPageService
         ];
     }
 
-    /**
-     * @return array{product: int, variants: array<int, int>}
-     */
-    private function availability(Product $product): array
-    {
-        $levels = $product->stockLevels()
-            ->sellable()
-            ->selectRaw('product_variant_id, MAX(quantity) as qty')
-            ->groupBy('product_variant_id')
-            ->pluck('qty', 'product_variant_id');
-
-        $variants = [];
-        foreach ($levels as $variantId => $qty) {
-            if ($variantId !== null) {
-                $variants[(int) $variantId] = (int) $qty;
-            }
-        }
-
-        return [
-            'product' => (int) ($levels[null] ?? $levels[''] ?? array_sum($variants)),
-            'variants' => $variants,
-        ];
-    }
-
     private function canReview(Product $product): bool
     {
-        $user = auth()->user();
-
-        if ($user === null) {
-            return false;
-        }
-
-        if ($product->reviews()->where('user_id', $user->id)->exists()) {
-            return false;
-        }
-
-        // Verified purchase required: user must have a completed order containing it.
-        return OrderItem::query()
-            ->where('product_id', $product->id)
-            ->whereHas('order', fn ($q) => $q
-                ->where('user_id', $user->id)
-                ->where('status', 'completed'))
-            ->exists();
+        return app(SubmitReview::class)->eligibility(auth()->user(), $product) === SubmitReview::ELIGIBLE;
     }
 }

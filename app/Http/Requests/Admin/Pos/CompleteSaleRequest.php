@@ -38,6 +38,8 @@ final class CompleteSaleRequest extends FormRequest
             'customer.email' => ['nullable', 'email', 'max:255'],
             'coupon_code' => ['nullable', 'string', 'max:64'],
             'discount' => ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:1000000'],
+            // Optional (owner's call, 2026-10-12): the cap is the control, the reason a note.
+            'discount_reason' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string', 'max:1000'],
         ];
     }

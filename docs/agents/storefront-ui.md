@@ -38,7 +38,20 @@ store**. The layout and components below are unchanged; what changed is the skin
   `st-accent-bright`, `st-on-accent` (alpha works: `bg-st-accent/15`). **Never hardcode
   an accent hex again** — that is why the recolour touched 95 lines.
 - **Surfaces are blue-black** (`#05070c` / `#0b111b` / `#121a27`), and the ground carries
-  a faint fixed circuit grid plus a cyan glow off the top edge.
+  a cyan glow off the top edge. The 44px square grid that used to sit under it was
+  **removed on 2026-10-11 because the user disliked it** — don't bring it back.
+- **Nav icons are custom SVGs in `components/store/icons/`** (2026-10-11, drawn to match
+  reference images the user supplied after rejecting ~40 lucide options): `HomeIcon`,
+  `BoxIcon` (Products), `CartIcon`, `UserIcon`. **Outline when inactive, filled
+  when active** (`filled` prop; bottom bar + drawer). Confirmed by the user 2026-10-12 after
+  trying outline-only and filled-always — don't change it again without being asked. `BoxIcon` knocks out its top
+  face and handle with wide cut-outs — narrow ones read as a blob at 20px. The header's "All
+  categories" button keeps lucide `LayoutGrid`.
+- **Product descriptions are plain text rendered by `ProductDescription.vue`**: blank lines
+  split paragraphs, bullet lines (`•`, `·`, `-`, `*`) become a "Key features" grid, and a
+  short line ending in `:` right before the bullets becomes that grid's heading.
+- **Home brand strip** shows each brand's dashboard logo on a white well (monogram
+  fallback); `HomePageService::brandCards()` sends `logo` as a public URL.
 - **The "Tech layer" block in `app.css`** holds the look: lit gradient hairline under the
   header, glowing primary buttons with dark ink (AntD v4 has no per-button label token, and
   its dark algorithm dims the seed to `#20b6cd`, so the fill is pinned in CSS), cyan → violet

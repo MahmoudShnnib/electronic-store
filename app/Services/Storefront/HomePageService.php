@@ -54,7 +54,7 @@ final class HomePageService
 
         return [
             'categories' => $this->categoryCards(),
-            'brands' => Brand::query()->active()->orderBy('position')->take(12)->get(),
+            'brands' => $this->brandCards(),
             'featured' => ProductCardResource::collection($sections['featured']),
             'newArrivals' => ProductCardResource::collection($sections['newArrivals']),
             'onSale' => ProductCardResource::collection($sections['onSale']),
@@ -75,15 +75,17 @@ final class HomePageService
      *
      * @return list<array{product: array<string, mixed>, title: string|null, title_ar: string|null, image: string|null}>|null
      */
-    private function heroSlides(): ?array
+    public function heroSlides(?array $slides = null): ?array
     {
-        $config = Setting::get(HomepageController::HERO_KEY) ?? [];
+        $config = $slides ?? Setting::get(HomepageController::HERO_KEY) ?? [];
 
         if ($config === []) {
             return null;
         }
 
-        $products = Cache::remember('home.hero', now()->addMinutes(10), fn () => Product::query()
+        // Only the dashboard's own list shares the cache; a page section's
+        // slides are cached with the rest of its page by ContentCache.
+        $query = fn () => Product::query()
             ->visibleInStore()
             ->whereIn('id', array_column($config, 'product_id'))
             ->with(['brand:id,name,slug', 'images'])
@@ -91,9 +93,11 @@ final class HomePageService
             ->withCount('approvedReviews as rating_count')
             ->withStock()
             ->get()
-            ->keyBy('id'));
+            ->keyBy('id');
 
-        $slides = [];
+        $products = $slides === null ? Cache::remember('home.hero', now()->addMinutes(10), $query) : $query();
+
+        $resolved = [];
 
         foreach ($config as $slide) {
             $product = $products->get($slide['product_id']);
@@ -102,7 +106,7 @@ final class HomePageService
                 continue;
             }
 
-            $slides[] = [
+            $resolved[] = [
                 // Resolved here, not cached: the card carries the viewer's own
                 // wishlist state.
                 'product' => (new ProductCardResource($product))->resolve(request()),
@@ -112,7 +116,7 @@ final class HomePageService
             ];
         }
 
-        return $slides === [] ? null : $slides;
+        return $resolved === [] ? null : $resolved;
     }
 
     /**
@@ -122,9 +126,9 @@ final class HomePageService
      *
      * @return list<array<string, mixed>>|null
      */
-    private function promoTiles(): ?array
+    public function promoTiles(?array $tiles = null): ?array
     {
-        $config = Setting::get(HomepageController::TILES_KEY) ?? [];
+        $config = $tiles ?? Setting::get(HomepageController::TILES_KEY) ?? [];
 
         if ($config === []) {
             return null;
@@ -151,6 +155,30 @@ final class HomePageService
         return $tiles === [] ? null : $tiles;
     }
 
+    /**
+     * The brand strip: active brands in their dashboard order, each with its
+     * uploaded logo as a public URL (null falls back to a monogram tile).
+     *
+     * @return list<array{id: int, name: string, name_ar: string|null, slug: string, logo: string|null}>
+     */
+    public function brandCards(): array
+    {
+        return Brand::query()
+            ->active()
+            ->orderBy('position')
+            ->orderBy('name')
+            ->take(12)
+            ->get(['id', 'name', 'name_ar', 'slug', 'logo_path'])
+            ->map(fn (Brand $brand): array => [
+                'id' => $brand->id,
+                'name' => $brand->name,
+                'name_ar' => $brand->name_ar,
+                'slug' => $brand->slug,
+                'logo' => $this->publicUrl($brand->logo_path),
+            ])
+            ->all();
+    }
+
     private function publicUrl(?string $path): ?string
     {
         return $path !== null ? Storage::disk('public')->url($path) : null;
@@ -163,7 +191,7 @@ final class HomePageService
      *
      * @return list<array{category: array{name: string, name_ar: string|null, slug: string}, products: mixed}>
      */
-    private function categorySections(): array
+    public function categorySections(): array
     {
         $sections = Cache::remember('home.category_sections', now()->addMinutes(10), function (): array {
             $roots = collect($this->categoryCards())

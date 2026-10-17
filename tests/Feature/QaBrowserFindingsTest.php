@@ -93,15 +93,28 @@ it('never decrements a coupon usage count past zero', function (): void {
 
 it('translates day/month names and relative time under the Arabic locale', function (): void {
     app()->setLocale('en');
-    $date = Carbon::parse('2026-08-23 14:58:00');
+    // Stored UTC; shown in the shop's time (Libya, UTC+2).
+    $date = Carbon::parse('2026-08-23 14:58:00', 'UTC');
 
-    expect(Dates::dayDateTime($date))->toBe('Sun, Aug 23, 2026 2:58 PM');
+    expect(Dates::dayDateTime($date))->toBe('Sun, Aug 23, 2026 4:58 PM');
 
     app()->setLocale('ar');
 
-    expect(Dates::dayDateTime($date))->not->toBe('Sun, Aug 23, 2026 2:58 PM')
+    expect(Dates::dayDateTime($date))->not->toBe('Sun, Aug 23, 2026 4:58 PM')
         ->and(Dates::dayDateTime($date))->toContain('أغسطس')
         ->and(Dates::relative(now()->subHours(2)))->toContain('ساع');
 
     app()->setLocale('en');
+});
+
+it('shows stored UTC timestamps in the shop\'s time and day', function (): void {
+    // 23:30 UTC on the 11th is 01:30 on the 12th in Tripoli.
+    $late = Carbon::parse('2026-10-11 23:30:00', 'UTC');
+
+    expect(Dates::dateTime($late))->toBe('2026-10-12 01:30:00')
+        ->and(Dates::date($late))->toBe('2026-10-12')
+        ->and(Dates::time($late))->toBe('01:30')
+        ->and(Dates::dateTime(null))->toBeNull()
+        // The model's own instant is left untouched.
+        ->and($late->toDateTimeString())->toBe('2026-10-11 23:30:00');
 });

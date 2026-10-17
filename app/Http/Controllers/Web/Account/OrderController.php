@@ -80,7 +80,7 @@ final class OrderController extends Controller
                 'refunds' => $order->refunds->map(fn ($r) => [
                     'amount_formatted' => Money::format($r->amount_cents, $order->currency),
                     'method' => $r->method->label(),
-                    'at' => $r->created_at->toDateString(),
+                    'at' => Dates::date($r->created_at),
                 ]),
             ],
         ]);

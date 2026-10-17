@@ -34,11 +34,20 @@ final class SendPurchaseOrder
             throw new InvalidArgumentException(__('Cannot send an empty purchase order.'));
         }
 
-        // Route-bound models arrive with nothing loaded and preventLazyLoading is on
-        // outside production, so every relation this action touches must be explicit.
-        $po->loadMissing(['warehouse', 'items.product', 'items.variant']);
+        DB::transaction(function () use ($po, $userId): void {
+            // Locked and re-checked: two "send" clicks landing together would
+            // otherwise both pass the draft check above and book the incoming
+            // units twice, leaving phantom stock "on its way" forever.
+            $po = PurchaseOrder::query()->lockForUpdate()->findOrFail($po->id);
 
-        return DB::transaction(function () use ($po, $userId): PurchaseOrder {
+            if ($po->status !== PurchaseOrderStatus::Draft) {
+                throw new InvalidArgumentException(__('Only draft purchase orders can be sent.'));
+            }
+
+            // Loaded after the lock: preventLazyLoading is on outside
+            // production, so every relation this action touches must be explicit.
+            $po->load(['warehouse', 'items.product', 'items.variant']);
+
             foreach ($po->items as $item) {
                 $this->recordMovement->handle(
                     type: MovementType::PurchaseIncoming,
@@ -61,8 +70,9 @@ final class SendPurchaseOrder
                 ->performedOn($po)
                 ->event('po_sent')
                 ->log("PO {$po->po_number} sent to supplier");
-
-            return $po;
         });
+
+        // The work above ran on a locked copy; bring the caller's model up to date.
+        return $po->refresh();
     }
 }

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Purchasing\SupplierRequest;
 use App\Models\Supplier;
+use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -24,6 +25,8 @@ final class SupplierController extends Controller implements HasMiddleware
     {
         $suppliers = Supplier::query()
             ->withCount(['products', 'purchaseOrders'])
+            // What the shop owes each supplier (their account balance).
+            ->withSum('transactions as balance_cents', 'amount_cents')
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($qq) => $qq
                 ->whereRaw('company_name ILIKE ?', ['%'.$request->query('q').'%'])
                 ->orWhereRaw('contact_person ILIKE ?', ['%'.$request->query('q').'%'])
@@ -31,7 +34,12 @@ final class SupplierController extends Controller implements HasMiddleware
             ->when($request->filled('status'), fn ($q) => $q->where('status', (string) $request->query('status')))
             ->orderBy('company_name')
             ->paginate(30)
-            ->withQueryString();
+            ->withQueryString()
+            ->through(fn (Supplier $s) => [
+                ...$s->toArray(),
+                'balance_cents' => (int) $s->balance_cents,
+                'balance_formatted' => Money::format(abs((int) $s->balance_cents)),
+            ]);
 
         return Inertia::render('admin/suppliers/Index', [
             'suppliers' => $suppliers,
@@ -55,7 +63,7 @@ final class SupplierController extends Controller implements HasMiddleware
 
     public function destroy(Supplier $supplier): RedirectResponse
     {
-        if ($supplier->purchaseOrders()->exists()) {
+        if ($supplier->purchaseOrders()->exists() || $supplier->transactions()->exists()) {
             return back()->with('error', __('This supplier has purchase orders; deactivate it instead.'));
         }
 

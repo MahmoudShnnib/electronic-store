@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin\Purchasing;
 
 use App\Rules\ItemVariantsMatchProducts;
+use App\Support\Money;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 /**
  * Decimal money fields (discount, tax, shipping, unit_cost) are converted to
@@ -38,6 +40,26 @@ final class PurchaseOrderRequest extends FormRequest
 
     public function after(): array
     {
-        return [new ItemVariantsMatchProducts];
+        return [
+            new ItemVariantsMatchProducts,
+            // A discount bigger than the goods would be dropped silently by the
+            // total (it floors at 0), costing the stock at next to nothing — a
+            // typo (150 for 15) must be refused, not absorbed.
+            function (Validator $validator): void {
+                if ($validator->errors()->isNotEmpty()) {
+                    return;
+                }
+
+                $subtotal = 0;
+
+                foreach ((array) $this->input('items', []) as $item) {
+                    $subtotal += Money::fromDecimal($item['unit_cost'] ?? 0) * (int) ($item['quantity'] ?? 0);
+                }
+
+                if (Money::fromDecimal($this->input('discount') ?? 0) > $subtotal) {
+                    $validator->errors()->add('discount', __('The discount cannot be more than the items cost (:amount).', ['amount' => Money::format($subtotal)]));
+                }
+            },
+        ];
     }
 }

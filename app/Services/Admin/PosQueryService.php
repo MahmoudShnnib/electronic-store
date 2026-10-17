@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Enums\CashierShiftStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\ProductStatus;
 use App\Models\CashierShift;
@@ -16,7 +17,10 @@ use App\Models\StockLevel;
 use App\Models\Warehouse;
 use App\Services\Pos\PrinterConfig;
 use App\Services\Pos\ReceiptPrinter;
+use App\Services\Reports\ReportDateRange;
+use App\Support\Dates;
 use App\Support\Money;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
@@ -62,6 +66,19 @@ final class PosQueryService
      */
     public function openShiftProps(): array
     {
+        // What the last drawer at each branch was counted at when it closed.
+        // The cash stays in the drawer unless someone takes it out, so that is
+        // the float the next shift starts from — opening at 0 over a full
+        // drawer books the whole lot as "over" at the next close.
+        $lastCounts = CashierShift::query()
+            ->where('status', CashierShiftStatus::Closed)
+            ->whereNotNull('counted_cash_cents')
+            ->orderByDesc('closed_at')
+            ->orderByDesc('id')
+            ->get(['warehouse_id', 'counted_cash_cents'])
+            ->unique('warehouse_id')
+            ->pluck('counted_cash_cents', 'warehouse_id');
+
         return [
             'warehouses' => Warehouse::query()
                 ->active()
@@ -73,6 +90,8 @@ final class PosQueryService
                     'name' => $w->name,
                     'code' => $w->code,
                     'is_default' => (bool) $w->is_default,
+                    'last_counted' => $lastCounts->has($w->id) ? Money::toDecimal((int) $lastCounts[$w->id]) : null,
+                    'last_counted_formatted' => $lastCounts->has($w->id) ? Money::format((int) $lastCounts[$w->id]) : null,
                 ]),
         ];
     }
@@ -87,6 +106,79 @@ final class PosQueryService
     {
         return [
             'shift' => $this->shiftSummary($shift),
+        ];
+    }
+
+    /**
+     * Props for admin/pos/Sales — every counter receipt, filterable, with the
+     * totals of what is shown. A cashier (no orders.manage) sees only their own.
+     *
+     * @return array<string, mixed>
+     */
+    public function salesIndexProps(Request $request): array
+    {
+        ReportDateRange::validate($request);
+        [$from, $to] = ReportDateRange::localBounds($request);
+        $user = $request->user();
+        $ownOnly = ! $user->can('orders.manage');
+
+        $base = Order::query()
+            ->where('placed_via', 'pos')
+            ->when($ownOnly, fn ($q) => $q->whereHas('cashierShift', fn ($s) => $s->where('user_id', $user->id)))
+            ->when($from !== null, fn ($q) => $q->where('created_at', '>=', $from))
+            ->when($to !== null, fn ($q) => $q->where('created_at', '<=', $to))
+            ->when($request->filled('warehouse_id'), fn ($q) => $q->whereHas('cashierShift', fn ($s) => $s->where('warehouse_id', (int) $request->query('warehouse_id'))))
+            ->when($request->filled('cashier_id'), fn ($q) => $q->whereHas('cashierShift', fn ($s) => $s->where('user_id', (int) $request->query('cashier_id'))))
+            ->when(in_array($request->query('payment_method'), ['cash', 'bank_transfer'], true), fn ($q) => $q->where('payment_method', (string) $request->query('payment_method')))
+            ->when(in_array($request->query('status'), ['completed', 'refunded'], true), fn ($q) => $q->where('status', (string) $request->query('status')))
+            ->when($request->filled('q'), function ($q) use ($request) {
+                $term = trim((string) $request->query('q'));
+                $q->where(fn ($w) => $w->where('number', 'ilike', "%{$term}%")->orWhereRaw("customer->>'phone' ILIKE ?", ["%{$term}%"])->orWhereRaw("customer->>'name' ILIKE ?", ["%{$term}%"]));
+            });
+
+        $totals = (clone $base)->selectRaw("COUNT(*) AS sales, COALESCE(SUM(total_cents),0) AS total, COALESCE(SUM(total_cents) FILTER (WHERE payment_method = 'cash'),0) AS cash, COALESCE(SUM(total_cents) FILTER (WHERE payment_method = 'bank_transfer'),0) AS bank, COUNT(*) FILTER (WHERE status = 'refunded') AS returned, COALESCE(SUM(total_cents) FILTER (WHERE status = 'refunded'),0) AS returned_total")->first();
+
+        $sales = (clone $base)
+            ->with(['cashierShift:id,user_id,warehouse_id', 'cashierShift.user:id,name', 'cashierShift.warehouse:id,name', 'user:id,name'])
+            ->withSum('items as units', 'quantity')
+            ->latest('id')
+            ->paginate(30)
+            ->withQueryString()
+            ->through(fn (Order $o) => [
+                'id' => $o->id,
+                'number' => $o->number,
+                'at' => Dates::dateTime($o->created_at),
+                'branch' => $o->cashierShift?->warehouse?->name,
+                'cashier' => $o->cashierShift?->user?->name,
+                'shift_id' => $o->cashier_shift_id,
+                // A linked account, else whatever name was typed, else a cash customer.
+                'customer' => $o->user?->name ?? $this->namedCustomer($o),
+                'is_member' => $o->user_id !== null,
+                'units' => (int) $o->units,
+                'payment_label' => $o->payment_method->label(),
+                'total_formatted' => Money::format($o->total_cents, $o->currency),
+                'status' => $o->status->value,
+                'status_label' => $o->status->label(),
+                'discount_formatted' => $o->manual_discount_cents > 0 ? Money::format($o->manual_discount_cents, $o->currency) : null,
+            ]);
+
+        return [
+            'sales' => $sales,
+            'totals' => [
+                'sales' => (int) $totals->sales,
+                'total_formatted' => Money::format((int) $totals->total),
+                'cash_formatted' => Money::format((int) $totals->cash),
+                'bank_formatted' => Money::format((int) $totals->bank),
+                'returned' => (int) $totals->returned,
+                'returned_formatted' => Money::format((int) $totals->returned_total),
+                'net_formatted' => Money::format((int) $totals->total - (int) $totals->returned_total),
+            ],
+            'filters' => (object) $request->only(['q', 'from', 'to', 'warehouse_id', 'cashier_id', 'payment_method', 'status']),
+            'warehouses' => Warehouse::query()->orderBy('name')->get(['id', 'name'])->map(fn (Warehouse $w) => ['value' => $w->id, 'label' => $w->name]),
+            'cashiers' => $ownOnly ? [] : CashierShift::query()->with('user:id,name')->get(['user_id'])->unique('user_id')
+                ->filter(fn (CashierShift $s) => $s->user !== null)
+                ->map(fn (CashierShift $s) => ['value' => $s->user_id, 'label' => $s->user->name])->values(),
+            'ownOnly' => $ownOnly,
         ];
     }
 
@@ -110,7 +202,7 @@ final class PosQueryService
             'order' => [
                 'id' => $order->id,
                 'number' => $order->number,
-                'created_at' => $order->created_at->toDayDateTimeString(),
+                'created_at' => Dates::dayDateTime($order->created_at),
                 'payment_method' => $order->payment_method->label(),
                 'cashier' => $order->cashierShift?->user?->name,
                 'customer_name' => $this->namedCustomer($order),
@@ -157,7 +249,7 @@ final class PosQueryService
      * Matched across every locale: the sale may have been rung up in Arabic and
      * reprinted in English, and the placeholder is stored translated.
      */
-    private function namedCustomer(Order $order): ?string
+    public function namedCustomer(Order $order): ?string
     {
         $name = $order->customer['name'] ?? null;
 
@@ -194,8 +286,8 @@ final class PosQueryService
             'status' => $shift->status->value,
             'status_label' => $shift->status->label(),
             'orders_count' => $shift->orders_count,
-            'opened_at' => $shift->opened_at->toDateTimeString(),
-            'closed_at' => $shift->closed_at?->toDateTimeString(),
+            'opened_at' => Dates::dateTime($shift->opened_at),
+            'closed_at' => Dates::dateTime($shift->closed_at),
             'opening_float_formatted' => Money::format($shift->opening_float_cents),
             // Open shifts have no stored figures yet, so show the live one.
             'expected_formatted' => Money::format($shift->expected_cash_cents ?? $shift->expectedCashCents()),
@@ -224,7 +316,7 @@ final class PosQueryService
             'status' => $shift->status->value,
             'cashier' => $shift->user?->name,
             'warehouse' => ['id' => $shift->warehouse_id, 'name' => $shift->warehouse?->name],
-            'opened_at' => $shift->opened_at->toDateTimeString(),
+            'opened_at' => Dates::dateTime($shift->opened_at),
             'opening_float_cents' => $shift->opening_float_cents,
             'opening_float_formatted' => Money::format($shift->opening_float_cents),
             'orders_count' => $shift->orders()->count(),
@@ -377,13 +469,14 @@ final class PosQueryService
     {
         return $shift->orders()
             ->latest('id')
-            ->limit(10)
+            ->limit(5)
             ->get(['id', 'number', 'total_cents', 'currency', 'created_at'])
             ->map(fn (Order $order) => [
                 'id' => $order->id,
                 'number' => $order->number,
                 'total_formatted' => Money::format($order->total_cents, $order->currency),
-                'created_at' => $order->created_at->format('H:i'),
+                // The till's wall clock, not UTC.
+                'created_at' => Dates::time($order->created_at),
             ]);
     }
 }

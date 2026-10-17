@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| REST API v1 — consumed by the future mobile application.
+| REST API v1 — consumed by the storefront SPA (electronic-store-web) and
+| the future mobile application.
 | Auth: Sanctum personal access tokens (Authorization: Bearer TOKEN).
 | Guests identify their cart via the X-Cart-Token header.
 |--------------------------------------------------------------------------
@@ -17,9 +18,20 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     Route::post('auth/register', V1\Auth\RegisterController::class)->middleware('throttle:auth')->name('auth.register');
     Route::post('auth/login', V1\Auth\LoginController::class)->middleware('throttle:auth')->name('auth.login');
 
+    // Storefront content: boot payload and CMS pages (docs/adr/0001).
+    Route::get('storefront', V1\StorefrontController::class)->name('storefront');
+    Route::get('pages/{key}', [V1\PageController::class, 'show'])->where('key', '[A-Za-z0-9_-]+')->name('pages.show');
+    Route::post('newsletter', [V1\NewsletterController::class, 'store'])->middleware('throttle:auth')->name('newsletter.subscribe');
+
     // Public catalog
     Route::get('products', [V1\ProductController::class, 'index'])->name('products.index');
+    Route::get('products/facets', [V1\ProductController::class, 'facets'])->name('products.facets');
     Route::get('products/{product:slug}', [V1\ProductController::class, 'show'])->name('products.show');
+    Route::get('products/{product:slug}/related', V1\RelatedProductController::class)->name('products.related');
+    Route::get('products/{product:slug}/reviews', [V1\ProductReviewController::class, 'index'])
+        ->middleware(AuthenticateIfTokenPresent::class)
+        ->name('products.reviews');
+    Route::get('search/suggest', V1\SearchSuggestController::class)->name('search.suggest');
     Route::get('categories', [V1\CategoryController::class, 'index'])->name('categories.index');
     Route::get('brands', [V1\BrandController::class, 'index'])->name('brands.index');
 
