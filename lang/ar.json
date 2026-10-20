@@ -210,5 +210,19 @@
     "Regards,": "مع التحية،",
     "If you're having trouble clicking the \":actionText\" button, copy and paste the URL below\ninto your web browser:": "إن لم يعمل زر \":actionText\"، انسخ الرابط التالي والصقه في المتصفح:",
     "Completed :done orders.": "تم إكمال :done طلب.",
-    "Completed :done orders. :skipped could not be completed.": "تم إكمال :done طلب. تعذّر إكمال :skipped."
+    "Completed :done orders. :skipped could not be completed.": "تم إكمال :done طلب. تعذّر إكمال :skipped.",
+    "Only orders in progress can go out with a driver.": "فقط الطلبات قيد التنفيذ يمكن تسليمها للمندوب.",
+    "This driver is no longer active.": "هذا المندوب لم يعد نشطاً.",
+    "Handed to driver :name.": "سُلِّم للمندوب :name.",
+    "Back from driver :name.": "رجع من المندوب :name.",
+    "Only orders in progress can be confirmed.": "فقط الطلبات قيد التنفيذ يمكن تأكيدها.",
+    "Confirmed with the customer by phone.": "تم التأكيد مع العميل هاتفياً.",
+    "Not confirmed within :hours hours — cancelled automatically.": "لم يُؤكَّد خلال :hours ساعة — أُلغي تلقائياً.",
+    "Order handed to the driver.": "تم تسليم الطلب للمندوب.",
+    "Order is back in the shop.": "رجع الطلب للمتجر.",
+    "Call recorded.": "تم تسجيل المكالمة.",
+    "Order confirmed.": "تم تأكيد الطلب.",
+    "Handed :count orders to :name.": "تم تسليم :count طلب للمندوب :name.",
+    "Driver saved.": "تم حفظ المندوب.",
+    ":skipped could not go out (not in progress).": "تعذّر إرسال :skipped (ليست قيد التنفيذ)."
 }

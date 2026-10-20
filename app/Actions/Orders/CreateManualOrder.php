@@ -77,6 +77,10 @@ final class CreateManualOrder
 
             $order->statusHistories()->whereNull('user_id')->update(['user_id' => $userId]);
 
+            // Taken from the customer directly (phone, WhatsApp, counter): already
+            // confirmed, so never caught by the cancellation of unconfirmed orders.
+            $order->update(['confirmed_at' => now()]);
+
             return $order;
         } finally {
             // The cart is scaffolding, not a record: drop it either way so a

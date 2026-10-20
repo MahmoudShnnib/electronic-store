@@ -28,6 +28,9 @@ final class OrderResource extends JsonResource
             'total' => Money::toDecimal($this->total_cents),
             'coupon_code' => $this->coupon_code,
             'cancellable' => $this->resource->canBeCancelled(),
+            // Out for delivery with one of the shop's drivers (no status of its own).
+            'out_for_delivery' => $this->resource->isWithDriver() && $this->status->value === 'in_progress',
+            'shipped_at' => $this->shipped_at?->toIso8601String(),
             'created_at' => $this->created_at->toIso8601String(),
             'items_count' => $this->whenCounted('items'),
             'items' => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [

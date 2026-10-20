@@ -25,13 +25,17 @@ final class OrderPolicy
         return $user->can('orders.manage');
     }
 
-    /** Customers may cancel their own order while it is still cancellable. */
+    /**
+     * Customers may cancel their own order while it is still cancellable and
+     * hasn't left with a driver — by then the parcel is on the road, and
+     * cancelling would put its stock back on sale while it's out.
+     */
     public function cancel(User $user, Order $order): bool
     {
         if ($user->can('orders.manage')) {
             return true;
         }
 
-        return $order->user_id === $user->id && $order->status->isCancellable();
+        return $order->user_id === $user->id && $order->status->isCancellable() && ! $order->isWithDriver();
     }
 }

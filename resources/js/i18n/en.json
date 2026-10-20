@@ -313,7 +313,8 @@
             "quick_create": "Create",
             "new_product": "New product",
             "new_order": "New manual order",
-            "new_purchase_order": "New purchase order"
+            "new_purchase_order": "New purchase order",
+            "drivers": "Drivers"
         },
         "common": {
             "id": "ID",
@@ -814,7 +815,32 @@
             "bulk_complete_title": "Complete {count} orders?",
             "bulk_complete_message": "Each order's outstanding amount will be recorded as received and posted to the treasury; completed orders can't be reopened. Orders that aren't in progress are skipped.",
             "bulk_complete_ok": "Yes, complete {count}",
-            "bulk_none_completable": "None of the selected orders is in progress."
+            "bulk_none_completable": "None of the selected orders is in progress.",
+            "delivery": "Delivery",
+            "confirmation": "Order confirmation",
+            "confirmed_at": "Confirmed {at}",
+            "not_confirmed": "Not confirmed",
+            "confirm_hint": "Call the customer before sending the order out. Unconfirmed website orders are cancelled automatically after {hours} hours.",
+            "mark_confirmed": "Confirm order",
+            "mark_no_answer": "No answer",
+            "call_note": "Note (optional)",
+            "call_confirmed": "Confirmed",
+            "call_no_answer": "No answer",
+            "no_answer_count": "No answer ×{count}",
+            "with_driver": "With {name} since {at}",
+            "in_shop": "In the shop — not handed to a driver yet",
+            "choose_driver": "Choose a driver",
+            "hand_to_driver": "Hand to driver",
+            "recall_from_driver": "Back in the shop",
+            "view_manifest": "Driver manifest",
+            "no_drivers": "No drivers yet.",
+            "add_driver": "Add a driver",
+            "all_drivers": "All drivers",
+            "all_confirmation": "Confirmation: all",
+            "unconfirmed": "Unconfirmed",
+            "confirmed": "Confirmed",
+            "bulk_dispatch": "Hand to driver",
+            "driver": "Driver"
         },
         "products": {
             "title": "Products",
@@ -1337,6 +1363,29 @@
         "alerts": {
             "new_orders": "{count} new order(s)",
             "new_orders_hint": "Click here to open the orders in progress."
+        },
+        "drivers": {
+            "title": "Drivers",
+            "subtitle": "The shop's own delivery drivers and what each is carrying now.",
+            "new": "New driver",
+            "edit": "Edit driver",
+            "name": "Name",
+            "phone": "Phone",
+            "active": "Active",
+            "inactive": "Inactive",
+            "out_now": "Out now",
+            "manifest": "Manifest",
+            "manifest_title": "{name}'s manifest",
+            "print": "Print manifest",
+            "printed_at": "Printed {at}",
+            "order": "Order",
+            "recipient": "Recipient",
+            "address": "Address",
+            "collect": "To collect",
+            "paid": "Paid",
+            "signature": "Signature",
+            "total_collect": "Total to collect",
+            "empty_manifest": "No orders are out with this driver right now."
         }
     },
     "settings": {

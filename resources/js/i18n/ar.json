@@ -313,7 +313,8 @@
             "quick_create": "إنشاء",
             "new_product": "منتج جديد",
             "new_order": "طلب يدوي جديد",
-            "new_purchase_order": "أمر شراء جديد"
+            "new_purchase_order": "أمر شراء جديد",
+            "drivers": "المندوبون"
         },
         "common": {
             "id": "المعرّف",
@@ -814,7 +815,32 @@
             "bulk_complete_title": "إكمال {count} طلب؟",
             "bulk_complete_message": "سيُسجَّل المتبقي لكل طلب كمبلغ مستلَم ويدخل الخزنة، ولا يمكن إعادة فتح الطلبات بعد إكمالها. الطلبات التي ليست قيد التنفيذ ستُتخطّى.",
             "bulk_complete_ok": "نعم، أكمل {count}",
-            "bulk_none_completable": "لا يوجد بين المحدد طلب قيد التنفيذ."
+            "bulk_none_completable": "لا يوجد بين المحدد طلب قيد التنفيذ.",
+            "delivery": "التوصيل",
+            "confirmation": "تأكيد الطلب",
+            "confirmed_at": "مؤكَّد {at}",
+            "not_confirmed": "غير مؤكَّد",
+            "confirm_hint": "اتصل بالعميل قبل إرسال الطلب. الطلبات غير المؤكدة من الموقع تُلغى تلقائياً بعد {hours} ساعة.",
+            "mark_confirmed": "أكّد الطلب",
+            "mark_no_answer": "لا يرد",
+            "call_note": "ملاحظة (اختياري)",
+            "call_confirmed": "تم التأكيد",
+            "call_no_answer": "لم يرد",
+            "no_answer_count": "لم يرد {count}",
+            "with_driver": "مع المندوب {name} منذ {at}",
+            "in_shop": "في المتجر — لم يُسلَّم لمندوب بعد",
+            "choose_driver": "اختر المندوب",
+            "hand_to_driver": "سلّم للمندوب",
+            "recall_from_driver": "رجع للمتجر",
+            "view_manifest": "كشف المندوب",
+            "no_drivers": "لا يوجد مندوبون بعد.",
+            "add_driver": "أضف مندوباً",
+            "all_drivers": "كل المندوبين",
+            "all_confirmation": "التأكيد: الكل",
+            "unconfirmed": "غير مؤكدة",
+            "confirmed": "مؤكدة",
+            "bulk_dispatch": "سلّم للمندوب",
+            "driver": "المندوب"
         },
         "products": {
             "title": "المنتجات",
@@ -1337,6 +1363,29 @@
         "alerts": {
             "new_orders": "وصل {count} طلب جديد",
             "new_orders_hint": "اضغط هنا لفتح الطلبات قيد التنفيذ."
+        },
+        "drivers": {
+            "title": "المندوبون",
+            "subtitle": "مندوبو التوصيل التابعون للمتجر وما يحملونه الآن.",
+            "new": "مندوب جديد",
+            "edit": "تعديل المندوب",
+            "name": "الاسم",
+            "phone": "الهاتف",
+            "active": "نشط",
+            "inactive": "موقوف",
+            "out_now": "معه الآن",
+            "manifest": "الكشف",
+            "manifest_title": "كشف المندوب {name}",
+            "print": "طباعة الكشف",
+            "printed_at": "طُبع {at}",
+            "order": "الطلب",
+            "recipient": "المستلم",
+            "address": "العنوان",
+            "collect": "المبلغ المطلوب",
+            "paid": "مدفوع",
+            "signature": "التوقيع",
+            "total_collect": "إجمالي ما يُحصَّل",
+            "empty_manifest": "لا توجد طلبات مع هذا المندوب الآن."
         }
     },
     "settings": {

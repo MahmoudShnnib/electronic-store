@@ -24,7 +24,7 @@ final class Order extends Model
         'status', 'payment_status', 'payment_method',
         'currency', 'subtotal_cents', 'discount_cents', 'manual_discount_cents', 'manual_discount_reason', 'coupon_code',
         'total_cents', 'customer_note',
-        'internal_note', 'idempotency_key', 'placed_via', 'cashier_shift_id', 'confirmed_at',
+        'internal_note', 'idempotency_key', 'placed_via', 'cashier_shift_id', 'driver_id', 'confirmed_at',
         'shipped_at', 'delivered_at', 'completed_at', 'cancelled_at',
     ];
 
@@ -64,6 +64,23 @@ final class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function driver(): BelongsTo
+    {
+        return $this->belongsTo(Driver::class);
+    }
+
+    /** Confirmation calls, newest first. */
+    public function callAttempts(): HasMany
+    {
+        return $this->hasMany(OrderCallAttempt::class)->latest('created_at')->latest('id');
+    }
+
+    /** Out with a driver: the parcel has left the shop. */
+    public function isWithDriver(): bool
+    {
+        return $this->shipped_at !== null;
+    }
+
     public function statusHistories(): HasMany
     {
         // id breaks ties: a return logs two rows in the same second.
@@ -101,10 +118,13 @@ final class Order extends Model
             ->orWhereRaw("customer->>'phone' ILIKE ?", [$like]));
     }
 
-    /** Whether the customer may cancel it: still open and no money held (that needs a refund first). */
+    /**
+     * Whether the customer may cancel it: still open, no money held (that needs
+     * a refund first), and not already out with a driver.
+     */
     public function canBeCancelled(): bool
     {
-        return $this->status->isCancellable() && $this->netPaidCents() <= 0;
+        return $this->status->isCancellable() && $this->netPaidCents() <= 0 && ! $this->isWithDriver();
     }
 
     /** Money the shop currently holds for this order: confirmed payments minus completed refunds. */
