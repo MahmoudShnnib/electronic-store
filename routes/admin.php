@@ -9,6 +9,10 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
     ->group(function (): void {
         Route::get('/', Admin\DashboardController::class)->name('dashboard');
 
+        // Shell: the command palette's record search and the sidebar's count badges (JSON).
+        Route::get('search', Admin\SearchController::class)->middleware('throttle:60,1')->name('search');
+        Route::get('attention', Admin\AttentionController::class)->name('attention');
+
         // Catalog
         Route::resource('products', Admin\Products\ProductController::class)->except(['show']);
         Route::post('products/{product}/restore', Admin\Products\RestoreProductController::class)
@@ -52,9 +56,21 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])
         Route::get('orders', [Admin\Orders\OrderController::class, 'index'])->name('orders.index');
         // Before the {order} route, or "create" is read as an order id.
         Route::get('orders/create', [Admin\Orders\ManualOrderController::class, 'create'])->name('orders.create');
+        Route::post('orders/bulk-complete', Admin\Orders\BulkCompleteOrdersController::class)->name('orders.bulk-complete');
+        Route::post('orders/bulk-dispatch', Admin\Orders\BulkDispatchOrdersController::class)->name('orders.bulk-dispatch');
+        Route::get('orders/slips', Admin\Orders\BulkDeliverySlipsController::class)->name('orders.slips');
         Route::post('orders', [Admin\Orders\ManualOrderController::class, 'store'])->name('orders.store');
         Route::get('orders/{order}', [Admin\Orders\OrderController::class, 'show'])->name('orders.show');
         Route::post('orders/{order}/status', Admin\Orders\UpdateOrderStatusController::class)->name('orders.status');
+        Route::post('orders/{order}/dispatch', [Admin\Orders\OrderDispatchController::class, 'store'])->name('orders.dispatch');
+        Route::delete('orders/{order}/dispatch', [Admin\Orders\OrderDispatchController::class, 'destroy'])->name('orders.dispatch.recall');
+        Route::post('orders/{order}/calls', [Admin\Orders\OrderCallController::class, 'store'])->name('orders.calls.store');
+
+        // Delivery drivers and their run sheets
+        Route::get('drivers', [Admin\Orders\DriverController::class, 'index'])->name('drivers.index');
+        Route::post('drivers', [Admin\Orders\DriverController::class, 'store'])->name('drivers.store');
+        Route::patch('drivers/{driver}', [Admin\Orders\DriverController::class, 'update'])->name('drivers.update');
+        Route::get('drivers/{driver}/manifest', Admin\Orders\DriverManifestController::class)->name('drivers.manifest');
         Route::post('orders/{order}/payments', Admin\Orders\ConfirmOrderPaymentController::class)->name('orders.payments.store');
         Route::get('orders/{order}/invoice', Admin\Orders\OrderInvoiceController::class)->name('orders.invoice');
         Route::get('orders/{order}/slip', Admin\Orders\OrderDeliverySlipController::class)->name('orders.slip');

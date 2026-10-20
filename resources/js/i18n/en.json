@@ -296,7 +296,24 @@
             "catalog_setup": "Catalog setup",
             "marketing": "Marketing",
             "homepage": "Homepage",
-            "pages": "Store pages"
+            "pages": "Store pages",
+            "main": "Main navigation",
+            "all_products": "All products",
+            "stock_purchasing": "Stock & purchasing",
+            "online_store": "Online store",
+            "finance_reports": "Finance & reports",
+            "team_access": "Team & access",
+            "homepage_current": "Homepage (current shop)",
+            "sales_report": "Sales report",
+            "invoices_report": "Invoices",
+            "inventory_report": "Inventory report",
+            "collapse_sidebar": "Collapse sidebar",
+            "expand_sidebar": "Expand sidebar",
+            "search": "Search or jump to…",
+            "quick_create": "Create",
+            "new_product": "New product",
+            "new_order": "New manual order",
+            "new_purchase_order": "New purchase order"
         },
         "common": {
             "id": "ID",
@@ -487,7 +504,27 @@
             "status_completed": "Completed",
             "status_cancelled": "Cancelled",
             "status_refunded": "Refunded",
-            "registered": "Registered"
+            "registered": "Registered",
+            "orders_breakdown": "{completed} completed · {cancelled} cancelled · {refunded} refunded",
+            "attention": {
+                "title": "Needs attention",
+                "all_clear": "Nothing is waiting on you right now.",
+                "clear": "All clear:",
+                "orders_to_fulfil": "Orders to fulfil",
+                "orders_to_fulfil_hint": "In progress — web, phone and WhatsApp",
+                "awaiting_payment": "Transfers to confirm",
+                "awaiting_payment_hint": "Bank transfers not yet recorded as received",
+                "low_stock": "Items running low",
+                "low_stock_hint": "At or under their alert level",
+                "out_of_stock": "Products sold out",
+                "out_of_stock_hint": "On sale but impossible to buy",
+                "pending_reviews": "Reviews to moderate",
+                "pending_reviews_hint": "Hidden from the shop until approved",
+                "purchase_orders_open": "Purchase orders to receive",
+                "purchase_orders_open_hint": "Sent or partly received",
+                "open_shifts": "Open cashier shifts",
+                "open_shifts_hint": "Drawers not closed yet"
+            }
         },
         "audit": {
             "title": "Audit logs",
@@ -1254,6 +1291,22 @@
                 "limit": "up to {n}",
                 "banner": "Image banner"
             }
+        },
+        "palette": {
+            "label": "Quick search",
+            "placeholder": "Search pages, orders, products, customers…",
+            "pages": "Pages",
+            "actions": "Quick actions",
+            "type_more": "Type 2 or more characters to search orders, products and customers.",
+            "no_results": "No results for “{q}”",
+            "hint_move": "to move",
+            "hint_open": "to open",
+            "hint_toggle": "from any page",
+            "switch_language": "Switch to {lang}"
+        },
+        "alerts": {
+            "new_orders": "{count} new order(s)",
+            "new_orders_hint": "Click here to open the orders in progress."
         }
     },
     "settings": {

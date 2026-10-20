@@ -296,7 +296,24 @@
             "catalog_setup": "إعداد الكتالوج",
             "marketing": "التسويق",
             "homepage": "الصفحة الرئيسية",
-            "pages": "صفحات المتجر"
+            "pages": "صفحات المتجر",
+            "main": "القائمة الرئيسية",
+            "all_products": "كل المنتجات",
+            "stock_purchasing": "المخزون والمشتريات",
+            "online_store": "المتجر الإلكتروني",
+            "finance_reports": "المالية والتقارير",
+            "team_access": "الفريق والصلاحيات",
+            "homepage_current": "واجهة الرئيسية (المتجر الحالي)",
+            "sales_report": "تقرير المبيعات",
+            "invoices_report": "الفواتير",
+            "inventory_report": "تقرير المخزون",
+            "collapse_sidebar": "طي القائمة الجانبية",
+            "expand_sidebar": "توسيع القائمة الجانبية",
+            "search": "ابحث أو انتقل إلى…",
+            "quick_create": "إنشاء",
+            "new_product": "منتج جديد",
+            "new_order": "طلب يدوي جديد",
+            "new_purchase_order": "أمر شراء جديد"
         },
         "common": {
             "id": "المعرّف",
@@ -487,7 +504,27 @@
             "status_completed": "المكتملة",
             "status_cancelled": "الملغاة",
             "status_refunded": "المستردة",
-            "registered": "المسجّلون"
+            "registered": "المسجّلون",
+            "orders_breakdown": "{completed} مكتملة · {cancelled} ملغاة · {refunded} مستردة",
+            "attention": {
+                "title": "يحتاج انتباهك",
+                "all_clear": "لا شيء ينتظرك الآن — كل شيء على ما يرام.",
+                "clear": "لا شيء معلّق في:",
+                "orders_to_fulfil": "طلبات بانتظار التنفيذ",
+                "orders_to_fulfil_hint": "قيد التنفيذ — من الموقع والهاتف وواتساب",
+                "awaiting_payment": "تحويلات بانتظار التأكيد",
+                "awaiting_payment_hint": "تحويل بنكي لم يُسجَّل استلامه بعد",
+                "low_stock": "أصناف مخزونها منخفض",
+                "low_stock_hint": "عند حد التنبيه أو تحته",
+                "out_of_stock": "منتجات نفدت",
+                "out_of_stock_hint": "معروضة للبيع ولا يمكن شراؤها",
+                "pending_reviews": "تقييمات بانتظار المراجعة",
+                "pending_reviews_hint": "لا تظهر في المتجر قبل الموافقة",
+                "purchase_orders_open": "أوامر شراء بانتظار الاستلام",
+                "purchase_orders_open_hint": "مُرسلة أو مستلمة جزئياً",
+                "open_shifts": "ورديات كاشير مفتوحة",
+                "open_shifts_hint": "أدراج لم تُغلق بعد"
+            }
         },
         "audit": {
             "title": "سجل التدقيق",
@@ -1254,6 +1291,22 @@
                 "limit": "حتى {n}",
                 "banner": "بانر صورة"
             }
+        },
+        "palette": {
+            "label": "البحث السريع",
+            "placeholder": "ابحث عن صفحة أو طلب أو منتج أو عميل…",
+            "pages": "الصفحات",
+            "actions": "إجراءات سريعة",
+            "type_more": "اكتب حرفين أو أكثر للبحث في الطلبات والمنتجات والعملاء.",
+            "no_results": "لا نتائج لـ «{q}»",
+            "hint_move": "للتنقل",
+            "hint_open": "للفتح",
+            "hint_toggle": "للفتح والإغلاق من أي صفحة",
+            "switch_language": "التبديل إلى {lang}"
+        },
+        "alerts": {
+            "new_orders": "وصل {count} طلب جديد",
+            "new_orders_hint": "اضغط هنا لفتح الطلبات قيد التنفيذ."
         }
     },
     "settings": {

@@ -1,195 +1,46 @@
 <script setup lang="ts">
 /**
  * The dashboard's navigation, shared by the desktop sidebar and the mobile
- * drawer. Every link and permission check is the one the old AntD Menu had;
- * only the grouping follows the reference design: a few top-level links, then
- * collapsible groups, with Platform and Settings pinned to the bottom.
+ * drawer. The links, their grouping and their permissions live in
+ * `useAdminNav` (the command palette reads the same list).
  *
- * Group open/closed state persists per browser; the group holding the current
- * page always opens so the active link is never hidden.
+ * Two shapes:
+ * - expanded: the dashboard link, collapsible groups, and the team/settings
+ *   block pinned to the bottom. Group open/closed state persists per browser;
+ *   the group holding the current page always opens so the active link is
+ *   never hidden.
+ * - rail (`collapsed`): icons only. A group's links open in a flyout beside it,
+ *   on hover or click, placed on the inline-end side in either direction.
  */
+import { isGroup, useAdminNav, useAttentionCounts, type NavGroup, type NavItem, type NavLink } from '@/composables/useAdminNav';
 import { Link, usePage } from '@inertiajs/vue3';
-import {
-    ArchiveRestore,
-    BarChart3,
-    Boxes,
-    ChevronDown,
-    ClipboardList,
-    Cpu,
-    CreditCard,
-    FileClock,
-    FileText,
-    LayoutDashboard,
-    LayoutTemplate,
-    Megaphone,
-    Package,
-    Percent,
-    ReceiptText,
-    ScanBarcode,
-    ShieldCheck,
-    ShoppingCart,
-    SlidersHorizontal,
-    Star,
-    Tag,
-    Truck,
-    Users,
-    Wallet,
-    Warehouse,
-} from 'lucide-vue-next';
-import { computed, reactive, watch, type Component } from 'vue';
+import { Popover, Tooltip } from 'ant-design-vue';
+import { ChevronDown } from 'lucide-vue-next';
+import { computed, reactive, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+const props = defineProps<{ collapsed?: boolean }>();
 
 const emit = defineEmits<{ (e: 'navigate'): void }>();
 
 const { t } = useI18n();
 const page = usePage();
 
-interface AuthUser {
-    roles: string[];
-    permissions: string[];
-}
+const { blocks, activePath, isActive } = useAdminNav();
+const counts = useAttentionCounts();
 
-interface NavLink {
-    label: string;
-    href: string;
-    icon?: Component;
-    permission: string | null;
-}
+const badgeOf = (link: NavLink) => (link.badge ? (counts.value[link.badge] ?? 0) : 0);
+const groupBadge = (group: NavGroup) => group.links.reduce((sum, link) => sum + badgeOf(link), 0);
+const groupActive = (group: NavGroup) => group.links.some(isActive);
 
-interface NavGroup {
-    key: string;
-    label: string;
-    icon: Component;
-    links: NavLink[];
-}
+/** Large counts would push the label; the exact figure is on the dashboard. */
+const short = (n: number) => (n > 99 ? '99+' : String(n));
 
-type NavItem = NavLink | NavGroup;
+/** The flyout opens towards the content, so it follows the document direction. */
+const flyoutPlacement = computed(() => ((page.props.locale as string) === 'ar' ? 'leftTop' : 'rightTop'));
+const tooltipPlacement = computed(() => ((page.props.locale as string) === 'ar' ? 'left' : 'right'));
 
-const user = computed(() => (page.props.auth as { user: AuthUser | null }).user);
-const isSuperAdmin = computed(() => user.value?.roles.includes('super_admin') ?? false);
-
-function can(permission: string | null): boolean {
-    if (permission === null || isSuperAdmin.value) {
-        return true;
-    }
-
-    return user.value?.permissions.includes(permission) ?? false;
-}
-
-const isGroup = (item: NavItem): item is NavGroup => 'links' in item;
-
-const pathOf = (href: string) => href.replace(/^https?:\/\/[^/]+/, '');
-
-const blocks = computed<NavItem[][]>(() => {
-    const raw: NavItem[][] = [
-        [
-            { label: t('admin.nav.dashboard'), href: route('admin.dashboard'), icon: LayoutDashboard, permission: null },
-            { label: t('admin.nav.orders'), href: route('admin.orders.index'), icon: ShoppingCart, permission: 'orders.view' },
-            { label: t('admin.nav.products'), href: route('admin.products.index'), icon: Package, permission: 'products.view' },
-            { label: t('admin.nav.customers'), href: route('admin.customers.index'), icon: Users, permission: 'customers.view' },
-        ],
-        [
-            {
-                key: 'sales',
-                label: t('admin.nav.sales_cash'),
-                icon: ReceiptText,
-                links: [
-                    { label: t('admin.nav.pos_sales'), href: route('admin.pos.sales.index'), icon: ScanBarcode, permission: 'pos.shifts.view' },
-                    { label: t('admin.nav.refunds'), href: route('admin.refunds.index'), icon: CreditCard, permission: 'refunds.manage' },
-                    { label: t('admin.nav.pos_shifts'), href: route('admin.pos.shifts.index'), icon: Wallet, permission: 'pos.shifts.view' },
-                    { label: t('admin.nav.treasury'), href: route('admin.treasury.index'), icon: Wallet, permission: 'treasury.view' },
-                ],
-            },
-            {
-                key: 'inventory',
-                label: t('admin.nav.inventory'),
-                icon: Warehouse,
-                links: [
-                    { label: t('admin.nav.stock'), href: route('admin.inventory.index'), icon: ClipboardList, permission: 'inventory.view' },
-                    { label: t('admin.nav.movements'), href: route('admin.inventory.movements'), icon: ArchiveRestore, permission: 'inventory.view' },
-                    { label: t('admin.nav.warehouses'), href: route('admin.warehouses.index'), icon: Warehouse, permission: 'warehouses.manage' },
-                ],
-            },
-            {
-                key: 'purchasing',
-                label: t('admin.nav.purchasing'),
-                icon: Truck,
-                links: [
-                    {
-                        label: t('admin.nav.purchase_orders'),
-                        href: route('admin.purchase-orders.index'),
-                        icon: ClipboardList,
-                        permission: 'purchase_orders.view',
-                    },
-                    { label: t('admin.nav.suppliers'), href: route('admin.suppliers.index'), icon: Truck, permission: 'suppliers.manage' },
-                ],
-            },
-            { label: t('admin.nav.reports'), href: route('admin.reports.sales'), icon: BarChart3, permission: 'reports.view' },
-        ],
-        [
-            {
-                key: 'catalog',
-                label: t('admin.nav.catalog_setup'),
-                icon: Tag,
-                links: [
-                    { label: t('admin.nav.categories'), href: route('admin.categories.index'), icon: Boxes, permission: 'categories.manage' },
-                    { label: t('admin.nav.brands'), href: route('admin.brands.index'), icon: Tag, permission: 'brands.manage' },
-                    {
-                        label: t('admin.nav.specifications'),
-                        href: route('admin.specifications.index'),
-                        icon: Cpu,
-                        permission: 'specifications.manage',
-                    },
-                ],
-            },
-            {
-                key: 'marketing',
-                label: t('admin.nav.marketing'),
-                icon: Megaphone,
-                links: [
-                    { label: t('admin.nav.homepage'), href: route('admin.homepage.index'), icon: LayoutTemplate, permission: 'settings.manage' },
-                    { label: t('admin.nav.pages'), href: route('admin.pages.index'), icon: FileText, permission: 'settings.manage' },
-                    { label: t('admin.nav.coupons'), href: route('admin.coupons.index'), icon: Percent, permission: 'coupons.manage' },
-                    { label: t('admin.nav.reviews'), href: route('admin.reviews.index'), icon: Star, permission: 'reviews.moderate' },
-                ],
-            },
-        ],
-        // Pinned to the bottom of the sidebar.
-        [
-            {
-                key: 'platform',
-                label: t('admin.nav.platform'),
-                icon: ShieldCheck,
-                links: [
-                    { label: t('admin.nav.users'), href: route('admin.users.index'), icon: Users, permission: 'users.manage' },
-                    { label: t('admin.nav.roles'), href: route('admin.roles.index'), icon: ShieldCheck, permission: 'roles.manage' },
-                    { label: t('admin.nav.audit_logs'), href: route('admin.audit-logs.index'), icon: FileClock, permission: 'audit.view' },
-                ],
-            },
-            { label: t('admin.nav.settings'), href: route('admin.settings.index'), icon: SlidersHorizontal, permission: 'settings.manage' },
-        ],
-    ];
-
-    return raw.map((block) =>
-        block
-            .map((item) => (isGroup(item) ? { ...item, links: item.links.filter((link) => can(link.permission)) } : item))
-            .filter((item) => (isGroup(item) ? item.links.length > 0 : can(item.permission))),
-    );
-});
-
-const allLinks = computed(() => blocks.value.flat().flatMap((item) => (isGroup(item) ? item.links : [item])));
-
-/** Longest match wins: /admin/inventory/movements must not also light up /admin/inventory. */
-const activePath = computed(() => {
-    const url = page.url;
-    const matches = allLinks.value.map((link) => pathOf(link.href)).filter((path) => (path === '/admin' ? url === '/admin' : url.startsWith(path)));
-
-    return matches.sort((a, b) => b.length - a.length)[0] ?? null;
-});
-
-const isActive = (link: NavLink) => pathOf(link.href) === activePath.value;
-
-const STORAGE_KEY = 'adminNavGroups';
+const STORAGE_KEY = 'adminNavGroups.v2';
 
 function readStored(): Record<string, boolean> {
     try {
@@ -215,7 +66,7 @@ watch(
     activePath,
     () => {
         for (const item of blocks.value.flat()) {
-            if (isGroup(item) && item.links.some(isActive)) {
+            if (isGroup(item) && groupActive(item)) {
                 open[item.key] = true;
             }
         }
@@ -224,16 +75,71 @@ watch(
 );
 
 const lastIndex = computed(() => blocks.value.length - 1);
+
+const itemKey = (item: NavItem) => item.key;
 </script>
 
 <template>
-    <nav class="admin-nav" :aria-label="t('admin.nav.dashboard')">
+    <nav class="admin-nav" :class="{ 'is-rail': props.collapsed }" :aria-label="t('admin.nav.main')">
         <template v-for="(block, index) in blocks" :key="index">
             <div v-if="index > 0 && index < lastIndex && block.length > 0" class="admin-nav-sep" />
 
             <div v-if="block.length > 0" class="admin-nav-list" :class="{ 'admin-nav-bottom': index === lastIndex }">
-                <template v-for="item in block" :key="isGroup(item) ? item.key : item.href">
-                    <template v-if="isGroup(item)">
+                <template v-for="item in block" :key="itemKey(item)">
+                    <!-- Rail: icon-only, groups open as a flyout -->
+                    <template v-if="props.collapsed">
+                        <Popover
+                            v-if="isGroup(item)"
+                            :placement="flyoutPlacement"
+                            :trigger="['hover', 'click']"
+                            :mouse-enter-delay="0.05"
+                            overlay-class-name="admin-nav-flyout"
+                            :arrow="false"
+                        >
+                            <template #content>
+                                <p class="admin-nav-flyout-title">{{ item.label }}</p>
+                                <Link
+                                    v-for="link in item.links"
+                                    :key="link.key"
+                                    :href="link.href"
+                                    class="admin-nav-link"
+                                    :aria-current="isActive(link) ? 'page' : undefined"
+                                    @click="emit('navigate')"
+                                >
+                                    <component :is="link.icon" aria-hidden="true" />
+                                    <span class="admin-nav-label">{{ link.label }}</span>
+                                    <span v-if="badgeOf(link) > 0" class="admin-badge">{{ short(badgeOf(link)) }}</span>
+                                </Link>
+                            </template>
+                            <button
+                                type="button"
+                                class="admin-rail-item"
+                                :class="{ 'is-active': groupActive(item) }"
+                                :aria-label="item.label"
+                                aria-haspopup="true"
+                            >
+                                <component :is="item.icon" aria-hidden="true" />
+                                <span v-if="groupBadge(item) > 0" class="admin-rail-dot" aria-hidden="true" />
+                            </button>
+                        </Popover>
+
+                        <Tooltip v-else :title="item.label" :placement="tooltipPlacement">
+                            <Link
+                                :href="item.href"
+                                class="admin-rail-item"
+                                :class="{ 'is-active': isActive(item) }"
+                                :aria-label="item.label"
+                                :aria-current="isActive(item) ? 'page' : undefined"
+                                @click="emit('navigate')"
+                            >
+                                <component :is="item.icon" aria-hidden="true" />
+                                <span v-if="badgeOf(item) > 0" class="admin-rail-dot" aria-hidden="true" />
+                            </Link>
+                        </Tooltip>
+                    </template>
+
+                    <!-- Expanded -->
+                    <template v-else-if="isGroup(item)">
                         <button
                             type="button"
                             class="admin-nav-group"
@@ -242,19 +148,22 @@ const lastIndex = computed(() => blocks.value.length - 1);
                             @click="toggle(item.key)"
                         >
                             <component :is="item.icon" aria-hidden="true" />
-                            <span>{{ item.label }}</span>
+                            <span class="admin-nav-label">{{ item.label }}</span>
+                            <!-- A closed group still says something inside it is waiting. -->
+                            <span v-if="!open[item.key] && groupBadge(item) > 0" class="admin-badge">{{ short(groupBadge(item)) }}</span>
                             <ChevronDown class="admin-nav-chev" aria-hidden="true" />
                         </button>
                         <div v-show="open[item.key]" :id="`admin-nav-${item.key}`" class="admin-nav-sub">
                             <Link
                                 v-for="link in item.links"
-                                :key="link.href"
+                                :key="link.key"
                                 :href="link.href"
                                 class="admin-nav-link"
                                 :aria-current="isActive(link) ? 'page' : undefined"
                                 @click="emit('navigate')"
                             >
-                                {{ link.label }}
+                                <span class="admin-nav-label">{{ link.label }}</span>
+                                <span v-if="badgeOf(link) > 0" class="admin-badge">{{ short(badgeOf(link)) }}</span>
                             </Link>
                         </div>
                     </template>
@@ -267,7 +176,8 @@ const lastIndex = computed(() => blocks.value.length - 1);
                         @click="emit('navigate')"
                     >
                         <component :is="item.icon" aria-hidden="true" />
-                        <span>{{ item.label }}</span>
+                        <span class="admin-nav-label">{{ item.label }}</span>
+                        <span v-if="badgeOf(item) > 0" class="admin-badge">{{ short(badgeOf(item)) }}</span>
                     </Link>
                 </template>
             </div>

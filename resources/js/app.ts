@@ -1,6 +1,6 @@
 import '../css/app.css';
 
-import { createInertiaApp } from '@inertiajs/vue3';
+import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
@@ -31,6 +31,19 @@ createInertiaApp({
         const i18n = createAppI18n(locale);
 
         applyDocumentLocale(locale);
+
+        // The server can change language under a running page — signing in
+        // switches to the account's saved locale — so follow it on every visit
+        // instead of only at boot. Otherwise the shell keeps the guest page's
+        // strings and direction (English text in an RTL layout) until a reload.
+        router.on('navigate', (event) => {
+            const next = (event.detail.page.props as Record<string, unknown>).locale as string | undefined;
+
+            if (next && next !== i18n.global.locale.value) {
+                i18n.global.locale.value = next as typeof i18n.global.locale.value;
+                applyDocumentLocale(next);
+            }
+        });
 
         createApp({ render: () => h(App, props) })
             .use(plugin)

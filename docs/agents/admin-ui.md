@@ -16,8 +16,10 @@ of the two conflicts documented there, not a per-page mistake.
 | --- | --- |
 | **Any colour, radius, font or spacing value** | `resources/js/theme/adminTokens.ts` — the only place raw values live (see `design/ADMIN_STYLE.md`) |
 | How tokens reach AntD and CSS | `resources/js/composables/useAdminTheme.ts` (used by `AdminLayout.vue` and `PosLayout.vue`) |
-| Sidebar links, grouping, permissions | `resources/js/components/admin/AdminNav.vue` |
-| Top bar, sider/drawer shell | `resources/js/layouts/AdminLayout.vue` |
+| Sidebar links, grouping, permissions | `resources/js/composables/useAdminNav.ts` (the data — also feeds the command palette); `components/admin/AdminNav.vue` renders it |
+| Top bar, sider/rail/drawer shell, quick-create menu | `resources/js/layouts/AdminLayout.vue` |
+| Command palette (Ctrl/Cmd+K) | `components/admin/CommandPalette.vue` + `admin.search` (`Admin\SearchController`) |
+| "Needs attention" tiles and sidebar count badges | `App\Services\Admin\AdminAttention` (dashboard prop + `admin.attention` JSON) |
 | Anything shared across pages (tables, filters, modals, form fields) | `resources/js/components/admin/*` |
 | Global CSS that AntD and Tailwind fight over | the AntD interop block in `resources/css/app.css` |
 | The dashboard's whole look (sidebar, top bar, cards, KPI boxes, tables, pills, modals) | the "Admin theme" block in `app.css` — every value is a `var(--ad-*)` |
@@ -275,14 +277,36 @@ culprit than specificity.
 
 `AdminLayout.vue` renders `ConfigProvider > Layout > (Sider | Drawer) + Layout > (Header + Content)`.
 
-- **Sider** is `!fixed` at 256px, `hidden lg:!block`. Below `lg` it is replaced by a **Drawer**
-  (not shrunk), whose placement flips with the locale. The content `Layout` offsets itself with
-  `lg:ms-64` — a logical margin, so it follows direction automatically.
-- **Header** is sticky, `h-14`, and explicitly painted `!bg-white dark:!bg-[#141414]` with a
-  border. Without that it renders AntD's stock `#001529` navy band, which matches neither theme.
-- Nav is permission-filtered (`can()` against the shared auth props; `super_admin` bypasses).
-  The selected menu key is derived from the URL, longest-match-wins so
-  `/admin/inventory/movements` doesn't also light up `/admin/inventory`.
+**2026-10-18 shell redesign** ("simpler and more powerful"):
+
+- **Navigation is data** in `useAdminNav.ts`: the dashboard link, five working groups
+  (Sales · Products · Stock & purchasing · Online store · Finance & reports) and a bottom
+  block (Team & access, Settings). Every link carries the `permission` its controller
+  checks; `super_admin` passes everything. A group left with one permitted link renders as
+  that link. Storefront editing is all under **Online store**: the page builder
+  (`admin.pages.*`) first, then the old hero/tiles screen (`admin.homepage.index`, labelled
+  "current shop" until the SPA replaces the Inertia shop), coupons, reviews.
+- **Sider** is `!fixed`, 256px, or a 72px **icon rail** (toggle in the top bar's first
+  button, remembered in `localStorage` as `adminSidebarRail`). In the rail a group opens as
+  an AntD `Popover` flyout on the inline-end side (`rightTop` LTR / `leftTop` RTL — AntD
+  does not flip placements itself). The content `Layout` offsets with `lg:ms-64` /
+  `lg:ms-[72px]`. Below Tailwind `lg` (1024px) the same button opens a **Drawer** instead;
+  the JS media queries in the layout use Tailwind's breakpoints, not AntD's 992px.
+- Group open/closed state persists as `adminNavGroups.v2`; the group holding the current
+  page always opens. Active link: longest path match, on path segments.
+- **Top bar**: sidebar toggle · search field (a button that opens the palette) · Create menu
+  (`quickActions` — new product / manual order / purchase order, permission-gated) · POS ·
+  storefront / language / theme (from `md` up; inside the account menu on phones) · account.
+- **Command palette** (`Ctrl/Cmd+K`, or `/` when not typing): pages and actions are matched
+  locally in *both* languages with Arabic folding (diacritics, alef/yaa/taa-marbuta forms);
+  2+ characters also query `admin.search`, which returns `null` for any section the user may
+  not open. Products link to the edit form only with `products.update`.
+- **Badges**: `useAttentionCounts()` reads `admin.attention` once and then at most once a
+  minute on navigation (the layout persists across visits); the dashboard seeds it from its
+  own `attention` prop. A closed group shows the sum of its links' badges.
+- `app.ts` follows `page.props.locale` on every Inertia visit. Before, signing in (which
+  switches to the account's saved locale server-side) left the guest page's strings and
+  direction in place until a reload — English text in an RTL shell.
 
 ## Gotchas when editing
 
@@ -320,7 +344,7 @@ npm run build
 'vue/tsx']`), unrelated to the UI — don't chase it.
 
 Visual QA is worth doing in all four combinations: light/dark × LTR/RTL. The theme toggle and
-language switch are both in the top bar.
+language switch are in the top bar from `md` up, and in the account menu on a phone.
 
 ## Web Interface Guidelines pass (2026-09-01)
 
