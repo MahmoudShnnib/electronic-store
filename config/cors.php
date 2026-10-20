@@ -24,7 +24,8 @@ return [
 
     'allowed_headers' => ['Accept', 'Accept-Language', 'Authorization', 'Content-Type', 'Idempotency-Key', 'X-Cart-Token', 'X-Requested-With'],
 
-    'exposed_headers' => ['Content-Language'],
+    // Retry-After lets the SPA wait out a 429 instead of showing a dead error.
+    'exposed_headers' => ['Content-Language', 'Retry-After', 'X-RateLimit-Remaining'],
 
     'max_age' => 3600,
 

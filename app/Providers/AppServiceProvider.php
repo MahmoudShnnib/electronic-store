@@ -120,8 +120,19 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureRateLimiting(): void
     {
-        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(60)
-            ->by($request->user()?->id ?? $request->ip()));
+        // Per shopper, then per network. A product page is ~4 calls and each
+        // filter tap 2, and many mobile customers share one carrier IP, so a
+        // single per-IP 60/min starved whole neighbourhoods. The throttle runs
+        // before the bearer token is resolved, so a guest is told apart by
+        // their cart token; the per-IP ceiling stops token rotation from
+        // lifting the limit.
+        RateLimiter::for('api', fn (Request $request) => [
+            Limit::perMinute(120)->by('api:'.($request->user()?->id ?? $request->header('X-Cart-Token') ?: $request->ip())),
+            Limit::perMinute(600)->by('api-ip:'.$request->ip()),
+        ]);
+
+        // Its own bucket: signing up for deals must not use up a login attempt.
+        RateLimiter::for('newsletter', fn (Request $request) => Limit::perMinute(5)->by('newsletter:'.$request->ip()));
 
         RateLimiter::for('auth', fn (Request $request) => [
             Limit::perMinute(5)->by('auth-ip:'.$request->ip()),
