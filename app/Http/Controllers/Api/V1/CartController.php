@@ -79,7 +79,7 @@ final class CartController extends Controller
     {
         $cart = $this->resolveCart->handle($request, create: false);
 
-        abort_if($cart === null || $item->cart_id !== $cart->id, 403, 'This item does not belong to your cart.');
+        abort_if($cart === null || $item->cart_id !== $cart->id, 403, __('This item does not belong to your cart.'));
 
         return $cart;
     }

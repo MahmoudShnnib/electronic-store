@@ -88,10 +88,9 @@ Section types (`App\Enums\PageSectionType`) and their stored → served `data`:
 | `newsletter` | `title`, `title_ar`, `text`, `text_ar` | — |
 
 Locale: content payloads carry both languages (`x` / `x_ar`) and the SPA picks.
-Product cards are localised by `?locale=ar|en` (or `Accept-Language`) on the
-content endpoints. A global API locale middleware would need a change in
-`bootstrap/app.php` + `app/Http/Middleware/` — a confirm-first zone, so it is
-**not** done; the content controllers resolve the locale themselves.
+Everything else follows the request's language: `SetApiLocale` (api group,
+approved 2026-10-19) reads `?locale=ar|en`, then `Accept-Language`, then
+`store.default_locale` (Arabic), and answers with `Content-Language`.
 
 Static pages: `about`, `contact`, `privacy-policy`, `terms`, `return-policy` are
 system pages (same keys as the Inertia `/pages/{page}` URLs), each with one

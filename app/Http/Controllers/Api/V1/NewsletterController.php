@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Http\Controllers\Api\V1\Concerns\ResolvesApiLocale;
 use App\Http\Controllers\Controller;
 use App\Models\NewsletterSubscriber;
 use Illuminate\Http\JsonResponse;
@@ -17,11 +16,9 @@ use Illuminate\Http\Request;
  */
 final class NewsletterController extends Controller
 {
-    use ResolvesApiLocale;
-
     public function store(Request $request): JsonResponse
     {
-        $locale = $this->applyApiLocale($request);
+        $locale = app()->getLocale();
 
         $validated = $request->validate([
             'email' => ['required', 'email:filter', 'max:255'],

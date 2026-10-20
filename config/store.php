@@ -67,4 +67,27 @@ return [
     'max_quantity_per_item' => env('STORE_MAX_QTY_PER_ITEM', 10),
 
     'locales' => ['en', 'ar'],
+
+    // Website/app cash-on-delivery orders nobody confirmed by phone within this
+    // many hours are cancelled and their stock released (0 turns it off).
+    'unconfirmed_cancel_hours' => (int) env('STORE_UNCONFIRMED_CANCEL_HOURS', 72),
+
+    // The storefront's language when a client doesn't say (API requests with no
+    // ?locale or Accept-Language). The shop is Arabic-first.
+    'default_locale' => env('STORE_DEFAULT_LOCALE', 'ar'),
+
+    // The storefront SPA's own host (e.g. shop.example.ly). When set, Laravel
+    // serves the built SPA there with per-URL meta tags, a sitemap and robots
+    // (Web\StorefrontShellController); unset, nothing changes.
+    'storefront_host' => env('STOREFRONT_HOST'),
+
+    // The SPA build to serve on that host (the folder holding index.html).
+    'storefront_dist' => env('STOREFRONT_DIST', base_path('../electronic-store-web/dist')),
+
+    // Description for pages that have none of their own (home, listings).
+    'seo_description' => env('STORE_SEO_DESCRIPTION', 'أحدث الأجهزة الإلكترونية والإكسسوارات، مع التوصيل لكل ليبيا والدفع عند الاستلام.'),
+
+    // Where the storefront SPA lives, for links in emails (password reset).
+    // Defaults to the first origin CORS allows (STOREFRONT_URL).
+    'storefront_url' => env('STOREFRONT_PUBLIC_URL', trim(explode(',', (string) env('STOREFRONT_URL', 'http://localhost:5173'))[0])),
 ];

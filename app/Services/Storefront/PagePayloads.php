@@ -49,7 +49,7 @@ final class PagePayloads
                 'logo' => is_file(public_path('logo.svg')) ? asset('logo.svg') : null,
             ],
             'locales' => ['ar', 'en'],
-            'default_locale' => config('app.locale'),
+            'default_locale' => config('store.default_locale'),
             'currency' => [
                 'code' => config('store.currency'),
                 'symbol' => config('store.currency_symbols'),

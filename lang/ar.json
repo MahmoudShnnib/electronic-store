@@ -196,5 +196,7 @@
     "products": "المنتجات",
     "number of products": "عدد المنتجات",
     "image": "الصورة",
-    "link": "الرابط"
+    "link": "الرابط",
+    "Your account has been deactivated.": "تم إيقاف حسابك. تواصل مع المتجر.",
+    "This item does not belong to your cart.": "هذا الصنف ليس في سلتك."
 }
