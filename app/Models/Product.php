@@ -28,6 +28,26 @@ final class Product extends Model
         .' AND (sale_ends_at IS NULL OR sale_ends_at >= NOW())'
         .' THEN sale_price_cents ELSE price_cents END)';
 
+    /** The product's sale window, column-qualified so it works inside variant subqueries. */
+    private const SALE_WINDOW_OPEN = '(products.sale_starts_at IS NULL OR products.sale_starts_at <= NOW())'
+        .' AND (products.sale_ends_at IS NULL OR products.sale_ends_at >= NOW())';
+
+    /** A variant's live price: its sale price while the parent's window is open (variants have no window of their own). */
+    private const VARIANT_PRICE = '(CASE WHEN v.sale_price_cents IS NOT NULL AND '.self::SALE_WINDOW_OPEN
+        .' THEN v.sale_price_cents ELSE v.price_cents END)';
+
+    private const ACTIVE_VARIANTS = 'FROM product_variants v WHERE v.product_id = products.id AND v.is_active AND v.deleted_at IS NULL AND products.has_variants';
+
+    /**
+     * The cheapest and dearest a shopper can pay right now, variants included —
+     * what a listing's price filter, price sort and "from" price must use. A
+     * variant product is priced by its active variants (the product row's own
+     * price is not for sale); with none left it falls back to the product row.
+     */
+    public const MIN_PRICE = '(COALESCE((SELECT MIN('.self::VARIANT_PRICE.') '.self::ACTIVE_VARIANTS.'), '.self::EFFECTIVE_PRICE.'))';
+
+    public const MAX_PRICE = '(COALESCE((SELECT MAX('.self::VARIANT_PRICE.') '.self::ACTIVE_VARIANTS.'), '.self::EFFECTIVE_PRICE.'))';
+
     protected $fillable = [
         'category_id', 'brand_id', 'supplier_id', 'name', 'name_ar', 'slug', 'sku',
         'barcode', 'short_description', 'short_description_ar', 'description',
@@ -238,6 +258,14 @@ final class Product extends Model
         return $query->whereNotNull('sale_price_cents')
             ->where(fn (Builder $q) => $q->whereNull('sale_starts_at')->orWhere('sale_starts_at', '<=', now()))
             ->where(fn (Builder $q) => $q->whereNull('sale_ends_at')->orWhere('sale_ends_at', '>=', now()));
+    }
+
+    /** onSale(), or a variant product with any active variant on sale (the cart charges those sale prices). */
+    public function scopeOnSaleIncludingVariants(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q) => $q
+            ->where(fn (Builder $q) => $q->onSale())
+            ->orWhereRaw('EXISTS (SELECT 1 '.self::ACTIVE_VARIANTS.' AND v.sale_price_cents IS NOT NULL AND '.self::SALE_WINDOW_OPEN.')'));
     }
 
     public function scopeSearch(Builder $query, string $term): Builder

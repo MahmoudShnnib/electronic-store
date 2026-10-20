@@ -18,7 +18,7 @@ final class WishlistController extends Controller
         $products = Product::query()
             ->whereIn('id', $request->user()->wishlistItems()->pluck('product_id'))
             ->visibleInStore()
-            ->with(['brand:id,name,slug', 'images'])
+            ->with(['brand:id,name,slug', 'images', 'activeVariants'])
             ->withAvg('approvedReviews as rating_avg', 'rating')
             ->withCount('approvedReviews as rating_count')
             ->withStock()

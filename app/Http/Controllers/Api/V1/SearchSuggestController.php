@@ -30,7 +30,7 @@ final class SearchSuggestController extends Controller
         $products = Product::query()
             ->visibleInStore()
             ->search($term)
-            ->with(['brand:id,name,slug', 'images'])
+            ->with(['brand:id,name,slug', 'images', 'activeVariants'])
             ->withStock()
             ->latest('published_at')
             ->take(8)

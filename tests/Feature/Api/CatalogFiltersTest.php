@@ -4,6 +4,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Page;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Setting;
 
 /** Ids of the products the listing returned, sorted for order-insensitive checks. */
@@ -127,4 +128,63 @@ it('refreshes static pages when the dashboard text changes', function (): void {
 
 it('drops a static page section with no text anywhere', function (): void {
     $this->getJson('/api/v1/pages/privacy-policy')->assertOk()->assertJsonCount(0, 'data.sections');
+});
+
+/** A variant product whose own row price (5,000) is not what anyone pays. */
+function phoneWithVariants(array $variantPrices, ?int $salePriceOnFirst = null): Product
+{
+    $product = Product::factory()->withVariants()->create(['price_cents' => 500_000]);
+
+    foreach (array_values($variantPrices) as $i => $cents) {
+        ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'price_cents' => $cents,
+            'sale_price_cents' => $i === 0 ? $salePriceOnFirst : null,
+        ]);
+    }
+
+    return $product;
+}
+
+it('prices a variant product by its cheapest variant and flags it in listings', function (): void {
+    $phone = phoneWithVariants([119_900, 132_900]);
+
+    $card = collect($this->getJson('/api/v1/products')->json('data'))->firstWhere('id', $phone->id);
+
+    expect($card['current_price'])->toEqual(1199)
+        ->and($card['has_variants'])->toBeTrue()
+        ->and($card['price_from'])->toBeTrue();
+});
+
+it('matches a price range on any variant price, not the product row', function (): void {
+    $phone = phoneWithVariants([119_900, 132_900]);
+
+    // Only the 512GB (1,329) is at or above 1,300.
+    expect(listedIds('min_price=1300&max_price=1400'))->toBe([$phone->id])
+        // The product row's 5,000 is never for sale, so it never matches.
+        ->and(listedIds('min_price=4000'))->toBe([]);
+});
+
+it('stretches the price facet to the dearest variant', function (): void {
+    phoneWithVariants([119_900, 250_000]);
+    Product::factory()->create(['price_cents' => 50_000]);
+
+    expect($this->getJson('/api/v1/products/facets')->json('data.price'))->toBe(['min' => 500, 'max' => 2500]);
+});
+
+it('counts a variant on sale as the product being on sale', function (): void {
+    $phone = phoneWithVariants([119_900, 132_900], salePriceOnFirst: 109_900);
+    Product::factory()->create();
+
+    expect(listedIds('on_sale=1'))->toBe([$phone->id])
+        ->and($this->getJson('/api/v1/products/facets')->json('data.on_sale'))->toBe(1);
+});
+
+it('sorts variant products by their cheapest variant', function (): void {
+    $phone = phoneWithVariants([30_000, 90_000]);
+    $plain = Product::factory()->create(['price_cents' => 50_000]);
+
+    $this->getJson('/api/v1/products?sort=price_asc')
+        ->assertJsonPath('data.0.id', $phone->id)
+        ->assertJsonPath('data.1.id', $plain->id);
 });

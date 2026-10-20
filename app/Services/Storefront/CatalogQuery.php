@@ -75,14 +75,15 @@ final class CatalogQuery
     public function products(): Builder
     {
         $query = $this->filtered()
-            ->with(['brand:id,name,slug', 'category:id,name,slug', 'images'])
+            ->with(['brand:id,name,slug', 'category:id,name,slug', 'images', 'activeVariants'])
             ->withAvg('approvedReviews as rating_avg', 'rating')
             ->withCount('approvedReviews as rating_count')
             ->withStock();
 
         match ($this->sort) {
-            'price_asc' => $query->orderByRaw(Product::EFFECTIVE_PRICE.' ASC'),
-            'price_desc' => $query->orderByRaw(Product::EFFECTIVE_PRICE.' DESC'),
+            // By the price the card shows: the cheapest a shopper can pay, variants included.
+            'price_asc' => $query->orderByRaw(Product::MIN_PRICE.' ASC'),
+            'price_desc' => $query->orderByRaw(Product::MIN_PRICE.' DESC'),
             'name' => $query->orderBy('name'),
             'best_selling' => $query->addSelect([
                 'sold_count' => OrderItem::query()
@@ -109,7 +110,7 @@ final class CatalogQuery
     {
         $price = $this->filtered(except: 'price')
             ->toBase()
-            ->selectRaw('MIN('.Product::EFFECTIVE_PRICE.') AS min_cents, MAX('.Product::EFFECTIVE_PRICE.') AS max_cents')
+            ->selectRaw('MIN('.Product::MIN_PRICE.') AS min_cents, MAX('.Product::MAX_PRICE.') AS max_cents')
             ->first();
 
         return [
@@ -121,7 +122,7 @@ final class CatalogQuery
                 'max' => $price?->max_cents !== null ? Money::toDecimal((int) $price->max_cents) : null,
             ],
             'in_stock' => $this->inStockScope($this->filtered(except: 'in_stock'))->count(),
-            'on_sale' => $this->filtered(except: 'on_sale')->onSale()->count(),
+            'on_sale' => $this->filtered(except: 'on_sale')->onSaleIncludingVariants()->count(),
             'selected' => [
                 'categories' => $this->categorySlugs,
                 'brands' => $this->brandSlugs,
@@ -156,10 +157,12 @@ final class CatalogQuery
                 'brand_id',
                 Brand::query()->active()->whereIn('slug', $this->brandSlugs)->select('id'),
             ))
-            ->when($except !== 'price' && $this->minPriceCents !== null, fn (Builder $q) => $q->whereRaw(Product::EFFECTIVE_PRICE.' >= ?', [$this->minPriceCents]))
-            ->when($except !== 'price' && $this->maxPriceCents !== null, fn (Builder $q) => $q->whereRaw(Product::EFFECTIVE_PRICE.' <= ?', [$this->maxPriceCents]))
+            // A product matches when any of its prices falls in the range: a phone
+            // whose 512GB costs 1,329 belongs under "1,300 and up" even if 256GB is 1,199.
+            ->when($except !== 'price' && $this->minPriceCents !== null, fn (Builder $q) => $q->whereRaw(Product::MAX_PRICE.' >= ?', [$this->minPriceCents]))
+            ->when($except !== 'price' && $this->maxPriceCents !== null, fn (Builder $q) => $q->whereRaw(Product::MIN_PRICE.' <= ?', [$this->maxPriceCents]))
             ->when($except !== 'in_stock' && $this->inStock, fn (Builder $q) => $this->inStockScope($q))
-            ->when($except !== 'on_sale' && $this->onSale, fn (Builder $q) => $q->onSale())
+            ->when($except !== 'on_sale' && $this->onSale, fn (Builder $q) => $q->onSaleIncludingVariants())
             ->when($this->featured, fn (Builder $q) => $q->featured());
     }
 

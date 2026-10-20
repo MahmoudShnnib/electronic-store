@@ -29,7 +29,7 @@ final class RelatedProductController extends Controller
             ->visibleInStore()
             ->whereKeyNot($product->id)
             ->whereIn('category_id', Category::subtreeIds([$scope], activeOnly: true))
-            ->with(['brand:id,name,slug', 'category:id,name,slug', 'images'])
+            ->with(['brand:id,name,slug', 'category:id,name,slug', 'images', 'activeVariants'])
             ->withAvg('approvedReviews as rating_avg', 'rating')
             ->withCount('approvedReviews as rating_count')
             ->withStock()
