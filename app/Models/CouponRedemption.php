@@ -14,7 +14,7 @@ final class CouponRedemption extends Model
 
     public const UPDATED_AT = null;
 
-    protected $fillable = ['coupon_id', 'user_id', 'order_id', 'amount_cents', 'released_at'];
+    protected $fillable = ['coupon_id', 'user_id', 'customer_phone', 'customer_email', 'order_id', 'amount_cents', 'released_at'];
 
     protected function casts(): array
     {

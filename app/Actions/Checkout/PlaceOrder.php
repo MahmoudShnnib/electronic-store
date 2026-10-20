@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Models\Warehouse;
 use App\Notifications\OrderPlacedNotification;
 use App\Support\CostLayers;
+use App\Support\CustomerIdentity;
 use App\Support\ReferenceNumber;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -101,8 +102,11 @@ final class PlaceOrder
 
         $manualDiscountCents = $this->validateManualDiscount($manualDiscountCents, $totals);
 
+        $phoneKey = CustomerIdentity::phoneKey($data->customer['phone'] ?? $data->shippingAddress['phone'] ?? null);
+        $emailKey = CustomerIdentity::emailKey($data->customer['email'] ?? null);
+
         try {
-            $order = DB::transaction(function () use ($cart, $data, $user, $totals, $placedVia, $warehouse, $manualDiscountCents, $idempotencyKey): Order {
+            $order = DB::transaction(function () use ($cart, $data, $user, $totals, $placedVia, $warehouse, $manualDiscountCents, $idempotencyKey, $phoneKey, $emailKey): Order {
                 // A double-click sends the same cart twice: the second request waits
                 // here, then finds the cart already emptied by the first.
                 Cart::query()->whereKey($cart->id)->lockForUpdate()->first();
@@ -116,9 +120,14 @@ final class PlaceOrder
                 if ($totals->coupon !== null && $totals->discountCents > 0) {
                     $coupon = Coupon::query()->lockForUpdate()->findOrFail($totals->coupon->id);
 
-                    if (($coupon->usage_limit !== null && $coupon->used_count >= $coupon->usage_limit)
-                        || ($user !== null && $coupon->per_customer_limit !== null && $coupon->usesByUser($user->id) >= $coupon->per_customer_limit)) {
+                    if ($coupon->usage_limit !== null && $coupon->used_count >= $coupon->usage_limit) {
                         throw ValidationException::withMessages(['coupon' => __('This coupon has reached its usage limit.')]);
+                    }
+
+                    // Guests too: the same phone or email is the same customer.
+                    if ($coupon->per_customer_limit !== null
+                        && $coupon->usesByCustomer($user?->id, $phoneKey, $emailKey) >= $coupon->per_customer_limit) {
+                        throw ValidationException::withMessages(['coupon' => __('You have already used this coupon.')]);
                     }
                 }
 
@@ -179,6 +188,8 @@ final class PlaceOrder
                 if ($totals->coupon !== null && $totals->discountCents > 0) {
                     $totals->coupon->redemptions()->create([
                         'user_id' => $user?->id,
+                        'customer_phone' => $phoneKey,
+                        'customer_email' => $emailKey,
                         'order_id' => $order->id,
                         'amount_cents' => $totals->discountCents,
                     ]);

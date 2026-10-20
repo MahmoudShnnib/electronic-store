@@ -73,6 +73,26 @@ final class Coupon extends Model
         return $this->redemptions()->where('user_id', $userId)->whereNull('released_at')->count();
     }
 
+    /**
+     * Uses by one person, recognised by account, phone or email — so a guest
+     * (or a customer who signs out) can't reuse a once-per-customer coupon.
+     * Keys come from App\Support\CustomerIdentity.
+     */
+    public function usesByCustomer(?int $userId, ?string $phoneKey, ?string $emailKey): int
+    {
+        if ($userId === null && $phoneKey === null && $emailKey === null) {
+            return 0;
+        }
+
+        return $this->redemptions()
+            ->whereNull('released_at')
+            ->where(fn (Builder $q) => $q
+                ->when($userId !== null, fn (Builder $q) => $q->orWhere('user_id', $userId))
+                ->when($phoneKey !== null, fn (Builder $q) => $q->orWhere('customer_phone', $phoneKey))
+                ->when($emailKey !== null, fn (Builder $q) => $q->orWhere('customer_email', $emailKey)))
+            ->count();
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
