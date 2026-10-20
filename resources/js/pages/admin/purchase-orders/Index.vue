@@ -5,6 +5,7 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option, Paginator } from '@/components/admin/types';
+import { useAdminPermissions } from '@/composables/useAdminNav';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { Button } from 'ant-design-vue';
@@ -12,6 +13,8 @@ import { Plus } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
+
+const { can } = useAdminPermissions();
 
 const { t } = useI18n();
 
@@ -51,7 +54,7 @@ const columns: Column[] = [
 
     <PageHeader :title="t('admin.purchase_orders.title')" :subtitle="t('admin.purchase_orders.count', { count: orders.total })">
         <template #actions>
-            <Link :href="route('admin.purchase-orders.create')">
+            <Link v-if="can('purchase_orders.manage')" :href="route('admin.purchase-orders.create')">
                 <Button type="primary">
                     <template #icon><Plus class="h-4 w-4" /></template>
                     {{ t('admin.purchase_orders.new') }}

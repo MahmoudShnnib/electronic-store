@@ -38,7 +38,8 @@ interface ProductRow extends Record<string, unknown> {
     barcode: string | null;
     short_description: string | null;
     supplier: string | null;
-    cost_price_formatted: string;
+    /** Null when this member of staff may not see buying prices. */
+    cost_price_formatted: string | null;
     sale_price_formatted: string | null;
     low_stock_threshold: number;
     variants_count: number;
@@ -89,7 +90,7 @@ const previewFields = computed<{ label: string; value: string | number | null; c
         { label: t('admin.common.supplier'), value: row.supplier },
         { label: t('admin.products.regular_price'), value: row.price_formatted },
         { label: t('admin.products.sale_price'), value: row.sale_price_formatted },
-        { label: t('admin.products.cost_price'), value: row.cost_price_formatted },
+        ...(row.cost_price_formatted !== null ? [{ label: t('admin.products.cost_price'), value: row.cost_price_formatted }] : []),
         { label: t('admin.nav.stock'), value: row.stock, class: row.low_stock ? 'font-semibold is-warning' : '' },
         { label: t('admin.common.low_stock_threshold'), value: row.low_stock_threshold },
         { label: t('admin.products.variants'), value: row.variants_count },

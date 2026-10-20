@@ -3,6 +3,7 @@ import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import FormModal from '@/components/admin/FormModal.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
+import { useAdminPermissions } from '@/composables/useAdminNav';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import type { TableColumnType } from 'ant-design-vue';
@@ -11,6 +12,8 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
+
+const { can } = useAdminPermissions();
 
 const { Text, Paragraph } = Typography;
 const DescriptionsItem = Descriptions.Item;
@@ -138,19 +141,22 @@ function cancel(): void {
             <Link :href="route('admin.purchase-orders.index')">
                 <Button>{{ t('admin.common.back') }}</Button>
             </Link>
-            <Link v-if="purchaseOrder.is_editable" :href="route('admin.purchase-orders.edit', purchaseOrder.id)">
+            <Link v-if="purchaseOrder.is_editable && can('purchase_orders.manage')" :href="route('admin.purchase-orders.edit', purchaseOrder.id)">
                 <Button>{{ t('admin.common.edit') }}</Button>
             </Link>
             <a :href="route('admin.purchase-orders.print', purchaseOrder.id)" target="_blank" rel="noopener">
                 <Button>{{ t('admin.purchase_orders.print') }}</Button>
             </a>
-            <Button v-if="purchaseOrder.is_editable" type="primary" :loading="sending" @click="send">
+            <Button v-if="purchaseOrder.is_editable && can('purchase_orders.manage')" type="primary" :loading="sending" @click="send">
                 {{ t('admin.purchase_orders.send_to_supplier') }}
             </Button>
-            <Button v-if="purchaseOrder.is_receivable" type="primary" @click="openReceive">
+            <Button v-if="purchaseOrder.is_receivable && can('purchase_orders.receive')" type="primary" @click="openReceive">
                 {{ t('admin.purchase_orders.receive_stock') }}
             </Button>
-            <Button v-if="purchaseOrder.status !== 'received' && purchaseOrder.status !== 'cancelled'" @click="cancelOpen = true">
+            <Button
+                v-if="purchaseOrder.status !== 'received' && purchaseOrder.status !== 'cancelled' && can('purchase_orders.manage')"
+                @click="cancelOpen = true"
+            >
                 {{ t('admin.purchase_orders.cancel_po') }}
             </Button>
         </template>

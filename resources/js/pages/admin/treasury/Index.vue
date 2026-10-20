@@ -6,6 +6,7 @@ import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import StatCard from '@/components/admin/StatCard.vue';
 import type { Paginator } from '@/components/admin/types';
+import { useAdminPermissions } from '@/composables/useAdminNav';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { Button, Card, Input, InputNumber } from 'ant-design-vue';
@@ -14,6 +15,8 @@ import { reactive } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
+
+const { can } = useAdminPermissions();
 
 const { t } = useI18n();
 
@@ -80,7 +83,7 @@ function submit(): void {
         <StatCard :label="t('admin.treasury.balance')" :value="balances.total_formatted" />
     </div>
 
-    <Card class="mb-6" :title="t('admin.treasury.manual_entry')" size="small">
+    <Card v-if="can('treasury.manage')" class="mb-6" :title="t('admin.treasury.manual_entry')" size="small">
         <form class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" @submit.prevent="submit">
             <Field :label="t('admin.treasury.direction')" :error="form.errors.direction">
                 <AdminSelect

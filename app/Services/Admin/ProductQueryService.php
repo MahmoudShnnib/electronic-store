@@ -31,6 +31,11 @@ final class ProductQueryService
      */
     public function indexProps(Request $request): array
     {
+        // Cost is buying information: for staff who price or restock products,
+        // not for a cashier browsing the catalogue (the inventory page has the
+        // same rule).
+        $canSeeCost = $request->user()->can('products.update') || $request->user()->can('inventory.adjust');
+
         $products = Product::query()
             ->with(['category:id,name', 'brand:id,name', 'supplier:id,company_name', 'images'])
             ->withSum('stockLevels as stock_quantity', 'quantity')
@@ -69,7 +74,7 @@ final class ProductQueryService
                 'barcode' => $p->barcode,
                 'short_description' => $p->short_description,
                 'supplier' => $p->supplier?->company_name,
-                'cost_price_formatted' => Money::format($p->cost_price_cents),
+                'cost_price_formatted' => $canSeeCost ? Money::format($p->cost_price_cents) : null,
                 'sale_price_formatted' => $p->sale_price_cents !== null ? Money::format($p->sale_price_cents) : null,
                 'low_stock_threshold' => $p->low_stock_threshold,
                 'variants_count' => (int) $p->variants_count,
