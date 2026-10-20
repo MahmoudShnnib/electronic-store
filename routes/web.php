@@ -3,6 +3,19 @@
 use App\Http\Controllers\Web;
 use Illuminate\Support\Facades\Route;
 
+// -- Storefront SPA host ------------------------------------------------------
+// On the new shop's own domain, every page is the SPA shell with the right
+// meta tags for that URL (see StorefrontShellController). Registered first and
+// only when the host is configured, so the Inertia shop below is untouched.
+
+if (filled(config('store.storefront_host'))) {
+    Route::domain(config('store.storefront_host'))->group(function (): void {
+        Route::get('/sitemap.xml', [Web\StorefrontShellController::class, 'sitemap'])->name('storefront.sitemap');
+        Route::get('/robots.txt', [Web\StorefrontShellController::class, 'robots'])->name('storefront.robots');
+        Route::get('/{path?}', [Web\StorefrontShellController::class, 'show'])->where('path', '.*')->name('storefront.shell');
+    });
+}
+
 // -- Storefront ---------------------------------------------------------------
 
 Route::get('/', Web\HomeController::class)->name('home');
