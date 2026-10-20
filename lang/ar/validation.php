@@ -26,6 +26,18 @@ return [
     'size' => [
         'string' => 'يجب أن يكون طول :attribute :size أحرف.',
     ],
+    'unique' => ':attribute مستخدم من قبل.',
+    'exists' => 'القيمة المحددة في :attribute غير موجودة.',
+    'regex' => 'صيغة :attribute غير صحيحة.',
+    'confirmed' => 'تأكيد :attribute غير مطابق.',
+    'current_password' => 'كلمة المرور الحالية غير صحيحة.',
+    'password' => [
+        'letters' => 'يجب أن تحتوي :attribute على حرف واحد على الأقل.',
+        'mixed' => 'يجب أن تحتوي :attribute على حرف كبير وحرف صغير على الأقل.',
+        'numbers' => 'يجب أن تحتوي :attribute على رقم واحد على الأقل.',
+        'symbols' => 'يجب أن تحتوي :attribute على رمز واحد على الأقل.',
+        'uncompromised' => 'ظهرت :attribute في تسريب بيانات. اختر كلمة مرور أخرى.',
+    ],
     'phone_ly' => 'أدخل رقم هاتف ليبي صالح، مثل 0912345678 أو ‎+218912345678.',
 
     'attributes' => [
@@ -48,5 +60,7 @@ return [
         'quantity' => 'الكمية',
         'rating' => 'التقييم',
         'password' => 'كلمة المرور',
+        'current_password' => 'كلمة المرور الحالية',
+        'token' => 'رابط إعادة التعيين',
     ],
 ];

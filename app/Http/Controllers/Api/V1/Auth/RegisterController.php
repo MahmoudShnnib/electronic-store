@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Actions\Cart\MergeGuestCart;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\RegisterRequest;
 use App\Http\Resources\V1\UserResource;
@@ -14,7 +15,7 @@ use Illuminate\Http\JsonResponse;
 /** Registers a new customer account and returns an API token. */
 final class RegisterController extends Controller
 {
-    public function __invoke(RegisterRequest $request): JsonResponse
+    public function __invoke(RegisterRequest $request, MergeGuestCart $mergeGuestCart): JsonResponse
     {
         $validated = $request->validated();
 
@@ -29,6 +30,9 @@ final class RegisterController extends Controller
         $user->assignRole('customer');
 
         event(new Registered($user));
+
+        // A guest who signs up at checkout keeps what they put in the cart (login already did this).
+        $mergeGuestCart->handle($request->header('X-Cart-Token'), $user);
 
         return response()->json([
             'token' => $user->createToken($validated['device_name'])->plainTextToken,

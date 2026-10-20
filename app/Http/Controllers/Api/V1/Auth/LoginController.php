@@ -20,14 +20,15 @@ final class LoginController extends Controller
     {
         $validated = $request->validated();
 
-        $user = User::query()->where('email', $validated['email'])->first();
+        // Accounts created before emails were lowercased may still hold capitals.
+        $user = User::query()->whereRaw('LOWER(email) = ?', [$validated['email']])->first();
 
         if ($user === null || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
 
         if (! $user->is_active) {
-            throw ValidationException::withMessages(['email' => 'Your account has been deactivated.']);
+            throw ValidationException::withMessages(['email' => __('Your account has been deactivated.')]);
         }
 
         $user->update(['last_login_at' => now()]);

@@ -17,11 +17,13 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     // Auth
     Route::post('auth/register', V1\Auth\RegisterController::class)->middleware('throttle:auth')->name('auth.register');
     Route::post('auth/login', V1\Auth\LoginController::class)->middleware('throttle:auth')->name('auth.login');
+    Route::post('auth/forgot-password', V1\Auth\ForgotPasswordController::class)->middleware('throttle:auth')->name('auth.password.forgot');
+    Route::post('auth/reset-password', V1\Auth\ResetPasswordController::class)->middleware('throttle:auth')->name('auth.password.reset');
 
     // Storefront content: boot payload and CMS pages (docs/adr/0001).
     Route::get('storefront', V1\StorefrontController::class)->name('storefront');
     Route::get('pages/{key}', [V1\PageController::class, 'show'])->where('key', '[A-Za-z0-9_-]+')->name('pages.show');
-    Route::post('newsletter', [V1\NewsletterController::class, 'store'])->middleware('throttle:auth')->name('newsletter.subscribe');
+    Route::post('newsletter', [V1\NewsletterController::class, 'store'])->middleware('throttle:newsletter')->name('newsletter.subscribe');
 
     // Public catalog
     Route::get('products', [V1\ProductController::class, 'index'])->name('products.index');
@@ -31,7 +33,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
     Route::get('products/{product:slug}/reviews', [V1\ProductReviewController::class, 'index'])
         ->middleware(AuthenticateIfTokenPresent::class)
         ->name('products.reviews');
-    Route::get('search/suggest', V1\SearchSuggestController::class)->name('search.suggest');
+    Route::get('search/suggest', V1\SearchSuggestController::class)->middleware('throttle:search')->name('search.suggest');
     Route::get('categories', [V1\CategoryController::class, 'index'])->name('categories.index');
     Route::get('brands', [V1\BrandController::class, 'index'])->name('brands.index');
 
@@ -55,6 +57,7 @@ Route::prefix('v1')->name('api.v1.')->middleware('throttle:api')->group(function
         Route::post('auth/logout-all', V1\Auth\LogoutAllController::class)->name('auth.logout-all');
         Route::get('auth/user', V1\Auth\MeController::class)->name('auth.user');
         Route::patch('auth/user', V1\Auth\UpdateProfileController::class)->name('auth.user.update');
+        Route::put('auth/password', V1\Auth\UpdatePasswordController::class)->middleware('throttle:auth')->name('auth.password.update');
 
         Route::get('orders', [V1\OrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [V1\OrderController::class, 'show'])->name('orders.show');

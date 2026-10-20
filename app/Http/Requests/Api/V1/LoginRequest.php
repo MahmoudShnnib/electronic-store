@@ -18,6 +18,14 @@ final class LoginRequest extends FormRequest
         return true;
     }
 
+    /** Emails are matched case-insensitively: `Ali@Example.com` is `ali@example.com`. */
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('email'))) {
+            $this->merge(['email' => mb_strtolower(trim($this->input('email')))]);
+        }
+    }
+
     public function rules(): array
     {
         return [
