@@ -80,6 +80,14 @@ class User extends Authenticatable implements HasLocalePreference, MustVerifyEma
 
     protected static function booted(): void
     {
+        // Deactivating an account signs it out of the API everywhere: its bearer
+        // tokens would otherwise keep working until someone revoked them.
+        static::updated(function (User $user): void {
+            if ($user->wasChanged('is_active') && $user->is_active === false) {
+                $user->tokens()->delete();
+            }
+        });
+
         // A deleted (soft-deleted) account keeps its orders but lets go of its
         // email and Google link, so the person can sign up or sign in again.
         static::deleted(function (User $user): void {
