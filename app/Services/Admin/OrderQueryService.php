@@ -9,6 +9,7 @@ use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
 use App\Enums\RefundMethod;
+use App\Models\Driver;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\Product;
@@ -46,6 +47,17 @@ final class OrderQueryService
             ->when($request->filled('q'), fn ($q) => $q->search((string) $request->query('q')))
             ->when($request->filled('status'), fn ($q) => $q->where('status', (string) $request->query('status')))
             ->when($request->filled('payment_status'), fn ($q) => $q->where('payment_status', (string) $request->query('payment_status')))
+            // Bank transfers waiting for a confirmed payment are their own queue;
+            // unpaid cash-on-delivery orders are normal until the driver returns.
+            ->when($request->filled('payment_method'), fn ($q) => $q->where('payment_method', (string) $request->query('payment_method')))
+            // Cities are stored by their English name (the checkout's canonical value).
+            ->when($request->filled('city'), fn ($q) => $q->where('shipping_address->city', (string) $request->query('city')))
+            ->when($request->filled('driver_id'), fn ($q) => $q->where('driver_id', (int) $request->query('driver_id'))->whereNotNull('shipped_at'))
+            // The calling queue: in-progress orders nobody has confirmed yet.
+            ->when($request->query('confirmation') === 'unconfirmed', fn ($q) => $q->where('status', OrderStatus::InProgress)->whereNull('confirmed_at'))
+            ->when($request->query('confirmation') === 'confirmed', fn ($q) => $q->whereNotNull('confirmed_at'))
+            ->with('driver:id,name')
+            ->withCount(['callAttempts as no_answer_count' => fn ($q) => $q->where('outcome', 'no_answer')])
             // The shop's local days, like the reports — not UTC days.
             ->when($from !== null, fn ($q) => $q->where('created_at', '>=', $from))
             ->when($to !== null, fn ($q) => $q->where('created_at', '<=', $to))
@@ -57,11 +69,19 @@ final class OrderQueryService
                 'number' => $o->number,
                 'customer_name' => $o->customer['name'] ?? '—',
                 'customer_email' => $o->customer['email'] ?? '—',
+                // What dispatch works from: who to call and where it goes.
+                'phone' => $o->shipping_address['phone'] ?? $o->customer['phone'] ?? null,
+                'city' => self::cityLabel($o->shipping_address['city'] ?? null),
+                'can_complete' => $o->status === OrderStatus::InProgress,
+                'driver' => $o->shipped_at !== null ? $o->driver?->name : null,
+                'confirmed' => $o->confirmed_at !== null,
+                'no_answer_count' => (int) $o->no_answer_count,
                 'status' => $o->status->value,
                 'status_label' => $o->status->label(),
                 'payment_status' => $o->payment_status->value,
                 'payment_status_label' => $o->payment_status->label(),
                 'payment_method' => $o->payment_method->label(),
+                'payment_method_value' => $o->payment_method->value,
                 'items_count' => (int) $o->items_count,
                 'total_formatted' => Money::format($o->total_cents, $o->currency),
                 'created_at' => Dates::dateTime($o->created_at),
@@ -71,7 +91,51 @@ final class OrderQueryService
             'orders' => $orders,
             'statuses' => array_map(fn (OrderStatus $s) => ['value' => $s->value, 'label' => $s->label()], OrderStatus::cases()),
             'paymentStatuses' => array_map(fn (PaymentStatus $s) => ['value' => $s->value, 'label' => $s->label()], PaymentStatus::cases()),
-            'filters' => (object) $request->only(['q', 'status', 'payment_status', 'from', 'to']),
+            'paymentMethods' => array_map(
+                fn (PaymentMethod $m) => ['value' => $m->value, 'label' => $m->label()],
+                array_filter(PaymentMethod::cases(), fn (PaymentMethod $m) => ! $m->isOverTheCounter()),
+            ),
+            'cities' => array_map(fn (array $city) => ['value' => $city['en'], 'label' => self::cityLabel($city['en'])], config('store.cities', [])),
+            'drivers' => Driver::query()->active()->orderBy('name')->get(['id', 'name'])->map(fn (Driver $d) => ['value' => $d->id, 'label' => $d->name]),
+            'filters' => (object) $request->only(['q', 'status', 'payment_status', 'payment_method', 'city', 'driver_id', 'confirmation', 'from', 'to']),
+            'can' => ['manage' => $request->user()->can('orders.manage')],
+        ];
+    }
+
+    /** A delivery city in the admin's language (orders store the English name). */
+    public static function cityLabel(?string $city): ?string
+    {
+        if ($city === null || app()->getLocale() !== 'ar') {
+            return $city;
+        }
+
+        foreach (config('store.cities', []) as $known) {
+            if ($known['en'] === $city) {
+                return $known['ar'];
+            }
+        }
+
+        return $city;
+    }
+
+    /**
+     * Props for admin/orders/DeliverySlips: several slips on one sheet, in the
+     * order they were picked, for printing a driver's run in one go.
+     *
+     * @param  list<int>  $ids
+     * @return array<string, mixed>
+     */
+    public function deliverySlipsProps(array $ids): array
+    {
+        $orders = Order::query()->whereIn('id', $ids)->with('items')->get()->keyBy('id');
+
+        return [
+            'orders' => collect($ids)
+                ->map(fn (int $id) => $orders->get($id))
+                ->filter()
+                ->map(fn (Order $order) => $this->deliverySlipProps($order)['order'])
+                ->values(),
+            'store' => $this->slipStore(),
         ];
     }
 
@@ -125,7 +189,7 @@ final class OrderQueryService
     {
         $order->load([
             'items', 'statusHistories.user:id,name', 'payments.confirmer:id,name',
-            'refunds', 'user:id,name,email,phone',
+            'refunds', 'user:id,name,email,phone', 'driver:id,name,phone', 'callAttempts.user:id,name',
         ]);
 
         $paidCents = (int) $order->payments->where('status', 'confirmed')->sum('amount_cents');
@@ -220,7 +284,26 @@ final class OrderQueryService
                     'reason' => $r->reason,
                     'at' => Dates::dateTime($r->created_at),
                 ]),
+                // Dispatch: which of our drivers has it, since when.
+                'driver' => $order->driver === null ? null : [
+                    'id' => $order->driver->id,
+                    'name' => $order->driver->name,
+                    'phone' => $order->driver->phone,
+                ],
+                'shipped_at' => $order->shipped_at !== null ? Dates::dateTime($order->shipped_at) : null,
+                // Confirmation of a cash-on-delivery order by phone, and every try so far.
+                'confirmed_at' => $order->confirmed_at !== null ? Dates::dateTime($order->confirmed_at) : null,
+                'needs_confirmation' => $order->status === OrderStatus::InProgress && $order->confirmed_at === null && $order->placed_via !== 'pos',
+                'call_attempts' => $order->callAttempts->map(fn ($c) => [
+                    'id' => $c->id,
+                    'outcome' => $c->outcome,
+                    'note' => $c->note,
+                    'user' => $c->user?->name,
+                    'at' => Dates::dateTime($c->created_at),
+                ]),
             ],
+            'drivers' => Driver::query()->active()->orderBy('name')->get(['id', 'name']),
+            'unconfirmedCancelHours' => (int) config('store.unconfirmed_cancel_hours'),
         ];
     }
 
@@ -289,7 +372,7 @@ final class OrderQueryService
                     'phone' => $shipping['phone'] ?? $customer['phone'] ?? null,
                     'address' => array_values(array_filter([
                         $shipping['area'] ?? null,
-                        $shipping['city'] ?? null,
+                        self::cityLabel($shipping['city'] ?? null),
                     ])),
                     'notes' => $shipping['notes'] ?? null,
                 ],
@@ -309,11 +392,7 @@ final class OrderQueryService
                     : null,
                 'customer_note' => $order->customer_note,
             ],
-            'store' => [
-                'name' => Setting::get('store_name') ?: config('app.name'),
-                'details' => Setting::get('invoice_details'),
-                'logo' => Setting::get('receipt_logo'),
-            ],
+            'store' => $this->slipStore(),
             // Same contract as the receipt page: with no printer wired up the
             // slip still has to reach the driver, so the page falls back to the
             // browser dialog rather than silently doing nothing.
@@ -321,6 +400,18 @@ final class OrderQueryService
                 'direct' => ReceiptPrinter::isConfigured(),
                 'width' => (int) PrinterConfig::get('width'),
             ],
+        ];
+    }
+
+    /**
+     * @return array{name: string, details: mixed, logo: mixed}
+     */
+    private function slipStore(): array
+    {
+        return [
+            'name' => Setting::get('store_name') ?: config('app.name'),
+            'details' => Setting::get('invoice_details'),
+            'logo' => Setting::get('receipt_logo'),
         ];
     }
 }

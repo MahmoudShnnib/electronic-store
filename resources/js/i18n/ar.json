@@ -456,7 +456,9 @@
             "recipient": "المستلم",
             "details": "التفاصيل",
             "created": "تاريخ الإنشاء",
-            "updated": "آخر تحديث"
+            "updated": "آخر تحديث",
+            "whatsapp": "مراسلة عبر واتساب",
+            "call": "اتصال"
         },
         "help": {
             "stock_available": "وحدات على الرف وجاهزة للبيع. المحجوز والتالف والوارد تُتابَع في أعمدة مستقلة.",
@@ -796,7 +798,20 @@
             "confirm_payment_ok": "سجّل {amount}",
             "confirm_refund_title": "استرداد مبلغ هذا الطلب؟",
             "confirm_refund_message": "سيُعاد {amount} للعميل عبر {method} ويخرج من الخزنة. لا يمكن التراجع عن ذلك.",
-            "confirm_refund_ok": "استرد {amount}"
+            "confirm_refund_ok": "استرد {amount}",
+            "whatsapp_message": "مرحباً {name}، معك {store} بخصوص طلبك رقم {number}.",
+            "delivery_slips_count": "أوراق التوصيل ({count})",
+            "print_delivery_slips": "طباعة {count} ورقة توصيل",
+            "all_payment_methods": "كل طرق الدفع",
+            "all_cities": "كل المدن",
+            "selected_count": "تم تحديد {count}",
+            "bulk_complete": "إكمال المحدد",
+            "bulk_slips": "طباعة أوراق التوصيل",
+            "clear_selection": "إلغاء التحديد",
+            "bulk_complete_title": "إكمال {count} طلب؟",
+            "bulk_complete_message": "سيُسجَّل المتبقي لكل طلب كمبلغ مستلَم ويدخل الخزنة، ولا يمكن إعادة فتح الطلبات بعد إكمالها. الطلبات التي ليست قيد التنفيذ ستُتخطّى.",
+            "bulk_complete_ok": "نعم، أكمل {count}",
+            "bulk_none_completable": "لا يوجد بين المحدد طلب قيد التنفيذ."
         },
         "products": {
             "title": "المنتجات",

@@ -21,6 +21,8 @@ const props = defineProps<{
     selects?: SelectFilter[];
     searchPlaceholder?: string;
     searchKey?: string;
+    /** Adds a from/to date pair (`from`, `to`, shop-local days). */
+    dates?: boolean;
 }>();
 
 const state = reactive<Record<string, string>>({});
@@ -31,6 +33,11 @@ state[searchKey] = String(props.filters[searchKey] ?? '');
 
 for (const select of props.selects ?? []) {
     state[select.key] = String(props.filters[select.key] ?? '');
+}
+
+if (props.dates) {
+    state.from = String(props.filters.from ?? '');
+    state.to = String(props.filters.to ?? '');
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -92,6 +99,25 @@ onBeforeUnmount(() => {
             :options="select.options"
             @update:model-value="apply"
         />
+
+        <template v-if="dates">
+            <Input
+                v-model:value="state.from"
+                type="date"
+                :aria-label="t('admin.common.from')"
+                :addon-before="t('admin.common.from')"
+                class="!w-auto"
+                @change="apply"
+            />
+            <Input
+                v-model:value="state.to"
+                type="date"
+                :aria-label="t('admin.common.to')"
+                :addon-before="t('admin.common.to')"
+                class="!w-auto"
+                @change="apply"
+            />
+        </template>
 
         <slot />
     </div>

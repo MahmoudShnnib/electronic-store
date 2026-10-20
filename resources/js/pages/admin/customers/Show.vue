@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
+import PhoneLinks from '@/components/admin/PhoneLinks.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
+import { useAdminPermissions } from '@/composables/useAdminNav';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import type { TableColumnType } from 'ant-design-vue';
@@ -10,6 +12,8 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
+
+const { can } = useAdminPermissions();
 
 const { t } = useI18n();
 
@@ -75,7 +79,12 @@ function toggleActive(): void {
             <!-- Reactivating is the constructive action and gets the solid primary;
                  deactivating stays red but outlined, so the loudest control on the
                  page is never the destructive one. -->
-            <Button :type="customer.is_active ? 'default' : 'primary'" :danger="customer.is_active" @click="confirmToggle = true">
+            <Button
+                v-if="can('customers.manage')"
+                :type="customer.is_active ? 'default' : 'primary'"
+                :danger="customer.is_active"
+                @click="confirmToggle = true"
+            >
                 {{ customer.is_active ? t('admin.customers.deactivate_account') : t('admin.customers.activate_account') }}
             </Button>
         </template>
@@ -86,7 +95,7 @@ function toggleActive(): void {
             <Card :title="t('admin.customers.profile')" size="small">
                 <Descriptions :column="1" size="small">
                     <DescriptionsItem :label="t('admin.common.email')">{{ customer.email }}</DescriptionsItem>
-                    <DescriptionsItem :label="t('admin.common.phone')">{{ customer.phone ?? '—' }}</DescriptionsItem>
+                    <DescriptionsItem :label="t('admin.common.phone')"><PhoneLinks :phone="customer.phone" /></DescriptionsItem>
                     <DescriptionsItem :label="t('admin.common.email_verified')">{{
                         customer.verified ? t('admin.common.yes') : t('admin.common.no')
                     }}</DescriptionsItem>
