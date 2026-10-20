@@ -52,6 +52,12 @@ interface PurchaseOrderPayload {
 
 const props = defineProps<{
     purchaseOrder: PurchaseOrderPayload | null;
+    /** A reorder draft from the low-stock list: supplier and lines, all still editable. */
+    draft?: {
+        supplier_id: number | null;
+        warehouse_id: number | null;
+        items: { product_id: number; product_variant_id: number | null; quantity: number; unit_cost: number }[];
+    } | null;
     suppliers: { id: number; company_name: string }[];
     warehouses: { id: number; name: string }[];
     products: ProductOption[];
@@ -68,13 +74,13 @@ interface ItemRow {
 const isEditing = props.purchaseOrder !== null;
 
 const form = useForm({
-    supplier_id: (props.purchaseOrder?.supplier_id ?? '') as number | '',
-    warehouse_id: (props.purchaseOrder?.warehouse_id ?? '') as number | '',
+    supplier_id: (props.purchaseOrder?.supplier_id ?? props.draft?.supplier_id ?? '') as number | '',
+    warehouse_id: (props.purchaseOrder?.warehouse_id ?? props.draft?.warehouse_id ?? '') as number | '',
     discount: props.purchaseOrder?.discount ?? 0,
     shipping: props.purchaseOrder?.shipping ?? 0,
     expected_at: props.purchaseOrder?.expected_at ?? '',
     notes: props.purchaseOrder?.notes ?? '',
-    items: (props.purchaseOrder?.items ?? []).map((item, index) => ({
+    items: (props.purchaseOrder?.items ?? props.draft?.items ?? []).map((item, index) => ({
         key: `existing-${index}`,
         ...item,
     })) as ItemRow[],

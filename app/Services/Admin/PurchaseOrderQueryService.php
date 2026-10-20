@@ -62,12 +62,19 @@ final class PurchaseOrderQueryService
     /**
      * Props for admin/purchase-orders/Form when drafting a new PO.
      *
+     * @param  array{supplier_id: int|null}|null  $reorderFor
      * @return array<string, mixed>
      */
-    public function createProps(): array
+    public function createProps(?array $reorderFor = null): array
     {
         return [
             'purchaseOrder' => null,
+            // A reorder draft: the supplier and its low-stock lines, all editable.
+            'draft' => $reorderFor === null ? null : [
+                'supplier_id' => $reorderFor['supplier_id'],
+                'warehouse_id' => Warehouse::query()->active()->where('is_default', true)->value('id'),
+                'items' => app(ReorderSuggestions::class)->lines($reorderFor['supplier_id']),
+            ],
             'suppliers' => Supplier::query()->active()->orderBy('company_name')->get(['id', 'company_name']),
             'warehouses' => Warehouse::query()->active()->get(['id', 'name']),
             'products' => $this->productOptions(),

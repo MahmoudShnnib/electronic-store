@@ -729,7 +729,10 @@
             "movements_filter": "تصفية حسب معرّف المنتج…",
             "back_to_stock": "العودة إلى الأرصدة",
             "units_on_hand": "الوحدات المتوفرة",
-            "count": "{count} سجل مخزون"
+            "count": "{count} سجل مخزون",
+            "reorder": "إنشاء أمر شراء",
+            "reorder_from": "{supplier} — {count} صنف",
+            "no_supplier": "بدون مورّد"
         },
         "orders": {
             "counter_sale_return_hint": "هذه بيعة كاشير، وإرجاعها يكون من نقطة البيع (زر الإرجاع) حتى يخرج المبلغ من درج الكاشير.",

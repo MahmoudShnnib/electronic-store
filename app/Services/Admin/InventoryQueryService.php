@@ -87,6 +87,10 @@ final class InventoryQueryService
             'levels' => $levels,
             'warehouses' => Warehouse::query()->active()->get(['id', 'name', 'code']),
             'filters' => (object) $request->only(['q', 'warehouse_id', 'filter']),
+            // On the low / out lists, who can order: what each supplier has to reorder.
+            'reorder' => in_array($request->query('filter'), ['low', 'out'], true) && $request->user()?->can('purchase_orders.manage')
+                ? app(ReorderSuggestions::class)->bySupplier()
+                : [],
             'movementTypes' => array_map(
                 fn (MovementType $t) => ['value' => $t->value, 'label' => $t->label()],
                 [MovementType::ManualIncrease, MovementType::ManualDecrease, MovementType::Damaged, MovementType::Lost, MovementType::Correction, MovementType::Initial],

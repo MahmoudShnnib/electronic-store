@@ -37,9 +37,20 @@ final class PurchaseOrderController extends Controller implements HasMiddleware
         return Inertia::render('admin/purchase-orders/Index', $this->query->indexProps($request));
     }
 
-    public function create(): Response
+    /**
+     * `?reorder=1&supplier=<id|none>` opens the form already filled with that
+     * supplier's low-stock lines (see ReorderSuggestions).
+     */
+    public function create(Request $request): Response
     {
-        return Inertia::render('admin/purchase-orders/Form', $this->query->createProps());
+        $reorderFor = null;
+
+        if ($request->boolean('reorder')) {
+            $supplier = (string) $request->query('supplier', 'none');
+            $reorderFor = ['supplier_id' => ctype_digit($supplier) ? (int) $supplier : null];
+        }
+
+        return Inertia::render('admin/purchase-orders/Form', $this->query->createProps($reorderFor));
     }
 
     public function store(PurchaseOrderRequest $request, SavePurchaseOrder $savePurchaseOrder): RedirectResponse

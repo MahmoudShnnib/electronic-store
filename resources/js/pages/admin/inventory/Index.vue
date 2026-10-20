@@ -7,14 +7,17 @@ import FormModal from '@/components/admin/FormModal.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
 import Pagination from '@/components/admin/Pagination.vue';
 import type { Option, Paginator } from '@/components/admin/types';
+import { useAdminPermissions } from '@/composables/useAdminNav';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { Button, Checkbox, Input, InputNumber, Tooltip, TypographyText } from 'ant-design-vue';
-import { ArrowLeftRight, PencilRuler } from 'lucide-vue-next';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
+import { Button, Checkbox, Dropdown, Input, InputNumber, Menu, MenuItem, Tooltip, TypographyText } from 'ant-design-vue';
+import { ArrowLeftRight, PencilRuler, ShoppingBasket } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: AdminLayout });
+
+const { can } = useAdminPermissions();
 
 const { t } = useI18n();
 
@@ -39,6 +42,8 @@ defineProps<{
     warehouses: { id: number; name: string; code: string }[];
     filters: Record<string, unknown>;
     movementTypes: Option[];
+    /** On the low / out lists, for staff who can order: what each supplier has to reorder. */
+    reorder: { supplier_id: number | null; supplier: string | null; count: number }[];
 }>();
 
 const columns: Column[] = [
@@ -139,6 +144,24 @@ function submitTransfer(): void {
 
     <PageHeader :title="t('admin.inventory.title')" :subtitle="t('admin.inventory.count', { count: levels.total })">
         <template #actions>
+            <!-- A purchase order has one supplier, so the reorder starts by picking whose. -->
+            <Dropdown v-if="reorder.length > 0" trigger="click">
+                <Button type="primary">
+                    <template #icon><ShoppingBasket class="h-4 w-4" /></template>
+                    {{ t('admin.inventory.reorder') }}
+                </Button>
+                <template #overlay>
+                    <Menu>
+                        <MenuItem
+                            v-for="row in reorder"
+                            :key="row.supplier_id ?? 'none'"
+                            @click="router.visit(route('admin.purchase-orders.create', { reorder: 1, supplier: row.supplier_id ?? 'none' }))"
+                        >
+                            {{ t('admin.inventory.reorder_from', { supplier: row.supplier ?? t('admin.inventory.no_supplier'), count: row.count }) }}
+                        </MenuItem>
+                    </Menu>
+                </template>
+            </Dropdown>
             <Link :href="route('admin.inventory.movements')">
                 <Button>{{ t('admin.inventory.movement_ledger') }}</Button>
             </Link>
@@ -179,12 +202,12 @@ function submitTransfer(): void {
             </TypographyText>
         </template>
         <template #row-actions="{ row }">
-            <Tooltip :title="t('admin.inventory.adjust_stock')">
+            <Tooltip v-if="can('inventory.adjust')" :title="t('admin.inventory.adjust_stock')">
                 <Button type="text" size="small" :aria-label="t('admin.inventory.adjust_stock')" @click="openAdjust(row)">
                     <template #icon><PencilRuler class="h-4 w-4" /></template>
                 </Button>
             </Tooltip>
-            <Tooltip :title="t('admin.inventory.transfer')">
+            <Tooltip v-if="can('inventory.transfer')" :title="t('admin.inventory.transfer')">
                 <Button type="text" size="small" :aria-label="t('admin.inventory.transfer')" @click="openTransfer(row)">
                     <template #icon><ArrowLeftRight class="h-4 w-4" /></template>
                 </Button>

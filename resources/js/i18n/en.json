@@ -729,7 +729,10 @@
             "movements_filter": "Filter by product ID…",
             "back_to_stock": "Back to stock",
             "units_on_hand": "Units on hand",
-            "count": "{count} stock records"
+            "count": "{count} stock records",
+            "reorder": "Create purchase order",
+            "reorder_from": "{supplier} — {count} items",
+            "no_supplier": "No supplier"
         },
         "orders": {
             "counter_sale_return_hint": "This is a counter sale. It is returned at the till (Point of sale → Return), so the cash leaves the cashier's drawer.",
