@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import Field from '@/components/admin/Field.vue';
 import PosLayout from '@/layouts/PosLayout.vue';
 import { formatMoney } from '@/lib/money';
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { Alert, Button, Card, Descriptions, InputNumber, Textarea, Typography } from 'ant-design-vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 defineOptions({ layout: PosLayout });
@@ -30,7 +31,12 @@ const props = defineProps<{
     };
 }>();
 
-const form = useForm({ counted_cash: 0, note: '' });
+/**
+ * Starts empty, not at 0: a 0 left in place by a stray Enter would close the
+ * shift with the whole drawer recorded as missing, and a closed shift can't be
+ * reopened.
+ */
+const form = useForm({ counted_cash: null as number | null, note: '' });
 
 function money(amount: number): string {
     return formatMoney(amount, (page.props.locale as string) ?? 'en');
@@ -42,6 +48,9 @@ function money(amount: number): string {
  */
 const difference = computed(() => (form.counted_cash ?? 0) - props.shift.expected_cash_cents / 100);
 
+const counted = computed(() => form.counted_cash !== null && Number.isFinite(form.counted_cash));
+const balanced = computed(() => Math.abs(difference.value) < 0.0005);
+
 const differenceLabel = computed(() => {
     if (Math.abs(difference.value) < 0.0005) return t('admin.pos.balanced');
 
@@ -50,7 +59,23 @@ const differenceLabel = computed(() => {
         : t('admin.pos.short_by', { amount: money(Math.abs(difference.value)) });
 });
 
+/** A drawer that doesn't balance posts the gap to the treasury, so it is confirmed first. */
+const confirmingVariance = ref(false);
+
 function submit(): void {
+    if (!counted.value) return;
+
+    if (!balanced.value) {
+        confirmingVariance.value = true;
+
+        return;
+    }
+
+    close();
+}
+
+function close(): void {
+    confirmingVariance.value = false;
     form.post(route('admin.pos.shifts.closed'));
 }
 </script>
@@ -81,17 +106,17 @@ function submit(): void {
 
             <form @submit.prevent="submit">
                 <Field :label="t('admin.pos.counted_cash')" :error="form.errors.counted_cash" :help="t('admin.pos.counted_cash_help')" required>
-                    <InputNumber v-model:value="form.counted_cash" :min="0" :step="1" size="large" class="!w-full" />
+                    <InputNumber v-model:value="form.counted_cash" :min="0" :step="1" size="large" class="!w-full" autofocus />
                 </Field>
 
-                <Alert class="!mb-4" :type="Math.abs(difference) < 0.0005 ? 'success' : 'warning'" :message="differenceLabel" show-icon />
+                <Alert v-if="counted" class="!mb-4" :type="balanced ? 'success' : 'warning'" :message="differenceLabel" show-icon />
 
                 <Field :label="t('admin.common.notes')" :error="form.errors.note">
                     <Textarea v-model:value="form.note" :rows="2" :maxlength="500" />
                 </Field>
 
                 <div class="flex gap-2">
-                    <Button type="primary" html-type="submit" size="large" block :loading="form.processing">
+                    <Button type="primary" html-type="submit" size="large" block :loading="form.processing" :disabled="!counted">
                         {{ t('admin.pos.confirm_close') }}
                     </Button>
                     <Link :href="route('admin.pos.register')">
@@ -101,4 +126,15 @@ function submit(): void {
             </form>
         </Card>
     </div>
+
+    <ConfirmDialog
+        :open="confirmingVariance"
+        :title="t('admin.pos.confirm_variance_title')"
+        :message="t('admin.pos.confirm_variance_message', { variance: differenceLabel })"
+        :confirm-label="t('admin.pos.confirm_close')"
+        danger
+        :processing="form.processing"
+        @confirm="close"
+        @close="confirmingVariance = false"
+    />
 </template>

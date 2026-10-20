@@ -1175,7 +1175,9 @@
             "price_from": "من {price}",
             "sold_out": "{name} — لا يوجد منه مخزون.",
             "line_trimmed": "لم يتبقَّ من {name} سوى {count} — تم تعديل الكمية في السلة.",
-            "line_gone": "نفد {name} من المخزون وتمت إزالته من السلة."
+            "line_gone": "نفد {name} من المخزون وتمت إزالته من السلة.",
+            "confirm_variance_title": "الدرج غير مطابق",
+            "confirm_variance_message": "{variance}. سيُسجَّل الفرق في الخزنة ولا يمكن إعادة فتح الوردية. أعد العدّ إن لم تكن متأكداً."
         },
         "homepage": {
             "title": "الصفحة الرئيسية",

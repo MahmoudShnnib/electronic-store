@@ -1175,7 +1175,9 @@
             "price_from": "From {price}",
             "sold_out": "{name} — nothing left to sell.",
             "line_trimmed": "Only {count} left of {name} — the basket was trimmed.",
-            "line_gone": "{name} sold out elsewhere and was removed from the basket."
+            "line_gone": "{name} sold out elsewhere and was removed from the basket.",
+            "confirm_variance_title": "The drawer doesn't balance",
+            "confirm_variance_message": "{variance}. The difference will be posted to the treasury and the shift can't be reopened. Count again if you're not sure."
         },
         "homepage": {
             "title": "Homepage",
