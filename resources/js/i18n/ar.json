@@ -786,7 +786,17 @@
             "source_phone": "هاتف",
             "source_counter": "داخل المحل",
             "pricing_hint": "المجموع تقديري — النظام يعيد حساب الأسعار عند الحفظ.",
-            "unpaid_hint": "يُنشأ الطلب غير مدفوع. يدخل المال الخزنة عند الضغط على «مكتمل»."
+            "unpaid_hint": "يُنشأ الطلب غير مدفوع. يدخل المال الخزنة عند الضغط على «مكتمل».",
+            "confirm_complete_title": "تعليم الطلب كمكتمل؟",
+            "confirm_complete_cash": "سيُسجَّل المتبقي {amount} كمبلغ مستلَم ويدخل الخزنة. لا يمكن إعادة فتح الطلب بعد إكماله.",
+            "confirm_complete_paid": "لا يمكن إعادة فتح الطلب بعد إكماله.",
+            "confirm_complete_ok": "نعم، أكمله",
+            "confirm_payment_title": "تسجيل هذه الدفعة؟",
+            "confirm_payment_message": "سيُسجَّل {amount} كمدفوع ويدخل الخزنة.",
+            "confirm_payment_ok": "سجّل {amount}",
+            "confirm_refund_title": "استرداد مبلغ هذا الطلب؟",
+            "confirm_refund_message": "سيُعاد {amount} للعميل عبر {method} ويخرج من الخزنة. لا يمكن التراجع عن ذلك.",
+            "confirm_refund_ok": "استرد {amount}"
         },
         "products": {
             "title": "المنتجات",

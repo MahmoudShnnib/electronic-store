@@ -786,7 +786,17 @@
             "source_phone": "Phone",
             "source_counter": "In store",
             "pricing_hint": "This total is an estimate — the server re-prices everything on save.",
-            "unpaid_hint": "The order starts unpaid. The money enters the treasury when you press \"Completed\"."
+            "unpaid_hint": "The order starts unpaid. The money enters the treasury when you press \"Completed\".",
+            "confirm_complete_title": "Mark this order completed?",
+            "confirm_complete_cash": "The outstanding {amount} will be recorded as received and posted to the treasury. A completed order cannot be reopened.",
+            "confirm_complete_paid": "A completed order cannot be reopened.",
+            "confirm_complete_ok": "Yes, complete it",
+            "confirm_payment_title": "Record this payment?",
+            "confirm_payment_message": "{amount} will be recorded as paid and posted to the treasury.",
+            "confirm_payment_ok": "Record {amount}",
+            "confirm_refund_title": "Refund this order?",
+            "confirm_refund_message": "{amount} will be paid back by {method} and taken out of the treasury. This cannot be undone.",
+            "confirm_refund_ok": "Refund {amount}"
         },
         "products": {
             "title": "Products",

@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import AdminSelect from '@/components/admin/AdminSelect.vue';
+import ConfirmDialog from '@/components/admin/ConfirmDialog.vue';
 import DataTable, { type Column } from '@/components/admin/DataTable.vue';
 import Field from '@/components/admin/Field.vue';
 import HelpHint from '@/components/admin/HelpHint.vue';
 import PageHeader from '@/components/admin/PageHeader.vue';
+import PhoneLinks from '@/components/admin/PhoneLinks.vue';
 import StatusBadge from '@/components/admin/StatusBadge.vue';
 import type { Option } from '@/components/admin/types';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { formatMoney } from '@/lib/money';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { Button, Card, Checkbox, Descriptions, DescriptionsItem, Divider, Input, Textarea, Timeline, TimelineItem, Typography } from 'ant-design-vue';
 import { Printer } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -84,7 +87,14 @@ const props = defineProps<{
             at: string;
         }[];
         refunds: { id: number; amount_formatted: string; method: string; reference: string | null; reason: string | null; at: string }[];
+        driver: { id: number; name: string; phone: string | null } | null;
+        shipped_at: string | null;
+        confirmed_at: string | null;
+        needs_confirmation: boolean;
+        call_attempts: { id: number; outcome: 'confirmed' | 'no_answer'; note: string | null; user: string | null; at: string }[];
     };
+    drivers: { id: number; name: string }[];
+    unconfirmedCancelHours: number;
 }>();
 
 /** `!text-end` beats AntD's own cell alignment; `end` keeps RTL honest. */
@@ -121,10 +131,37 @@ const statusError = computed(() => {
 /** The transition awaiting a typed reason, if any. */
 const pendingStatus = ref<string | null>(null);
 
+/**
+ * Actions that move money (completing books the outstanding cash, payments and
+ * refunds post to the treasury) and can't be undone from here, so each one asks
+ * first and names the amount.
+ */
+const pendingConfirm = ref<{ title: string; message: string; ok: string; danger?: boolean; run: () => void } | null>(null);
+
+function runConfirmed(): void {
+    const action = pendingConfirm.value;
+    pendingConfirm.value = null;
+    action?.run();
+}
+
 function pickStatus(status: string): void {
     if (reasonRequired.includes(status)) {
         pendingStatus.value = pendingStatus.value === status ? null : status;
         statusForm.comment = '';
+
+        return;
+    }
+
+    if (status === 'completed') {
+        pendingConfirm.value = {
+            title: t('admin.orders.confirm_complete_title'),
+            message:
+                props.order.outstanding_cents > 0
+                    ? t('admin.orders.confirm_complete_cash', { amount: props.order.outstanding_formatted })
+                    : t('admin.orders.confirm_complete_paid'),
+            ok: t('admin.orders.confirm_complete_ok'),
+            run: () => submitStatus(status),
+        };
 
         return;
     }
@@ -147,6 +184,15 @@ function submitStatus(status: string): void {
 const paymentForm = useForm({ amount: null as number | null, reference: '' });
 
 /** Customers pay the whole order at once: the only payment is the full amount owed. */
+function confirmPayment(): void {
+    pendingConfirm.value = {
+        title: t('admin.orders.confirm_payment_title'),
+        message: t('admin.orders.confirm_payment_message', { amount: props.order.outstanding_formatted }),
+        ok: t('admin.orders.confirm_payment_ok', { amount: props.order.outstanding_formatted }),
+        run: submitPayment,
+    };
+}
+
 function submitPayment(): void {
     paymentForm.amount = props.order.outstanding_cents / 100;
     paymentForm.post(route('admin.orders.payments.store', props.order.id), {
@@ -159,6 +205,22 @@ const refundForm = useForm({ amount: null as number | null, method: 'cash', refe
 
 /** No part refunds: what goes back is always everything still held. */
 const heldCents = computed(() => Math.max(0, props.order.paid_cents - props.order.refunded_cents));
+
+const page = usePage();
+const heldLabel = computed(() => formatMoney(heldCents.value / 100, (page.props.locale as string) ?? 'en'));
+
+function confirmRefund(): void {
+    const method = refundMethods.value.find((option) => option.value === refundForm.method)?.label ?? refundForm.method;
+
+    pendingConfirm.value = {
+        title: t('admin.orders.confirm_refund_title'),
+        // No part refunds: everything still held goes back.
+        message: t('admin.orders.confirm_refund_message', { amount: heldLabel.value, method }),
+        ok: t('admin.orders.confirm_refund_ok', { amount: heldLabel.value }),
+        danger: true,
+        run: submitRefund,
+    };
+}
 
 function submitRefund(): void {
     refundForm.amount = heldCents.value / 100;
@@ -207,6 +269,30 @@ const refundMethods = computed(() => [
     { value: 'bank_transfer', label: t('admin.orders.bank_transfer') },
 ]);
 
+/** A confirmation call: confirmed, or another unanswered try. */
+const callForm = useForm({ outcome: '', note: '' });
+
+function recordCall(outcome: 'confirmed' | 'no_answer'): void {
+    callForm.outcome = outcome;
+    callForm.post(route('admin.orders.calls.store', props.order.id), {
+        preserveScroll: true,
+        onSuccess: () => callForm.reset(),
+    });
+}
+
+/** Handing the parcel to one of our drivers, or taking it back. */
+const dispatchForm = useForm({ driver_id: null as number | string | null });
+
+const driverOptions = computed(() => props.drivers.map((driver) => ({ value: driver.id, label: driver.name })));
+
+function handToDriver(): void {
+    dispatchForm.post(route('admin.orders.dispatch', props.order.id), { preserveScroll: true, onSuccess: () => dispatchForm.reset() });
+}
+
+function recallFromDriver(): void {
+    dispatchForm.delete(route('admin.orders.dispatch.recall', props.order.id), { preserveScroll: true });
+}
+
 /** Shown wherever the customer left a field empty, so the gap is obvious. */
 const blank = '—';
 
@@ -215,10 +301,10 @@ const blank = '—';
  * ` · `-separated string made a mistyped city indistinguishable from an area or
  * a delivery note, and dropping the empty rows hid the missing value entirely.
  */
-function addressRows(address: Address): { label: string; value: string }[] {
-    const rows = [
+function addressRows(address: Address): { label: string; value: string; phone?: boolean }[] {
+    const rows: { label: string; value: string | null | undefined; phone?: boolean }[] = [
         { label: t('admin.common.recipient'), value: address.name },
-        { label: t('admin.common.phone'), value: address.phone },
+        { label: t('admin.common.phone'), value: address.phone, phone: true },
         { label: t('admin.common.city'), value: address.city },
         { label: t('admin.common.area'), value: address.area },
     ];
@@ -227,8 +313,17 @@ function addressRows(address: Address): { label: string; value: string }[] {
         rows.push({ label: t('admin.common.notes'), value: address.notes });
     }
 
-    return rows.map((row) => ({ label: row.label, value: row.value ? String(row.value) : blank }));
+    return rows.map((row) => ({ label: row.label, value: row.value ? String(row.value) : blank, phone: row.phone }));
 }
+
+/** The opening line staff send on WhatsApp — names the shop and the order so the customer knows who it is. */
+const whatsappMessage = computed(() =>
+    t('admin.orders.whatsapp_message', {
+        name: props.order.customer.name ?? '',
+        store: (page.props.name as string) ?? '',
+        number: props.order.number,
+    }),
+);
 </script>
 
 <template>
@@ -295,7 +390,7 @@ function addressRows(address: Address): { label: string; value: string }[] {
                             <bdi dir="ltr">{{ order.customer.email || blank }}</bdi>
                         </DescriptionsItem>
                         <DescriptionsItem :label="t('admin.common.phone')">
-                            <bdi dir="ltr">{{ order.customer.phone || blank }}</bdi>
+                            <PhoneLinks :phone="order.customer.phone" :message="whatsappMessage" />
                         </DescriptionsItem>
                     </Descriptions>
                     <Link
@@ -308,7 +403,8 @@ function addressRows(address: Address): { label: string; value: string }[] {
 
                     <Descriptions :title="t('admin.orders.shipping_address')" :column="1" size="small" class="mt-4">
                         <DescriptionsItem v-for="row in addressRows(order.shipping_address)" :key="row.label" :label="row.label">
-                            {{ row.value }}
+                            <PhoneLinks v-if="row.phone" :phone="row.value === blank ? null : row.value" :message="whatsappMessage" />
+                            <template v-else>{{ row.value }}</template>
                         </DescriptionsItem>
                     </Descriptions>
 
@@ -340,6 +436,91 @@ function addressRows(address: Address): { label: string; value: string }[] {
 
         <!-- Right rail: actions -->
         <div class="space-y-6">
+            <!-- Before it leaves: confirm by phone; then: which driver has it. -->
+            <Card v-if="!order.is_counter_sale" size="small" :title="t('admin.orders.delivery')">
+                <div class="space-y-3">
+                    <div>
+                        <Text strong class="block !text-xs">{{ t('admin.orders.confirmation') }}</Text>
+                        <Text v-if="order.confirmed_at" type="success">{{ t('admin.orders.confirmed_at', { at: order.confirmed_at }) }}</Text>
+                        <template v-else>
+                            <Text type="warning" class="block">{{ t('admin.orders.not_confirmed') }}</Text>
+                            <template v-if="order.needs_confirmation && order.can.manage">
+                                <Text type="secondary" class="mb-2 block !text-xs">
+                                    {{ t('admin.orders.confirm_hint', { hours: unconfirmedCancelHours }) }}
+                                </Text>
+                                <Input v-model:value="callForm.note" :placeholder="t('admin.orders.call_note')" class="mb-2" :maxlength="500" />
+                                <div class="flex gap-2">
+                                    <Button type="primary" class="flex-1" :loading="callForm.processing" @click="recordCall('confirmed')">
+                                        {{ t('admin.orders.mark_confirmed') }}
+                                    </Button>
+                                    <Button class="flex-1" :loading="callForm.processing" @click="recordCall('no_answer')">
+                                        {{ t('admin.orders.mark_no_answer') }}
+                                    </Button>
+                                </div>
+                                <Text v-if="callForm.errors.outcome" type="danger" class="mt-1 block !text-xs">{{ callForm.errors.outcome }}</Text>
+                            </template>
+                        </template>
+                        <ul v-if="order.call_attempts.length > 0" class="mt-2 space-y-1">
+                            <li v-for="call in order.call_attempts" :key="call.id">
+                                <Text type="secondary" class="!text-xs">
+                                    {{ call.outcome === 'confirmed' ? t('admin.orders.call_confirmed') : t('admin.orders.call_no_answer') }} ·
+                                    {{ call.user ?? '—' }} · {{ call.at }}<template v-if="call.note"> · {{ call.note }}</template>
+                                </Text>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <Divider class="!my-2" />
+
+                    <div>
+                        <Text strong class="block !text-xs">{{ t('admin.orders.driver') }}</Text>
+                        <template v-if="order.driver && order.shipped_at">
+                            <Text class="block">{{ t('admin.orders.with_driver', { name: order.driver.name, at: order.shipped_at }) }}</Text>
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                <a :href="route('admin.drivers.manifest', order.driver.id)" target="_blank" rel="noopener">
+                                    <Button size="small">{{ t('admin.orders.view_manifest') }}</Button>
+                                </a>
+                                <Button
+                                    v-if="order.can.manage && order.status === 'in_progress'"
+                                    size="small"
+                                    :loading="dispatchForm.processing"
+                                    @click="recallFromDriver"
+                                >
+                                    {{ t('admin.orders.recall_from_driver') }}
+                                </Button>
+                            </div>
+                        </template>
+                        <template v-else>
+                            <Text type="secondary" class="block">{{ t('admin.orders.in_shop') }}</Text>
+                            <template v-if="order.can.manage && order.status === 'in_progress'">
+                                <div v-if="drivers.length > 0" class="mt-2 flex gap-2">
+                                    <AdminSelect
+                                        v-model="dispatchForm.driver_id"
+                                        :options="driverOptions"
+                                        :empty-label="t('admin.orders.choose_driver')"
+                                        class="flex-1"
+                                    />
+                                    <Button
+                                        type="primary"
+                                        :disabled="!dispatchForm.driver_id"
+                                        :loading="dispatchForm.processing"
+                                        @click="handToDriver"
+                                    >
+                                        {{ t('admin.orders.hand_to_driver') }}
+                                    </Button>
+                                </div>
+                                <Link v-else :href="route('admin.drivers.index')" class="admin-link mt-2 inline-block text-sm hover:underline">
+                                    {{ t('admin.orders.add_driver') }}
+                                </Link>
+                                <Text v-if="dispatchForm.errors.driver_id" type="danger" class="mt-1 block !text-xs">{{
+                                    dispatchForm.errors.driver_id
+                                }}</Text>
+                            </template>
+                        </template>
+                    </div>
+                </div>
+            </Card>
+
             <Card size="small" :title="t('admin.orders.order_status')">
                 <template #extra><StatusBadge :status="order.status" :label="order.status_label" /></template>
                 <template v-if="quickTransitions.length > 0">
@@ -407,7 +588,7 @@ function addressRows(address: Address): { label: string; value: string }[] {
                 <!-- Every payment and refund posts to the treasury, so what is
                      recorded here is what the accounts will show. -->
                 <Text type="secondary" class="mb-3 block !text-xs">{{ t('admin.orders.treasury_hint') }}</Text>
-                <form v-if="order.can.manage && order.outstanding_cents > 0" @submit.prevent="submitPayment">
+                <form v-if="order.can.manage && order.outstanding_cents > 0" @submit.prevent="confirmPayment">
                     <Field :label="t('admin.orders.record_payment')" :error="paymentForm.errors.amount">
                         <Input v-model:value="paymentForm.reference" :placeholder="t('admin.common.reference_optional')" dir="ltr" />
                     </Field>
@@ -470,7 +651,7 @@ function addressRows(address: Address): { label: string; value: string }[] {
                 </Text>
 
                 <!-- An order already sent back can still need money returned. -->
-                <form v-else-if="order.can.refund && heldCents > 0 && !order.is_counter_sale" @submit.prevent="submitRefund">
+                <form v-else-if="order.can.refund && heldCents > 0 && !order.is_counter_sale" @submit.prevent="confirmRefund">
                     <Text v-if="refundForm.errors.amount" type="danger" class="mb-2 block !text-xs">{{ refundForm.errors.amount }}</Text>
                     <Field :label="t('admin.common.method')" :error="refundForm.errors.method">
                         <AdminSelect v-model="refundForm.method" :options="refundMethods" />
@@ -484,4 +665,14 @@ function addressRows(address: Address): { label: string; value: string }[] {
             </Card>
         </div>
     </div>
+
+    <ConfirmDialog
+        :open="pendingConfirm !== null"
+        :title="pendingConfirm?.title"
+        :message="pendingConfirm?.message ?? ''"
+        :confirm-label="pendingConfirm?.ok"
+        :danger="pendingConfirm?.danger"
+        @confirm="runConfirmed"
+        @close="pendingConfirm = null"
+    />
 </template>
